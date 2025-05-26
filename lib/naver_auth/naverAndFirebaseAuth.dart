@@ -4,6 +4,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 
+const database_Id = '(default)';
+
 class AuthService {
   // 네이버 로그인 후 토큰을 받고 유저를 저장하는 함수
   Future<void> signInWithNaver() async {
@@ -65,10 +67,12 @@ class AuthService {
     NaverLoginProfile profile,
   ) async {
     try {
-      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+      final HttpsCallable callable = FirebaseFunctions.instanceFor(
+        region: 'us-central1',
+      ).httpsCallable(
         'createCustomToken',
       ); // firebase functions의 createCustomToken 함수를 실행시킨다.
-
+      print("okok");
       final response = await callable.call({'accessToken': accessToken});
       print('Firebase Function response: ${response.data}'); // 요청 받아온 값을 출력
 
@@ -99,14 +103,14 @@ class AuthService {
 
       // 데이터베이스 이름 : takch02, app : 기존 앱
       FirebaseFirestore _firestore = FirebaseFirestore.instanceFor(
-        databaseId: "takch02",
+        databaseId: database_Id,
         app: Firebase.app(),
       );
       // 저장
       await _firestore.collection('users').add(userDoc);
     } catch (e) {
       print('Error: $e');
-      throw Exception('Function call fucked up, Q삣삐: $e');
+      throw Exception('Function call error: $e');
     }
   }
 }
