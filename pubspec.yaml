@@ -1,19 +1,19 @@
-name: new_project_1
-description: "A new Flutter project."
+name: my_app
+description: A new Flutter project.
 publish_to: 'none'
-version: 0.1.0
+
+version: 1.0.0+1
 
 environment:
   sdk: ^3.7.2
 
 dependencies:
-  cloud_firestore: ^5.6.7  # db
-  cloud_functions: ^5.5.0  # firebase functions 이용을 위함
-  firebase_auth: ^5.5.3    # 인증을 위함
-  firebase_core: ^3.13.0   # firebase 이용을 위함
   flutter:
     sdk: flutter
-  naver_login_sdk: ^3.0.1  # naver login sdk로 쉽게 로직을 짬. 
+    #get
+  cupertino_icons: ^1.0.8
+  firebase_core: ^3.13.0
+  cloud_firestore: ^5.6.7
 
 dev_dependencies:
   flutter_test:
