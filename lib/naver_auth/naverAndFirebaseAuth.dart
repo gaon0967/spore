@@ -4,65 +4,73 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 
-const database_Id = '(default)';
+const database_Id = '(default)'; // 데이터베이스 이름
 
+/// 클래스 : AuthService
+/// 목적 : Naver 소셜 로그인으로 로그인하고 유저 정보를 return 한다.
+/// 반환타입 : Map<dynaic, dynamic>
+/// 예외 : Naver 로그인에 실패 or 토큰이 없거나 프로파일이 없는 경우 발생
 class AuthService {
-  // 네이버 로그인 후 토큰을 받고 유저를 저장하는 함수
-  Future<void> signInWithNaver() async {
+  /// 클래스 : signInWithNaver()
+  /// 목적 : Naver 소셜 로그인으로 로그인하고 유저 정보를 return 한다.
+  /// 반환타입 : Map<dynaic, dynamic>
+  /// 예외 : Naver 로그인에 실패 or 토큰이 없거나 프로파일이 없는 경우 발생
+  Future<Map<dynamic, dynamic>> signInWithNaver() async {
     try {
+      // 네이버 로그인 인증
+      String accessToken = '';
+      dynamic profile = '';
       await NaverLoginSDK.authenticate(
         // NaverLoginSDK 를 이용해 로그인에 시도 후 토큰을 받아온다.
         callback: OAuthLoginCallback(
           onSuccess: () async {
-            final accessToken = await NaverLoginSDK.getAccessToken();
-            if (accessToken.isEmpty) {
+            final token = await NaverLoginSDK.getAccessToken();
+            if (token.isEmpty) {
               throw Exception('Naver accessToken is empty.');
             }
-            print('Naver accessToken: $accessToken');
-
-            // 유저 정보를 가져오는 함수
-            await NaverLoginSDK.profile(
-              // 유저의 profile을 가져온다.
-              callback: ProfileCallback(
-                onSuccess: (resultCode, message, response) async {
-                  print('Profile: $response');
-                  final profile = NaverLoginProfile.fromJson(
-                    response: response,
-                  );
-                  print(
-                    'User: ${profile.id}, ${profile.email}, ${profile.name}',
-                  );
-
-                  await _callFirebaseFunction(
-                    // 토큰과 유저 정보를 넘김.
-                    accessToken,
-                    profile,
-                  ); // ** 중요한 로직. firebase functions에 연결해 인증을 받고 db와 연동함.
-                },
-                onError: (errorCode, message) {
-                  throw Exception('Profile error: $errorCode, $message');
-                },
-                onFailure: (httpStatus, message) {
-                  throw Exception('Profile failure: $httpStatus, $message');
-                },
-              ),
-            );
+            print('Naver accessToken: $token');
+            accessToken = token;
           },
           onError: (errorCode, message) {
-            throw Exception('Login error: $errorCode, $message.');
+            throw Exception('Login error: $errorCode, $message');
           },
           onFailure: (httpStatus, message) {
-            throw Exception('Login failure: $httpStatus, $message.');
+            throw Exception('Login failure: $httpStatus, $message');
           },
         ),
       );
+
+      // 네이버 프로필 가져오기
+      await NaverLoginSDK.profile(
+        callback: ProfileCallback(
+          onSuccess: (resultCode, message, response) async {
+            print('Profile: $response');
+            profile = NaverLoginProfile.fromJson(response: response);
+          },
+          onError: (errorCode, message) {
+            throw Exception('Profile error: $errorCode, $message');
+          },
+          onFailure: (httpStatus, message) {
+            throw Exception('Profile failure: $httpStatus, $message');
+          },
+        ),
+      );
+      // 예외처리
+      if (accessToken == '' || profile == '') {
+        throw Exception('사용자 로그인 실패');
+      }
+      return await _callFirebaseFunction(accessToken, profile);
     } catch (e) {
       print('Error: $e');
-      throw Exception('로그인 실패. 로직 검토 : $e');
+      throw Exception('로그인 실패: $e');
     }
   }
 
-  Future<void> _callFirebaseFunction(
+  /// 함수 : callFirebaseFunction()
+  /// 목적 : 토큰, 프로파일을 firebase에 넘겨 유저가 없으면 생성한다. 유저의 정보가 담긴 Map을 return 한다.
+  /// 반환타입 : Map<dynaic, dynamic>
+  /// 예외 : 토큰이 없거나 프로파일이 없는 경우 발생
+  Future<Map> _callFirebaseFunction(
     String accessToken,
     NaverLoginProfile profile,
   ) async {
@@ -87,10 +95,20 @@ class AuthService {
         throw Exception('No customToken returned from server.');
       }
 
-      // 서버에서 인증하여 받아온 토큰으로 firebase에 인증한다다
+      // 서버에서 인증하여 받아온 토큰으로 firebase에 인증한다
       await FirebaseAuth.instance.signInWithCustomToken(customToken);
 
-      // 유저에 저장할 목록은 map 형식으로 만듦.
+      // 데이터베이스 이름 : (default), app : 기존 앱
+      FirebaseFirestore _firestore = FirebaseFirestore.instanceFor(
+        databaseId: database_Id,
+        app: Firebase.app(),
+      );
+
+      /**
+       * userDoc에 유저의 정보를 담는다.
+       * select_uid는 firestore에 유저의 uid가 존재하는지 찾는다.
+       * 만약 존재하지 않으면 유저를 add한다. 그렇지 않으면 생성하지 않는다.
+       */
       final userDoc = <String, dynamic>{
         'uid': uid,
         'email': email,
@@ -99,15 +117,18 @@ class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      print("userDoc : ${userDoc}");
 
-      // 데이터베이스 이름 : takch02, app : 기존 앱
-      FirebaseFirestore _firestore = FirebaseFirestore.instanceFor(
-        databaseId: database_Id,
-        app: Firebase.app(),
-      );
+      final selectUid =
+          await _firestore
+              .collection('users')
+              .where('uid', isEqualTo: uid)
+              .get();
+
+      if (selectUid.docs.isEmpty) {
+        await _firestore.collection('users').add(userDoc);
+      }
+      return userDoc;
       // 저장
-      await _firestore.collection('users').add(userDoc);
     } catch (e) {
       print('Error: $e');
       throw Exception('Function call error: $e');
