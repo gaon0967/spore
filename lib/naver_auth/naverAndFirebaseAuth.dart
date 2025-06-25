@@ -8,14 +8,14 @@ const database_Id = '(default)'; // 데이터베이스 이름
 
 /// 클래스 : AuthService
 /// 목적 : Naver 소셜 로그인으로 로그인하고 유저 정보를 return 한다.
-/// 반환타입 : Map<dynaic, dynamic>
+/// 반환타입 : Map<String, dynamic>
 /// 예외 : Naver 로그인에 실패 or 토큰이 없거나 프로파일이 없는 경우 발생
 class AuthService {
   /// 클래스 : signInWithNaver()
   /// 목적 : Naver 소셜 로그인으로 로그인하고 유저 정보를 return 한다.
-  /// 반환타입 : Map<dynaic, dynamic>
+  /// 반환타입 : Map<String, dynamic>
   /// 예외 : Naver 로그인에 실패 or 토큰이 없거나 프로파일이 없는 경우 발생
-  Future<Map<dynamic, dynamic>> signInWithNaver() async {
+  Future<Map> signInWithNaver() async {
     try {
       // 네이버 로그인 인증
       String accessToken = '';
@@ -105,10 +105,13 @@ class AuthService {
       );
 
       /**
-       * userDoc에 유저의 정보를 담는다.
-       * select_uid는 firestore에 유저의 uid가 존재하는지 찾는다.
-       * 만약 존재하지 않으면 유저를 add한다. 그렇지 않으면 생성하지 않는다.
+       * userRef에 문서Id가 uid인 값을 가져온다.
+       * get() 의 값이 없으면 유저를 만듦.(회원가입)
+       * 
        */
+
+      final userRef = _firestore.collection('users').doc(uid);
+      final userDocSnapShot = await userRef.get();
       final userDoc = <String, dynamic>{
         'uid': uid,
         'email': email,
@@ -118,17 +121,10 @@ class AuthService {
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
-      final selectUid =
-          await _firestore
-              .collection('users')
-              .where('uid', isEqualTo: uid)
-              .get();
-
-      if (selectUid.docs.isEmpty) {
-        await _firestore.collection('users').add(userDoc);
+      if (!userDocSnapShot.exists) {
+        await userRef.set(userDoc);
       }
       return userDoc;
-      // 저장
     } catch (e) {
       print('Error: $e');
       throw Exception('Function call error: $e');

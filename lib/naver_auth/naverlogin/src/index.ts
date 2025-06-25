@@ -47,6 +47,10 @@ const safeStringify = (obj: unknown): string => {
 admin.initializeApp();
 
 // HTTPS Callable Function: 네이버 토큰으로 커스텀 토큰 생성
+// 클래스 : X
+// 목적 : 네이버 로그인 후 토큰 유효성 검토. 검토 후 fireAuth로 넘겨 인증!
+// 반환 타입 : Object (JS 모르시는 분이면 객체를 반환한다 생각해주세요)
+// 예외 : http에서 받은 JSON 형식 오류, 토근이 유효하지 않을 시 발생
 export const createCustomToken = functions.https.onCall(
   async (data: unknown): Promise<CustomTokenOutput> => {
     // 디버깅: 수신된 데이터 로그
