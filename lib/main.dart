@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_logcat/flutter_logcat.dart';
+//import 'package:flutter_logcat/flutter_logcat.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:new_project_1/naver_auth/naverAndFirebaseAuth.dart';
+//import 'package:new_project_1/naver_auth/naverAndFirebaseAuth.dart';
 import 'firebase_options.dart'; // Firebase CLI로 생성된 파일
+import 'LoginHome.dart';
+
+
 
 const urlScheme = 'flutterNaverLogin'; // IOS 어플에만 이용(아직 안함)
 const clientId = 'eW2zZw8AjJC4iudM9OzD'; // naver api id
@@ -24,9 +27,27 @@ void main() async {
     clientName: clientName,
   );
 
-  runApp(MaterialApp(home: const MyApp()));
+  //runApp(MaterialApp(home: const MyApp()));
+  runApp(const MyApp());
 }
 
+//MyApp 위젯을 앱의 기본 설정을 담당하는 간단한 형태로 변경.
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      debugShowCheckedModeBanner: false, // 디버그 배너 숨기기
+      // home  첫 화면 만듬.
+      home: LoginScreen(),
+    );
+  }
+}
+
+
+
+/*
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
@@ -35,17 +56,23 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  
+  
+
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       appBar: AppBar(title: FittedBox(child: Text("네이버 로그인 테스트"))),
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 24.0,
+      
+      
+      body  : SafeArea(
+              child: Center(
+                child: SingleChildScrollView(
+                  child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 24.0,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -91,3 +118,5 @@ class _MyAppState extends State<MyApp> {
     );
   }
 }
+
+*/
