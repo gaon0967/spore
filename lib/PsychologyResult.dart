@@ -11,6 +11,7 @@ class Character {
   final String imagePath;
   final String description;
   final List<String> keywords;
+   final Color color; // 추가
 
   const Character({
     required this.id,
@@ -19,6 +20,7 @@ class Character {
     required this.imagePath,
     required this.description,
     required this.keywords,
+    required this.color,
   });
 
   // 모든 캐릭터 데이터를 Map 형태로 보관
@@ -29,56 +31,74 @@ class Character {
         speech: '오늘은 무슨 일 있었어?',
         imagePath: 'assets/images/ch1_3.png',
         description: '따뜻한 마음으로 주변을 챙기는 당신. 모두에게 힘이 되어주는 존재.',
-        keywords: ['# 다정한', '#친절한']),
+        keywords: ['# 다정한', '#친절한'],
+        color:Color(0xB3A6A6)
+        ),
     2: const Character(
         id: 2,
         name: '게으른 철학자',
         speech: '서두를게 뭐가 있어.',
         imagePath: 'assets/images/ch2_4.png',
         description: '세상만사 귀찮지만, 가끔은 누구보다 깊은 생각에 빠지는 반전 매력의 소유자.',
-        keywords: ['# 느긋한', '# 여유로운']),
+        keywords: ['# 느긋한', '# 여유로운'],
+        color:Color(0xCDDEE3)
+        ),
     3: const Character(
         id: 3,
         name: '마이웨이',
         speech: '나는 나만의 길을 간다.',
         imagePath: 'assets/images/ch2_1.png',
         description: '주변에 휘둘리지 않고 자신만의 길을 가는 독립적인 스타일. 때로는 고집쟁이.',
-        keywords: ['# 독립적인', '# 자유로운']),
+        keywords: ['# 독립적인', '# 자유로운'],
+        color:Color(0xB3A6A6)
+        ),
     4: const Character(
         id: 4,
         name: '해피 바이러스',
         speech: '청바지를 돋보이게 하는 걸음걸이는?',
         imagePath: 'assets/images/ch1_2.png',
         description: '언제나 긍정적이고 유쾌한 에너지로 주변 사람들을 즐겁게 만드는 분위기 메이커.',
-        keywords: ['# 창의적인', '# 재미있는']),
+        keywords: ['# 창의적인', '# 재미있는'],
+        color:Color(0xF4ECD2)
+        ),
     5: const Character(
         id: 5,
         name: '과몰입러',
         speech: '🔥🔥🔥🔥🔥🔥🔥🔥🔥',
         imagePath: 'assets/images/ch2_3.png',
         description: '한 번 빠지면 끝을 보는 엄청난 집중력과 열정의 소유자.',
-        keywords: ['# 열정적인', '# 도전적인']),
+        keywords: ['# 열정적인', '# 도전적인'],
+        color: Color(0xCA9E9E)
+        ),
     6: const Character(
         id: 6,
         name: '대문자 F',
         speech: '이렇게 말해도 될까? 😟',
         imagePath: 'assets/images/ch2_2.png',
         description: '타인의 감정을 섬세하게 살피고 공감 능력이 뛰어납니다. 상처도 잘 받는 여린 마음.',
-        keywords: ['# 공감능력', '# 섬세함', '# 눈치많이봄']),
+        keywords: ['# 공감능력', '# 섬세함'],
+        color:Color(0xDDD2DA)
+        ),
     7: const Character(
         id: 7,
         name: '정의로운 용사',
         speech:  '나만 믿어, 등 뒤는 내가 지킬게!',
         imagePath: 'assets/images/ch1_1.png',
         description: '불의를 보면 참지 못하고, 체계적이고 계획적으로 문제를 해결하는 리더 타입.',
-        keywords: ['# 든든한', '# 안정적인']),
+        keywords: ['# 든든한', '# 안정적인'],
+        color:Color(0xE6E6E6)
+        
+        ),
     8: const Character(
         id: 8,
         name: '명언가',
         speech: '이 노을…. 꼭 너 같아.',
         imagePath: 'assets/images/ch1_4.png',
         description: '현상의 이면을 꿰뚫어 보고 논리적으로 분석하는 것을 즐깁니다. 신중하고 조용한 편.',
-        keywords: ['# 감성적인','#섬세한']),
+        keywords: ['# 감성적인','#섬세한'],
+        color:Color(0x7887AD)
+        
+        ),
   };
   
   // ID로 캐릭터 정보를 찾아주는 함수
