@@ -1,10 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:new_project_1/HomeCalendar.dart';
-import 'PsychologyStart.dart';
+import 'PsychologyStart.dart'; //심리테스트 시작하는 화면 
 import 'naver_auth/naverAndFirebaseAuth.dart'; 
-import 'HomeCalendar.dart'; 
-// 화면 전체를 구성하는 메인 위젯
+import 'HomeCalendar.dart'; // 홈(달력) 화면 
+
+
+
+
+/// 클래스 : LoginScreen
+/// 목적 : 로그인 화면의 전체 UI를 구성하는 메인 위젯임.
+/// 반환타입 : StatelessWidget (Scaffold를 반환)
+/// 예외 : 예외 처리된거 없음. 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
@@ -16,9 +23,9 @@ class LoginScreen extends StatelessWidget {
         child: Stack(
           alignment: Alignment.topCenter,
           children: [
-            _TopSection(),
-            _ChatBubbleSection(),
-            _BottomSection(),
+            _TopSection(), // 상단_로고 
+            _ChatBubbleSection(), // 중긴_ 말풍선 
+            _BottomSection(), // 하단_ 네이버 로그인 버튼 , 심리테스트 
           ],
         ),
       ),
@@ -26,7 +33,15 @@ class LoginScreen extends StatelessWidget {
   }
 }
 
-// 1. 상단 섹션
+
+
+
+
+
+/// 클래스 : _TopSection  
+/// 목적 : 로그인 화면 상단의 로고와 앱 이름, 설명를 표시하는 섹션 위젯  
+/// 반환타입 : StatelessWidget (Stack 위젯을 반환)  
+/// 예외 : 예외 처리된거 없음. 
 class _TopSection extends StatelessWidget {
   const _TopSection();
 
@@ -35,10 +50,13 @@ class _TopSection extends StatelessWidget {
     return Stack(
       alignment: Alignment.topCenter,
       children: [
+        //앱 로고 이미지 
         Positioned(
           top: 70,
           child: Image.asset('assets/images/Logo.png', width: 48, height: 52),
         ),
+
+        // 앱 소개 글
         Positioned(
           top: 140,
           child: const Text(
@@ -51,6 +69,8 @@ class _TopSection extends StatelessWidget {
             ),
           ),
         ),
+
+        //앱 이름 텍스트 
         Positioned(
           top: 160,
           child: const Text(
@@ -68,7 +88,14 @@ class _TopSection extends StatelessWidget {
   }
 }
 
-// 2. 말풍선 섹션
+
+
+/// 클래스 : _ChatBubbleSection  
+/// 목적 : 사용자에게 앱 설명하는 말풍선 UI를 표시  
+/// 반환타입 : StatelessWidget (Stack 위젯을 반환)  
+/// 예외 : 예외 없음 
+
+// 말풍선 
 class _ChatBubbleSection extends StatelessWidget {
   const _ChatBubbleSection();
 
@@ -86,14 +113,14 @@ class _ChatBubbleSection extends StatelessWidget {
         // --- 말풍선 1 ---
         Positioned(
           left: 52, top: 340,
-          child: Image.asset('assets/images/talk1.png', width: 190, height: 42),
+          child: Image.asset('assets/images/talk1.png', width: 200, height: 48),
         ),
         Positioned(
           left: 52, top: 340, width: 190, height: 42,
           child: const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text("오늘 일정 뭐였지 ?? 💬", style: bubbleTextStyle),
+              child: Text("💬오늘 일정 뭐였지 ?? 💬", style: bubbleTextStyle),
             ),
           ),
         ),
@@ -101,7 +128,7 @@ class _ChatBubbleSection extends StatelessWidget {
         // --- 말풍선 2 ---
         Positioned(
           left: 82, top: 410,
-          child: Image.asset('assets/images/talk2.png', width: 282, height: 42),
+          child: Image.asset('assets/images/talk2.png', width: 290, height: 48),
         ),
         Positioned(
           left: 82, top: 410, width: 282, height: 42,
@@ -116,7 +143,7 @@ class _ChatBubbleSection extends StatelessWidget {
         // --- 말풍선 3 ---
         Positioned(
           left: 51, top: 480,
-          child: Image.asset('assets/images/talk3.png', width: 251, height: 42),
+          child: Image.asset('assets/images/talk3.png', width: 260, height: 48),
         ),
         Positioned(
           left: 51, top: 480, width: 251, height: 42,
@@ -134,6 +161,14 @@ class _ChatBubbleSection extends StatelessWidget {
 
 
 // 하단 네이버 로그인 _ 네이버 가이드 라인이 있어서 로고 모양 추후 다시 알아보고 변경. _ 원, 직사각형만 됨. 
+
+/// 클래스 : _BottomSection  
+/// 목적 :  화면 하단의 네이버 로그인 버튼과 심리테스트 페이지 이동 버튼을 구성  
+/// 반환타입 : StatelessWidget (Stack 위젯을 반환)  
+/// 예외 :  
+///   - 네이버 로그인 도중 사용자가 취소하거나 오류 발생 시 예외 발생  
+///   - 로그인 후 context가 unmounted 상태이면 화면 전환 실패  
+///   - 에러 시 SnackBar로 사용자에게 안내 메시지 표시  
 class _BottomSection extends StatelessWidget {
   const _BottomSection();
 
@@ -154,27 +189,27 @@ class _BottomSection extends StatelessWidget {
             onPressed: () async{
               print("네이버 로그인 버튼 클릭됨");
   
-               // 1. AuthService 클래스의 인스턴스를 생성합니다.
+               // 1. AuthService 클래스의 인스턴스를 생성.
               final authService = AuthService();
 
-              // 2. try-catch 블록으로 로그인 과정 전체를 감싸 에러를 처리합니다.
+        
               try {
-              // 3. '로그인 전용' 메소드를 호출합니다.
+              // 2, 로그인 전용.
               final userData = await authService.loginOnlyWithNaver();
 
               print("기존 회원 로그인 성공: $userData");
 
-              // 위젯이 화면에 마운트된 상태인지 확인 (안전장치)
+              //  3. context가 여전히 유효한지 확인
               if (!context.mounted) return;
 
-              // 4. 성공 시 HomeCalendar 화면으로 이동합니다.
+              // 4. 성공 시 HomeCalendar 화면으로 이동
               Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const HomeCalendar()),
     );
 
   } catch (e) {
-    // 사용자가 로그인을 취소했거나 에러가 발생한 경우
+  
     print("로그인 실패: $e");
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -184,18 +219,20 @@ class _BottomSection extends StatelessWidget {
             },
           ),
         ),
+
+        // 계정이 없는 사람들을 위한 텍스트 버튼 
         Positioned(
           top: 675,
-          // Text 위젯을 InkWell로 감싸서 탭 가능하게 만듭니다.
+        
           child: InkWell(
             onTap: () {
-              // onTap 콜백에서 Navigator.push를 호출해 화면을 이동시킵니다.
+             // 심리 테스트 화면으로 이동 
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const PsychologyStart()),
               );
             },
-            // 시각적인 터치 효과를 위해 투명한 배경을 줍니다.
+           
             splashColor: Colors.grey.withOpacity(0.2),
             borderRadius: BorderRadius.circular(8),
             child: const Padding(
