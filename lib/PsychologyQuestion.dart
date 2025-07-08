@@ -3,12 +3,20 @@ import 'PsychologyResult.dart';
 
 
 // --- 테스트 질문 화면 ---
+/// 클래스 : PsychologyQuestion  
+/// 목적 : 심리 테스트 질문을 하나씩 보여주고, 사용자의 선택을 받아 점수를 누적한 후 결과로 이동  
+/// 여기서 점수는 1~8번에 계수 정렬처럼 누적됨. 
+/// 반환타입 : StatefulWidget  
+/// 예외 : 없음
 class PsychologyQuestion extends StatefulWidget {
   const PsychologyQuestion({super.key});
 
   @override
   State<PsychologyQuestion> createState() => _PsychologyQuestionState();
 }
+
+
+
 
 class _PsychologyQuestionState extends State<PsychologyQuestion> {
   // --- 제공해주신 새로운 질문 및 점수 데이터 ---
@@ -244,6 +252,12 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
 }
 
 
+
+/// 클래스 : _TestProgressBar  
+/// 목적 : 현재 진행 중인 질문 단계 수를 상단에 숫자로 1/15 표시  
+/// 반환타입 : StatelessWidget  
+/// 예외 : 없음
+
 class _TestProgressBar extends StatelessWidget {
   final int currentStep;
   final int totalSteps;
@@ -276,7 +290,10 @@ class _TestProgressBar extends StatelessWidget {
 
 
 
-
+/// 클래스 : _AnswerOptions  
+/// 목적 : 질문의 답변들을 커스텀 도형 버튼 형태로  3개 씩 표시   
+/// 반환타입 : StatelessWidget  
+/// 예외 : 예외 처리 없음 (+ 질문 갯수가 3개씩이 아닐 경우가 생기면 추후 예외 처리할 예정. )
 class _AnswerOptions extends StatelessWidget {
   final List<Map<String, dynamic>> answers;
   final Function(int) onAnswerSelected;
@@ -301,7 +318,7 @@ class _AnswerOptions extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Stack(
-      fit: StackFit.expand, // Stack을 부모(Expanded) 공간에 꽉 채웁니다.
+      fit: StackFit.expand, 
       children: <Widget>[
         // 답변 1 - 구름 (오른쪽 위)
         if (answers.isNotEmpty)
@@ -356,10 +373,15 @@ class _AnswerOptions extends StatelessWidget {
 
 
 
-
-
 enum _ShapeType { cloud, circle, triangle }
 
+
+
+
+/// 클래스 : _AnswerShape  
+/// 목적 : 각 도형형 버튼, 이미지 위치잡기   
+/// 반환타입 : StatelessWidget  
+/// 예외 : 예외 처리 안함. (+ 추후 이미지 경로 관련해서 코드 수정할 예정. )
 class _AnswerShape extends StatelessWidget {
   final String text;
   final _ShapeType shapeType;
@@ -428,18 +450,29 @@ class _AnswerShape extends StatelessWidget {
 
 
 
-
+/// 클래스 : TestLoadingScreen  
+/// 목적 : 최종 점수를 기반으로  PsychologyResult로 3초 후 자동 이동하는 기능 구현  
+/// 반환타입 : StatefulWidget  
+/// 예외 :예외 처리 없음. 
 class TestLoadingScreen extends StatefulWidget {
-  // 1. 질문 화면에서 넘어온 최종 결과 ID를 받을 변수 추가
+  // 질문 화면에서 넘어온 최종 결과 ID를 받을 변수 추가
   final int resultId;
 
-  // 2. 생성자에서 resultId를 필수로 받도록 수정
+  // 생성자에서 resultId를 필수로 받도록 수정함. 
   const TestLoadingScreen({super.key, required this.resultId});
 
   @override
   State<TestLoadingScreen> createState() => _TestLoadingScreenState();
 }
 
+
+// 클래스 : _TestLoadingScreenState  
+/// 목적 : 로딩 애니메이션을 보여준 뒤, 일정 시간 후 PsychologyResult로 자동 전환  
+/// 반환타입 : State<TestLoadingScreen>  
+/// 예외 :  
+/// -아직 비동기 부분 예외 처리 아직 구현 안함 !!!!!!!!!!!
+///   - context가 `unmounted` 상태일 경우 Navigator 에러 발생 가능성 → `if (mounted)` 조건으로 방지  
+///   - 이미지 asset 경로가 잘못된 경우 → `errorBuilder`를 통해 기본 아이콘으로 대체 처리
 class _TestLoadingScreenState extends State<TestLoadingScreen> {
   @override
   void initState() {
@@ -452,7 +485,7 @@ class _TestLoadingScreenState extends State<TestLoadingScreen> {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            // 3. 받은 resultId를 PsychologyResult 화면으로 전달
+            //  받은 resultId를 PsychologyResult 화면으로 전달
             builder: (context) => PsychologyResult(resultId: widget.resultId),
           ),
         );

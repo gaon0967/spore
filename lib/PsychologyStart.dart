@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'PsychologyQuestion.dart';
 
+
+
+
+
 // 캐릭터 담는 클래스
+/// 클래스 : CharacterInfo  
+/// 목적 : 캐릭터의 이름과 이미지 경로를 담는 용도.  
+/// 반환타입 : 해당 없음 
+/// 예외 : 없음 
 class CharacterInfo {
   final String name;
-  
   final String imagePath;
 
   const CharacterInfo({
     required this.name,
-    
     required this.imagePath,
   });
 }
@@ -26,6 +32,11 @@ const List<CharacterInfo> characterData = [
   CharacterInfo(name: '게으른 철학자',  imagePath: 'assets/images/2_4.png'),
 ];
 
+
+/// 클래스 : PsychologyStart  
+/// 목적 : 심리테스트 시작 화면 
+/// 반환타입 : StatelessWidget (Scaffold 반환)  
+/// 예외 : 없음  
 
 class PsychologyStart extends StatelessWidget {
   const PsychologyStart({super.key});
@@ -60,7 +71,14 @@ class PsychologyStart extends StatelessWidget {
   }
 }
 
-// "STEP 1" 텍스트 위젯
+
+
+
+
+/// 클래스 : PsychologyStart  
+/// 목적 : 심리테스트 시작 화면   "STEP 1" 
+/// 반환타입 : StatelessWidget (Scaffold 반환)  
+/// 예외 : 없음  
 class _StepTitle extends StatelessWidget {
   const _StepTitle();
 
@@ -77,7 +95,12 @@ class _StepTitle extends StatelessWidget {
   }
 }
 
-// 메인 타이틀 위젯
+
+
+/// 클래스 : _MainTitle  
+/// 목적 : 심리테스트 설명  출력  
+/// 반환타입 : StatelessWidget (Text 반환)  
+/// 예외 : 없음 
 class _MainTitle extends StatelessWidget {
   const _MainTitle();
 
@@ -97,8 +120,13 @@ class _MainTitle extends StatelessWidget {
   }
 }
 
-// 캐릭터 그리드 위젯
-// 캐릭터 그리드 위젯
+
+
+/// 클래스 : _CharacterGrid  
+/// 목적 : 여러 개의 캐릭터 선택지를 2열 그리드로 화면에 표시  
+/// 반환타입 : StatelessWidget (GridView 반환)  
+/// 예외 : 없음  
+
 class _CharacterGrid extends StatelessWidget {
   const _CharacterGrid();
 
@@ -122,7 +150,13 @@ class _CharacterGrid extends StatelessWidget {
   }
 }
 
-// 개별 캐릭터 아이템 위젯
+
+
+
+/// 클래스 : _CharacterItem  
+/// 목적 : 단일 캐릭터(이름 + 이미지)를 카드 형태로 화면에 표시 하는 약할
+/// 반환타입 : StatelessWidget (Column 반환)  
+/// 예외 : 없음. 
 class _CharacterItem extends StatelessWidget {
   final CharacterInfo character;
 
@@ -170,7 +204,12 @@ class _CharacterItem extends StatelessWidget {
   }
 }
 
-// "심리테스트 하러 가기" 버튼 위젯
+
+
+/// 클래스 : _StartButton  
+/// 목적 : 심리테스트 질문 페이지로 이동하는 버튼  
+/// 반환타입 : StatelessWidget (ElevatedButton 반환)  
+/// 예외 : 예외 처리 없음.  (+ 경로 없으면 예외 되게 추가할 예정 )
 class _StartButton extends StatelessWidget {
   const _StartButton();
 
@@ -184,7 +223,7 @@ class _StartButton extends StatelessWidget {
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5E5656),
-        foregroundColor: const Color(0xFF6B6060), // 눌렀을 때 색 (splash)
+        foregroundColor: const Color(0xFF6B6060), // 눌렀을 때 색 
         minimumSize: const Size(274, 54),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(27),
@@ -197,7 +236,7 @@ class _StartButton extends StatelessWidget {
           Text(
             '심리테스트 하러 가기',
              style: TextStyle(
-              fontFamily: 'GolosText', // 'GolosText'를 따옴표로 감싸줍니다.
+              fontFamily: 'GolosText',
               fontSize: 18,
               fontWeight: FontWeight.w600, // Semibold
               color: Colors.white,

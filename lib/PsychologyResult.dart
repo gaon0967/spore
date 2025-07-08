@@ -101,17 +101,26 @@ class Character {
         ),
   };
   
-  // ID로 캐릭터 정보를 찾아주는 함수
+ 
+/// 클래스 : Character  
+/// 목적 : 캐릭터의 성격 유형 정보로 ID 기반 조회
+/// 반환타입 : 데이터 클래스 (getCharacterById는 Character 반환)  
+/// 예외 :  
+///   - 요청한 ID가 없을 경우 기본 캐릭터 6번 반환 [ 널 반환 없음 → 안정적 ]
   static Character getCharacterById(int id) {
-    // 만약 해당 ID의 캐릭터가 없으면 기본 캐릭터(6번)를 반환
+    
     return _characterData[id] ?? _characterData[6]!;
   }
 }
 
 
-
-// --- 결과 화면 위젯 ---
-
+/// 클래스 : PsychologyResult  
+/// 목적 : 심리테스트 결과 ID에 따라 캐릭터 정보를 화면에 출력하고, 사용자가 '완료' 버튼을 누르면 네이버 로그인/회원가입 홈화면으로 이동  
+/// 반환타입 : StatelessWidget  
+/// 예외 :  
+///   - 이미지 로딩 실패 시 대체 UI 표시  
+///   - 로그인 중 에러 발생 가능성 있음 → try-catch로 처리  
+///   - 로그인 성공 후 context.mounted 여부 확인 필수  
 class PsychologyResult extends StatelessWidget {
   
   final int resultId;
@@ -131,17 +140,17 @@ class PsychologyResult extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. 상단 텍스트
+              //  상단 텍스트
               const Text('STEP 2', style: TextStyle(fontSize: 16, color: Colors.grey)),
               const SizedBox(height: 8),
               const Text('난 어떤 유형의 사람일까? -', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
               const SizedBox(height: 24),
 
-              // 2. 말풍선
+              // 말풍선
               _SpeechBubble(text: character.speech),
               const SizedBox(height: 16),
 
-              // 3. 캐릭터 이미지
+              // 캐릭터 이미지
               Image.asset(character.imagePath, height: 250,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
@@ -154,7 +163,7 @@ class PsychologyResult extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // 4. 하단 정보 카드
+              // 하단 정보 카드
               _InfoContainer(character: character),
             ],
           ),
@@ -167,7 +176,11 @@ class PsychologyResult extends StatelessWidget {
 
 
 
-// 말풍선 위젯
+/// 클래스 : _SpeechBubble  
+/// 목적 : 캐릭터의 대사를 말풍선 형태로 출력  
+/// 반환타입 : StatelessWidget  
+/// 예외 : 없음
+
 class _SpeechBubble extends StatelessWidget {
   final String text;
   const _SpeechBubble({required this.text});
