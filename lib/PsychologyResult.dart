@@ -131,37 +131,42 @@ class PsychologyResult extends StatelessWidget {
   Widget build(BuildContext context) {
     // 전달받은 resultId로 해당하는 캐릭터 정보를 찾아옵니다.
     final Character character = Character.getCharacterById(resultId);
+    // 반응형을 위한 코드 수정  _ 가령 
+      final size = MediaQuery.of(context).size;
+      final screenWidth = size.width;
+      final screenHeight = size.height;
+    
 
     return Scaffold(
       backgroundColor: const Color(0xFFFCFCFC),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 40.0),
+         padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06, vertical: screenHeight * 0.05), // 두꺼운 검은 색으로 수정.
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               //  상단 텍스트
-              const Text('STEP 2', style: TextStyle(fontSize: 16, color: Colors.grey)),
-              const SizedBox(height: 8),
-              const Text('난 어떤 유형의 사람일까? -', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 24),
+              Text('STEP 2', style: TextStyle(fontSize: screenWidth * 0.04,color: Color(0xFF555555),fontWeight: FontWeight.bold )),
+              SizedBox(height: screenHeight * 0.01), 
+              Text('난 어떤 유형의 사람일까? -', style: TextStyle(fontSize: screenWidth * 0.055, fontWeight: FontWeight.bold)), // <<<
+              SizedBox(height: screenHeight * 0.03),
 
               // 말풍선
               _SpeechBubble(text: character.speech),
-              const SizedBox(height: 16),
+             SizedBox(height: screenHeight * 0.02),
 
               // 캐릭터 이미지
-              Image.asset(character.imagePath, height: 250,
+              Image.asset(character.imagePath, height: screenHeight * 0.3, 
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
-                    height: 250,
-                    width: 200,
+                    height: screenHeight * 0.3, 
+                    width: screenWidth * 0.5, 
                     color: Colors.grey[200],
                     child: const Center(child: Text('이미지 없음')),
                   );
                 },
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: screenHeight * 0.03),
 
               // 하단 정보 카드
               _InfoContainer(character: character),
@@ -187,8 +192,9 @@ class _SpeechBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: screenWidth * 0.03),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -196,7 +202,7 @@ class _SpeechBubble extends StatelessWidget {
           BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
         ],
       ),
-      child: Text(text, style: const TextStyle(fontSize: 16)),
+      child: Text(text, style:  TextStyle(fontSize: screenWidth * 0.04)),
     );
   }
 }
@@ -208,8 +214,9 @@ class _InfoContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width; 
     return Container(
-      padding: const EdgeInsets.all(20.0),
+      padding:  EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
         color: const Color(0xFFF2F0F4),
         borderRadius: BorderRadius.circular(24),
@@ -219,8 +226,9 @@ class _InfoContainer extends StatelessWidget {
           // 캐릭터 이름과 완료 버튼
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(character.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              Text(character.name, style: TextStyle(fontSize: screenWidth * 0.05, fontWeight: FontWeight.bold)),
               ElevatedButton(
                 onPressed: () async {
                     final authService = AuthService();
@@ -256,13 +264,13 @@ class _InfoContainer extends StatelessWidget {
                   backgroundColor: const Color(0xFF555555),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                 padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.06, vertical: screenWidth * 0.03),
                 ),
-                child: const Text('완료', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                child: Text('완료', style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.bold)),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+         SizedBox(height: screenWidth * 0.05),
           // 캐릭터 소개 & 키워드 카드
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -273,7 +281,7 @@ class _InfoContainer extends StatelessWidget {
                   content: Text(character.description, style: const TextStyle(fontSize: 15, height: 1.5)),
                 ),
               ),
-              const SizedBox(width: 16),
+             SizedBox(width: screenWidth * 0.04),
               Expanded(
                 child: _InfoCard(
                   title: 'Keyword',
@@ -302,8 +310,9 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding:  EdgeInsets.all(screenWidth * 0.04),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -311,8 +320,8 @@ class _InfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
+          Text(title, style: TextStyle(fontSize: screenWidth * 0.04, fontWeight: FontWeight.bold)),
+           SizedBox(height: screenWidth * 0.03),
           content,
         ],
       ),

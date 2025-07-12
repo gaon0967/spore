@@ -24,13 +24,13 @@ class LoginScreen extends StatelessWidget {
           children: [
             _TopSection(), // 1. 상단 섹션
 
-            _ChatBubbleSection(), // 2. 말풍선 섹션
+            Spacer(), // 2. 남는 세로 공간
 
-            Spacer(), // 3. 남는 세로 공간을 모두 차지하여 아래 위젯을 화면 맨 밑으로 밀어냅니다.
-
+            _ChatBubbleSection(), // 3. 말풍선 섹션
+          
             _BottomSection(), // 4. 하단 섹션
 
-            SizedBox(height: 30), // 5. 하단에 보기 좋은 여백 추가
+            SizedBox(height: 30), // 5. 하단에 여백
           ],
         ),
       ),
