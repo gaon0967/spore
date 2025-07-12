@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'PsychologyQuestion.dart';
 
-
+//수정 : 반응형으로 고쳤는데 문제가 스트롤 처리를 안하면 화면안에서 캐릭터가 잘림. 
 
 
 
