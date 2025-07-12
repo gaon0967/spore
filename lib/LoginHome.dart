@@ -13,24 +13,28 @@ import 'HomeCalendar.dart'; // 홈(달력) 화면
 /// 반환타입 : StatelessWidget (Scaffold를 반환)
 /// 예외 : 예외 처리된거 없음. 
 class LoginScreen extends StatelessWidget {
+
   const LoginScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+     final screenHeight = MediaQuery.of(context).size.height;
+    return  Scaffold(
       backgroundColor: Color(0xFFFFFEF9),
       body: SafeArea(
         child: Column(
           children: [
             _TopSection(), // 1. 상단 섹션
 
-            Spacer(), // 2. 남는 세로 공간
+            SizedBox(height:screenHeight * 0.08),//  남는 세로 공간
 
-            _ChatBubbleSection(), // 3. 말풍선 섹션
-          
-            _BottomSection(), // 4. 하단 섹션
+            _ChatBubbleSection(), //  말풍선 섹션
+            
+            SizedBox(height:screenHeight * 0.1),// 남는 세로 공간
 
-            SizedBox(height: 30), // 5. 하단에 여백
+            _BottomSection(), // 하단 섹션
+
+            SizedBox(height: screenHeight * 0.08), // 하단에 여백
           ],
         ),
       ),
@@ -77,7 +81,7 @@ class _TopSection extends StatelessWidget {
             "spore",
             style: TextStyle(
               fontFamily: 'League Spartan',
-              fontSize: screenWidth * 0.1,
+              fontSize: screenWidth * 0.15,
               fontWeight: FontWeight.bold,
               color: const Color(0xFF6B6060),
             ),

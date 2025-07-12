@@ -440,7 +440,7 @@ class _AnswerShape extends StatelessWidget {
             imagePath,
             width: shapeWidth.clamp(120, 350).toDouble(),
              fit: BoxFit.contain,
-            color: isSelected ? const Color(0xFF6E8B66) : null,
+            color: isSelected ? const Color(0xFF6E8B66) : null, // 선택했을때 초록색으로 바꾸는 부분. 
             colorBlendMode: isSelected ? BlendMode.modulate : null,
           ),
           isSelected
