@@ -40,38 +40,38 @@ const List<CharacterInfo> characterData = [
 
 class PsychologyStart extends StatelessWidget {
   const PsychologyStart({super.key});
-
-  @override
+@override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final horizontalPadding = size.width * 0.06;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          // 모든 콘텐츠를 포함하는 기본 Column
-          child: Column(
-            // Column 내 위젯들의 정렬 및 간격 조절
-            mainAxisAlignment: MainAxisAlignment.center, // 수직 중앙 정렬
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: const [
-              Spacer(flex: 2), // 상단 공간
-              _StepTitle(),
-              SizedBox(height: 12),
-              _MainTitle(),
-              SizedBox(height: 30), // 타이틀과 그리드 사이 간격 줄임
-              _CharacterGrid(),
-              Spacer(flex: 3), // 그리드와 버튼 사이 공간
-              _StartButton(),
-              Spacer(flex: 1), // 하단 공간
-            ],
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: size.height * 0.04),
+                const _StepTitle(),
+                const SizedBox(height: 12),
+                const _MainTitle(),
+                const SizedBox(height: 30),
+               
+               _CharacterGrid(),
+                SizedBox(height: size.height * 0.05),
+                const _StartButton(),
+                SizedBox(height: size.height * 0.03),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 }
-
-
 
 
 
@@ -84,12 +84,13 @@ class _StepTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Text(
       'STEP 1',
       style: TextStyle(
-        fontSize: 18,
+        fontSize: size.width * 0.045,
         color: const Color(0xFF95A797),
-        fontWeight: FontWeight.w500, // Medium
+        fontWeight: FontWeight.w500,
       ),
     );
   }
@@ -102,16 +103,20 @@ class _StepTitle extends StatelessWidget {
 /// 반환타입 : StatelessWidget (Text 반환)  
 /// 예외 : 없음 
 class _MainTitle extends StatelessWidget {
+  
   const _MainTitle();
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final fontSize = size.width * 0.05;
+
     return Text(
       '나의 성격 유형을 알고\n같은 유형의 사람을 찾아가는 여정',
       textAlign: TextAlign.center,
       style: TextStyle(
-        fontFamily: 'GolosText', // 'GolosText'를 따옴표로 감싸줍니다.
-        fontSize: 20,
+        fontFamily: 'GolosText',
+        fontSize: fontSize.clamp(16, 28).toDouble(),
         fontWeight: FontWeight.bold,
         color: const Color(0xFF5F5F5F),
         height: 1.5,
@@ -132,14 +137,19 @@ class _CharacterGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isWide = size.width > 600;
+    final crossAxisCount = isWide ? 4 : 2;
+    final aspectRatio = isWide ? 1.1 : 1.3;
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 1.3,
-        crossAxisSpacing: 4,
-        mainAxisSpacing: 8,
+      gridDelegate:  SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
+        childAspectRatio: aspectRatio,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 16,
       ),
       itemCount: characterData.length,
       itemBuilder: (context, index) {
@@ -164,6 +174,11 @@ class _CharacterItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final imageSize = size.width * 0.18; // 화면 폭의 18%
+    final labelFontSize = size.width * 0.032; // 화면 폭의 3.2%
+    
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -171,8 +186,8 @@ class _CharacterItem extends StatelessWidget {
         Image.asset(
           character.imagePath,
          
-          width: 80,
-          height: 80,
+          width: imageSize.clamp(48, 120),
+          height: imageSize.clamp(48, 120),
           fit: BoxFit.contain,
         ),
         const SizedBox(height: 8),
@@ -192,10 +207,10 @@ class _CharacterItem extends StatelessWidget {
           ),
           child: Text(
             character.name,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.black87,
-              fontWeight: FontWeight.w600,
+             style: TextStyle(
+            fontSize: labelFontSize.clamp(10, 16),
+            color: Colors.black87,
+            fontWeight: FontWeight.w600,
             ),
           ),
         ),
@@ -215,6 +230,11 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final buttonWidth = size.width * 0.7;
+    final buttonHeight = size.height * 0.07;
+    final fontSize = size.width * 0.045;
+
     return ElevatedButton(
       onPressed: () {
        Navigator.of(context).push(
@@ -224,7 +244,9 @@ class _StartButton extends StatelessWidget {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5E5656),
         foregroundColor: const Color(0xFF6B6060), // 눌렀을 때 색 
-        minimumSize: const Size(274, 54),
+        minimumSize:  Size(
+          buttonWidth.clamp(180, 400),
+          buttonHeight.clamp(40, 70)),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(27),
         ),
@@ -237,7 +259,7 @@ class _StartButton extends StatelessWidget {
             '심리테스트 하러 가기',
              style: TextStyle(
               fontFamily: 'GolosText',
-              fontSize: 18,
+              fontSize: fontSize.clamp(14, 22).toDouble(),
               fontWeight: FontWeight.w600, // Semibold
               color: Colors.white,
             ),
