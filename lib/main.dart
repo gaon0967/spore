@@ -39,8 +39,8 @@ class MyApp extends StatelessWidget {
     return const MaterialApp(
       debugShowCheckedModeBanner: false, // 디버그 배너 숨기기
       // home  첫 화면 만듬.
-      //home: LoginScreen(),
-      home: HomeCalendar(),
+      home: LoginScreen(),
+      //home: HomeCalendar(),
     );
   }
 }
