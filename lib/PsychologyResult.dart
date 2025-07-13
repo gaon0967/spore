@@ -228,7 +228,7 @@ class _InfoContainer extends StatelessWidget {
 
                     if (!context.mounted) return; // 위젯이 화면에 없으면 중단
 
-                    //화면 전환
+                    // 화면 전환
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(

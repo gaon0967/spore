@@ -292,10 +292,10 @@ class _BottomSection extends StatelessWidget {
 
             // 1. AuthService 클래스의 인스턴스를 생성.
             final authService = AuthService();
-
+            const default_id = -1;
             try {
               // 2, 로그인 전용.
-              final userData = await authService.signInWithNaver(-1);
+              final userData = await authService.signInWithNaver(default_id);
 
               print("기존 회원 로그인 성공: $userData");
 
