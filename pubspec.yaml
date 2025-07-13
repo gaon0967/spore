@@ -15,6 +15,7 @@ dependencies:
     sdk: flutter
   naver_login_sdk: ^3.0.1  # naver login sdk로 쉽게 로직을 짬._찬홍 
   flutter_native_splash: ^2.4.6 # 앱 로팅화면  구현할 때 사용. _ 가령 
+  auto_size_text: ^3.0.0 #설문 조사 할떄 질문이 도형을 넘지 못하게 자동으로 맞춰줄 때 사용. _가령
 
 
 
