@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:new_project_1/HomeCalendar.dart';
 import 'PsychologyStart.dart';
-import 'naver_auth/naverAndFirebaseAuth.dart'; 
-import 'HomeCalendar.dart'; 
+import 'naver_auth/naverAndFirebaseAuth.dart';
+import 'HomeCalendar.dart';
+
 // 화면 전체를 구성하는 메인 위젯
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
@@ -15,11 +16,7 @@ class LoginScreen extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           alignment: Alignment.topCenter,
-          children: [
-            _TopSection(),
-            _ChatBubbleSection(),
-            _BottomSection(),
-          ],
+          children: [_TopSection(), _ChatBubbleSection(), _BottomSection()],
         ),
       ),
     );
@@ -85,11 +82,15 @@ class _ChatBubbleSection extends StatelessWidget {
       children: [
         // --- 말풍선 1 ---
         Positioned(
-          left: 52, top: 340,
+          left: 52,
+          top: 340,
           child: Image.asset('assets/images/talk1.png', width: 190, height: 42),
         ),
         Positioned(
-          left: 52, top: 340, width: 190, height: 42,
+          left: 52,
+          top: 340,
+          width: 190,
+          height: 42,
           child: const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 15.0),
@@ -100,26 +101,37 @@ class _ChatBubbleSection extends StatelessWidget {
 
         // --- 말풍선 2 ---
         Positioned(
-          left: 82, top: 410,
+          left: 82,
+          top: 410,
           child: Image.asset('assets/images/talk2.png', width: 282, height: 42),
         ),
         Positioned(
-          left: 82, top: 410, width: 282, height: 42,
+          left: 82,
+          top: 410,
+          width: 282,
+          height: 42,
           child: const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text("spore 로 관리해봐! 친구들 일정도 볼 수 있대 📅", style: bubbleTextStyle),
+              child: Text(
+                "spore 로 관리해봐! 친구들 일정도 볼 수 있대 📅",
+                style: bubbleTextStyle,
+              ),
             ),
           ),
         ),
 
         // --- 말풍선 3 ---
         Positioned(
-          left: 51, top: 480,
+          left: 51,
+          top: 480,
           child: Image.asset('assets/images/talk3.png', width: 251, height: 42),
         ),
         Positioned(
-          left: 51, top: 480, width: 251, height: 42,
+          left: 51,
+          top: 480,
+          width: 251,
+          height: 42,
           child: const Center(
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 15.0),
@@ -132,8 +144,7 @@ class _ChatBubbleSection extends StatelessWidget {
   }
 }
 
-
-// 하단 네이버 로그인 _ 네이버 가이드 라인이 있어서 로고 모양 추후 다시 알아보고 변경. _ 원, 직사각형만 됨. 
+// 하단 네이버 로그인 _ 네이버 가이드 라인이 있어서 로고 모양 추후 다시 알아보고 변경. _ 원, 직사각형만 됨.
 class _BottomSection extends StatelessWidget {
   const _BottomSection();
 
@@ -151,36 +162,45 @@ class _BottomSection extends StatelessWidget {
             ),
             width: 302,
             height: 55,
-            onPressed: () async{
+            onPressed: () async {
               print("네이버 로그인 버튼 클릭됨");
-  
-               // 1. AuthService 클래스의 인스턴스를 생성합니다.
-              final authService = AuthService();
 
+              // 1. AuthService 클래스의 인스턴스를 생성합니다.
+              final authService = AuthService();
               // 2. try-catch 블록으로 로그인 과정 전체를 감싸 에러를 처리합니다.
               try {
-              // 3. '로그인 전용' 메소드를 호출합니다.
-              final userData = await authService.loginOnlyWithNaver();
+                // 3. '로그인 전용' 메소드를 호출합니다.
+                final userData = await authService.signInWithNaver(-1);
 
-              print("기존 회원 로그인 성공: $userData");
-
-              // 위젯이 화면에 마운트된 상태인지 확인 (안전장치)
-              if (!context.mounted) return;
-
-              // 4. 성공 시 HomeCalendar 화면으로 이동합니다.
-              Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const HomeCalendar()),
-    );
-
-  } catch (e) {
-    // 사용자가 로그인을 취소했거나 에러가 발생한 경우
-    print("로그인 실패: $e");
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("로그인에 실패했습니다. 다시 시도해주세요.")),
-    );
-  }
+                print("유저 등록 성공: $userData");
+                // 위젯이 화면에 마운트된 상태인지 확인 (안전장치)
+                if (!context.mounted) return;
+                // 심리테스트 여부를 '-1'로 확인
+                if (userData['characterId'] as int == -1) {
+                  print('신규유저 등록 후 심리테스트 진행');
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const PsychologyStart(),
+                    ),
+                  );
+                } else {
+                  print('기존 유저 홈화면 이동');
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const HomeCalendar(),
+                    ),
+                  );
+                }
+              } catch (e) {
+                // 사용자가 로그인을 취소했거나 에러가 발생한 경우
+                print("로그인 실패: $e");
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("로그인에 실패했습니다. 다시 시도해주세요.")),
+                );
+              }
             },
           ),
         ),
@@ -192,7 +212,9 @@ class _BottomSection extends StatelessWidget {
               // onTap 콜백에서 Navigator.push를 호출해 화면을 이동시킵니다.
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const PsychologyStart()),
+                MaterialPageRoute(
+                  builder: (context) => const PsychologyStart(),
+                ),
               );
             },
             // 시각적인 터치 효과를 위해 투명한 배경을 줍니다.

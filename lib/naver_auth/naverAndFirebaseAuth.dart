@@ -4,7 +4,6 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 
-
 const database_Id = '(default)'; // 데이터베이스 이름
 
 /// 클래스 : AuthService
@@ -16,13 +15,12 @@ class AuthService {
   /// 목적 : Naver 소셜 로그인으로 로그인하고 유저 정보를 return 한다.
   /// 반환타입 : Map<String, dynamic>
   /// 예외 : Naver 로그인에 실패 or 토큰이 없거나 프로파일이 없는 경우 발생
-  
-  
+
   //Future<Map> signInWithNaver() async {
 
-Future<Map> signInWithNaver({required int characterId}) async { // 캐릭터id를 인자로 받게 수정 _ 가령 
+  Future<Map> signInWithNaver(int characterId) async {
+    // 캐릭터id를 인자로 받게 수정 _ 가령
 
-  
     try {
       // 네이버 로그인 인증
       String accessToken = '';
@@ -66,100 +64,70 @@ Future<Map> signInWithNaver({required int characterId}) async { // 캐릭터id�
       if (accessToken == '' || profile == '') {
         throw Exception('사용자 로그인 실패');
       }
-      return await _callFirebaseFunction(accessToken, profile, characterId: characterId); //characterId: characterId 추가 _ 가령 
+      return await _callFirebaseFunction(
+        accessToken,
+        profile,
+        characterId,
+      ); //characterId: characterId 추가 _ 가령
     } catch (e) {
       print('Error: $e');
       throw Exception('로그인 실패: $e');
     }
   }
 
+  // 로그인만 되는 함수 추가 _ 가령
+  /// 함수: loginOnlyWithNaver()
+  /// 목적: 기존 회원만 Naver 소셜 로그인을 진행한다. DB에 유저가 없으면 에러를 발생시킨다.
+  /**Future<Map<String, dynamic>> update_CharacterId() async {
+    try {
 
-// 로그인만 되는 함수 추가 _ 가령 
-/// 함수: loginOnlyWithNaver()
-/// 목적: 기존 회원만 Naver 소셜 로그인을 진행한다. DB에 유저가 없으면 에러를 발생시킨다.
-Future<Map<String, dynamic>> loginOnlyWithNaver() async {
-  try {
-    //로그아웃을 실행
-    await NaverLoginSDK.logout();
+      // 2. Firebase 함수 호출
+      final HttpsCallable callable = FirebaseFunctions.instanceFor(
+        region: 'us-central1',
+      ).httpsCallable('createCustomToken');
+      final response = await callable.call({'accessToken': accessToken});
+      final uid = response.data['uid'];
+      final customToken = response.data['customToken'];
 
-    String accessToken = '';
-    
-    // 1. 네이버 로그인 인증
-    await NaverLoginSDK.authenticate(
-      callback: OAuthLoginCallback(onSuccess: () async {
-        final token = await NaverLoginSDK.getAccessToken();
-        accessToken = token;
-      }, onError: (c, m) {
-        throw Exception('Naver Login Error: $c, $m');
-      }, onFailure: (s, m) {
-        throw Exception('Naver Login Failure: $s, $m');
-      }),
-    );
-    
-    // 프로필 호출 로직 (상태 동기화를 위해 유지)
-    await NaverLoginSDK.profile(
-      callback: ProfileCallback(
-        onSuccess: (code, msg, profile) {},
-        onError: (code, msg) {},
-        onFailure: (status, msg) {},
-      ),
-    );
+      if (customToken == null) {
+        throw Exception('No customToken returned from server.');
+      }
 
-    if (accessToken.isEmpty) {
-      throw Exception('Naver accessToken is empty.');
+      // 3. Firebase Auth 로그인
+      await FirebaseAuth.instance.signInWithCustomToken(customToken);
+
+      // 4. Firestore 사용자 확인
+      final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
+      final userDoc = await userRef.get();
+
+      // 5. 사용자 존재 여부 확인 후 결과 반환
+      if (userDoc.exists) {
+        return userDoc.data() ?? {};
+      } else {
+        await NaverLoginSDK.logout();
+        await FirebaseAuth.instance.signOut();
+        throw Exception('가입된 정보가 없습니다. 설문조사를 통해 먼저 회원가입을 진행해주세요.');
+      }
+    } catch (e) {
+      rethrow;
     }
-
-    // 2. Firebase 함수 호출
-    final HttpsCallable callable = FirebaseFunctions.instanceFor(
-      region: 'us-central1',
-    ).httpsCallable('createCustomToken');
-    final response = await callable.call({'accessToken': accessToken});
-    final uid = response.data['uid'];
-    final customToken = response.data['customToken'];
-
-    if (customToken == null) {
-      throw Exception('No customToken returned from server.');
-    }
-
-    // 3. Firebase Auth 로그인
-    await FirebaseAuth.instance.signInWithCustomToken(customToken);
-
-    // 4. Firestore 사용자 확인
-    final userRef = FirebaseFirestore.instance.collection('users').doc(uid);
-    final userDoc = await userRef.get();
-
-    // 5. 사용자 존재 여부 확인 후 결과 반환
-    if (userDoc.exists) {
-      return userDoc.data() ?? {};
-    } else {
-      await NaverLoginSDK.logout();
-      await FirebaseAuth.instance.signOut();
-      throw Exception('가입된 정보가 없습니다. 설문조사를 통해 먼저 회원가입을 진행해주세요.');
-    }
-  } catch (e) {
-    rethrow;
   }
-}
-
+**/
   /// 함수 : callFirebaseFunction()
   /// 목적 : 토큰, 프로파일을 firebase에 넘겨 유저가 없으면 생성한다. 유저의 정보가 담긴 Map을 return 한다.
   /// 반환타입 : Map<dynaic, dynamic>
   /// 예외 : 토큰이 없거나 프로파일이 없는 경우 발생
   Future<Map> _callFirebaseFunction(
     String accessToken,
-    
     NaverLoginProfile profile,
-
-   {
-    required int characterId, //  추가 : characterId를 파라미터로 받음 _ 가령 
-  }) async {
+    int characterId,
+  ) async {
     try {
       final HttpsCallable callable = FirebaseFunctions.instanceFor(
         region: 'us-central1',
       ).httpsCallable(
         'createCustomToken',
       ); // firebase functions의 createCustomToken 함수를 실행시킨다.
-      print("okok");
       final response = await callable.call({'accessToken': accessToken});
       print('Firebase Function response: ${response.data}'); // 요청 받아온 값을 출력
 
@@ -169,8 +137,6 @@ Future<Map<String, dynamic>> loginOnlyWithNaver() async {
       final name = response.data['name'];
       final phoneNumber = response.data['phoneNumber'];
       final uid = response.data['uid'];
-     
-      
 
       if (customToken == null) {
         throw Exception('No customToken returned from server.');
@@ -198,26 +164,25 @@ Future<Map<String, dynamic>> loginOnlyWithNaver() async {
         'email': email,
         'name': name,
         'phoneNumber': phoneNumber,
-        'character': characterId, // 필드 추가 _ 가령  
+        'characterId': characterId,
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
-      
-      if (!userDocSnapShot.exists) { // 로그인 정보가 있는 경우에 다시 심리 테스트 한 경우 , 정보 업데이트 되게 _ 가령 
+
+      if (!userDocSnapShot.exists) {
+        // 로그인 정보가 있는 경우에 다시 심리 테스트 한 경우 , 정보 업데이트 되게 _ 가령
         // 신규 유저(회원가입): 문서를 새로 생성 (set)
         await userRef.set(userDoc);
-        } else {
-         // 기존 유저: character와 updatedAt 필드만 수정
-         await userRef.update({
-          'character': characterId,
+      } else {
+        // 기존 유저: character와 updatedAt 필드만 수정
+        await userRef.update({
+          'characterId': characterId,
           'updatedAt': FieldValue.serverTimestamp(),
-         });
-        }
+        });
+      }
 
-       
-          final updatedUserDoc = await userRef.get();
-          return updatedUserDoc.data() ?? {};
-      
+      final updatedUserDoc = await userRef.get();
+      return updatedUserDoc.data() ?? {};
     } catch (e) {
       print('Error: $e');
       throw Exception('Function call error: $e');

@@ -53,6 +53,9 @@ flutter:
     - assets/images/Star.png
     - assets/images/Polygon.png
     - assets/images/Ellipse.png
+    - assets/images/mainpage/home.png
+    - assets/images/mainpage/friend.png
+    - assets/images/mainpage/callender.png
   
 
 

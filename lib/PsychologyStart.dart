@@ -4,31 +4,26 @@ import 'PsychologyQuestion.dart';
 // 캐릭터 담는 클래스
 class CharacterInfo {
   final String name;
-  
+
   final String imagePath;
 
-  const CharacterInfo({
-    required this.name,
-    
-    required this.imagePath,
-  });
+  const CharacterInfo({required this.name, required this.imagePath});
 }
 
 // 캐릭터 데이터 리스트
 const List<CharacterInfo> characterData = [
   CharacterInfo(name: '정의로운 용사', imagePath: 'assets/images/1_1.png'),
   CharacterInfo(name: '마이웨이', imagePath: 'assets/images/2_1.png'),
-  CharacterInfo(name: '해피 바이러스',  imagePath: 'assets/images/1_2.png'),
+  CharacterInfo(name: '해피 바이러스', imagePath: 'assets/images/1_2.png'),
   CharacterInfo(name: '대문자 F', imagePath: 'assets/images/2_2.png'),
   CharacterInfo(name: '마더테레사', imagePath: 'assets/images/1_3.png'),
   CharacterInfo(name: '과몰입러', imagePath: 'assets/images/2_3.png'),
   CharacterInfo(name: '명연가', imagePath: 'assets/images/1_4.png'),
-  CharacterInfo(name: '게으른 철학자',  imagePath: 'assets/images/2_4.png'),
+  CharacterInfo(name: '게으른 철학자', imagePath: 'assets/images/2_4.png'),
 ];
 
-
 class PsychologyStart extends StatelessWidget {
-  const PsychologyStart({super.key});
+  const PsychologyStart();
 
   @override
   Widget build(BuildContext context) {
@@ -136,7 +131,7 @@ class _CharacterItem extends StatelessWidget {
         // 캐릭터 이미지
         Image.asset(
           character.imagePath,
-         
+
           width: 80,
           height: 80,
           fit: BoxFit.contain,
@@ -153,7 +148,7 @@ class _CharacterItem extends StatelessWidget {
                 color: Colors.black.withOpacity(0.05),
                 blurRadius: 5,
                 offset: const Offset(0, 2),
-              )
+              ),
             ],
           ),
           child: Text(
@@ -178,17 +173,15 @@ class _StartButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: () {
-       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const PsychologyQuestion()),
-         );
+        Navigator.of(
+          context,
+        ).push(MaterialPageRoute(builder: (_) => const PsychologyQuestion()));
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5E5656),
         foregroundColor: const Color(0xFF6B6060), // 눌렀을 때 색 (splash)
         minimumSize: const Size(274, 54),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(27),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(27)),
         elevation: 0,
       ),
       child: Row(
@@ -196,7 +189,7 @@ class _StartButton extends StatelessWidget {
         children: [
           Text(
             '심리테스트 하러 가기',
-             style: TextStyle(
+            style: TextStyle(
               fontFamily: 'GolosText', // 'GolosText'를 따옴표로 감싸줍니다.
               fontSize: 18,
               fontWeight: FontWeight.w600, // Semibold
@@ -204,11 +197,7 @@ class _StartButton extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(
-            Icons.arrow_forward_ios,
-            color: Colors.white,
-            size: 16,
-          ),
+          const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
         ],
       ),
     );
