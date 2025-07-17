@@ -30,34 +30,39 @@ flutter:
 
 
   assets:
-    - assets/images/Logo.png
-    - assets/images/talk1.png
-    - assets/images/talk2.png
-    - assets/images/talk3.png
-    - assets/images/1_1.png
-    - assets/images/1_2.png
-    - assets/images/1_3.png
-    - assets/images/1_4.png
-    - assets/images/2_1.png
-    - assets/images/2_2.png
-    - assets/images/2_3.png
-    - assets/images/2_4.png
-    - assets/images/ch1_1.png
-    - assets/images/ch1_2.png
-    - assets/images/ch1_3.png
-    - assets/images/ch1_4.png
-    - assets/images/ch2_1.png
-    - assets/images/ch2_2.png
-    - assets/images/ch2_3.png
-    - assets/images/ch2_4.png
-    - assets/images/TestLoading.png
-    - assets/images/Star.png
-    - assets/images/Polygon.png
-    - assets/images/Ellipse.png
-    - assets/images/mainpage/home.png
-    - assets/images/mainpage/friend.png
+    - assets/images/LoginHome/LoadingLogo.png
+    - assets/images/LoginHome/Logo.png
+    - assets/images/LoginHome/talk1.png
+    - assets/images/LoginHome/talk2.png
+    - assets/images/LoginHome/talk3.png
+
     - assets/images/mainpage/callender.png
-  
+    - assets/images/mainpage/friend.png
+    - assets/images/mainpage/home.png
+
+    - assets/images/PsychologyTest/Character/ch1_1.png
+    - assets/images/PsychologyTest/Character/ch1_2.png
+    - assets/images/PsychologyTest/Character/ch1_3.png
+    - assets/images/PsychologyTest/Character/ch1_4.png
+    - assets/images/PsychologyTest/Character/ch2_1.png
+    - assets/images/PsychologyTest/Character/ch2_2.png
+    - assets/images/PsychologyTest/Character/ch2_3.png
+    - assets/images/PsychologyTest/Character/ch2_4.png
+
+    - assets/images/PsychologyTest/CharacterUndisclosed/1_1.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/1_2.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/1_3.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/1_4.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/2_1.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/2_2.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/2_3.png
+    - assets/images/PsychologyTest/CharacterUndisclosed/2_4.png
+
+    - assets/images/PsychologyTest/Shape/Ellipse.png
+    - assets/images/PsychologyTest/Shape/Polygon.png
+    - assets/images/PsychologyTest/Shape/Star.png
+    - assets/images/PsychologyTest/TestLoading.png
+
 
 
   fonts:

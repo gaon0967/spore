@@ -18,14 +18,14 @@ class CharacterInfo {
 
 // 캐릭터 데이터 리스트
 const List<CharacterInfo> characterData = [
-  CharacterInfo(name: '정의로운 용사', imagePath: 'assets/images/1_1.png'),
-  CharacterInfo(name: '마이웨이', imagePath: 'assets/images/2_1.png'),
-  CharacterInfo(name: '해피 바이러스', imagePath: 'assets/images/1_2.png'),
-  CharacterInfo(name: '대문자 F', imagePath: 'assets/images/2_2.png'),
-  CharacterInfo(name: '마더테레사', imagePath: 'assets/images/1_3.png'),
-  CharacterInfo(name: '과몰입러', imagePath: 'assets/images/2_3.png'),
-  CharacterInfo(name: '명연가', imagePath: 'assets/images/1_4.png'),
-  CharacterInfo(name: '게으른 철학자', imagePath: 'assets/images/2_4.png'),
+  CharacterInfo(name: '정의로운 용사', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/1_1.png'),
+  CharacterInfo(name: '마이웨이', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/2_1.png'),
+  CharacterInfo(name: '해피 바이러스', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/1_2.png'),
+  CharacterInfo(name: '대문자 F', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/2_2.png'),
+  CharacterInfo(name: '마더테레사', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/1_3.png'),
+  CharacterInfo(name: '과몰입러', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/2_3.png'),
+  CharacterInfo(name: '명연가', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/1_4.png'),
+  CharacterInfo(name: '게으른 철학자', imagePath: 'assets/images/PsychologyTest/CharacterUndisclosed/2_4.png'),
 ];
 
 class PsychologyStart extends StatelessWidget {

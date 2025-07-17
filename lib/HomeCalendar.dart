@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
+import 'TimetableScreen.dart'; // TimetableScreen 파일을 import 합니다.
 
 int _selectedIndex = 0; // 현재 선택된 탭 인덱스
 
-class HomeCalendar extends StatelessWidget {
+class HomeCalendar extends StatefulWidget {
   const HomeCalendar({super.key});
+
+  @override
+  _HomeCalendarState createState() => _HomeCalendarState();
+}
+
+class _HomeCalendarState extends State<HomeCalendar> {
+  // 탭을 클릭할 때마다 호출되는 함수
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    // '프로필' 탭 (인덱스 2) 클릭 시 TimetableScreen으로 이동
+    if (index == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => TimetableScreen()),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,7 +36,7 @@ class HomeCalendar extends StatelessWidget {
         child: Column(
           children: [
             NaverLogoutButton(
-              onPressed: () => NaverLoginSDK.logout(), // 로그아웃 로직. 토큰을 지워버린다.
+              onPressed: () => NaverLoginSDK.logout(), // 로그아웃 로직
               style: NaverLogoutButtonStyle(
                 language: NaverButtonLanguage.korean,
                 mode: NaverButtonMode.green,
@@ -26,7 +47,7 @@ class HomeCalendar extends StatelessWidget {
             ElevatedButton(
               onPressed: () async {
                 final accessToken =
-                    await NaverLoginSDK.getAccessToken(); // 현재 토큰이 있는지 즉 로그인 상태인지 확인하는 로직
+                    await NaverLoginSDK.getAccessToken(); // 로그인 상태 확인
                 print("accessToken:$accessToken");
               },
               child: Text("AccessToken"),
@@ -35,6 +56,8 @@ class HomeCalendar extends StatelessWidget {
         ),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex, // 현재 선택된 탭 인덱스
+        onTap: _onItemTapped, // 탭을 눌렀을 때 호출되는 함수
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
             icon: Image(image: AssetImage('assets/images/mainpage/friend.png')),
@@ -51,8 +74,6 @@ class HomeCalendar extends StatelessWidget {
             label: '프로필',
           ),
         ],
-        //currentIndex: _selectedIndex, // 현재 선택된 인덱스
-        //onTap: _onItemTapped, // 탭 선택 시 호출되는 함수
       ),
     );
   }
