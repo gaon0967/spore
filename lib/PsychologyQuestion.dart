@@ -414,17 +414,17 @@ class _AnswerShape extends StatelessWidget {
 
   switch (shapeType) {
     case _ShapeType.cloud: // Star
-      imagePath = 'assets/images/Star.png';
+      imagePath = 'assets/images/PsychologyTest/Shape/Star.png';
       //shapeWidth = 276;
       shapeWidth =size.width * 0.7;
       break;
     case _ShapeType.circle: //Ellipse
-      imagePath = 'assets/images/Ellipse.png';
+      imagePath = 'assets/images/PsychologyTest/Shape/Ellipse.png';
       //shapeWidth = 284;
       shapeWidth =size.width * 0.72;
       break;
     case _ShapeType.triangle: // Polygon
-      imagePath = 'assets/images/Polygon.png';
+      imagePath = 'assets/images/PsychologyTest/Shape/Polygon.png';
       //shapeWidth = 277;
       shapeWidth = size.width * 0.7;
       break;
@@ -524,7 +524,7 @@ class _TestLoadingScreenState extends State<TestLoadingScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/TestLoading.png',
+              'assets/images/PsychologyTest/TestLoading.png',
               //width: 80,
               //height: 80,
               width: size.width * 0.18,

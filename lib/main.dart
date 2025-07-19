@@ -6,18 +6,21 @@ import 'package:new_project_1/HomeCalendar.dart';
 //import 'package:new_project_1/naver_auth/naverAndFirebaseAuth.dart';
 import 'firebase_options.dart'; // Firebase CLI로 생성된 파일
 import 'LoginHome.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 const urlScheme = 'flutterNaverLogin'; // IOS 어플에만 이용(아직 안함)
 const clientId = 'eW2zZw8AjJC4iudM9OzD'; // naver api id
 const clientSecret = 'y9F8XUjPS_'; // naver api pw
 const clientName = "My App"; //  appName
 
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Firebase 초기화
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
+  await initializeDateFormatting('ko_KR', null);
+  await initializeDateFormatting('en_US', null);
   // api key를 넣어줍니다.
   NaverLoginSDK.initialize(
     urlScheme: urlScheme,
