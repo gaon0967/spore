@@ -48,15 +48,17 @@ flutter:
     - assets/images/PsychologyTest/Character/ch2_2.png
     - assets/images/PsychologyTest/Character/ch2_3.png
     - assets/images/PsychologyTest/Character/ch2_4.png
+    - assets/images/PsychologyTest/Character/QuestionMark.png
+    - assets/images/PsychologyTest/Character/TestStart_Character.png
 
-    - assets/images/PsychologyTest/CharacterUndisclosed/1_1.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/1_2.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/1_3.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/1_4.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/2_1.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/2_2.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/2_3.png
-    - assets/images/PsychologyTest/CharacterUndisclosed/2_4.png
+    - assets/images/PsychologyTest/Shape/Rectangle1-1.png
+    - assets/images/PsychologyTest/Shape/Rectangle1-2.png
+    - assets/images/PsychologyTest/Shape/Rectangle1-3.png
+    - assets/images/PsychologyTest/Shape/Rectangle1-4.png
+    - assets/images/PsychologyTest/Shape/Rectangle2-1.png
+    - assets/images/PsychologyTest/Shape/Rectangle2-2.png
+    - assets/images/PsychologyTest/Shape/Rectangle2-3.png
+    - assets/images/PsychologyTest/Shape/Rectangle2-4.png
 
     - assets/images/PsychologyTest/Shape/Ellipse.png
     - assets/images/PsychologyTest/Shape/Polygon.png
