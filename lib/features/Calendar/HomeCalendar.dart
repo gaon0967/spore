@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'TimetableScreen.dart';
+import '../Friend/FriendScreen.dart';
+import '../Timetable/TimetableScreen.dart';
 import 'event.dart';
 
 // UTC 자정 기준으로 날짜를 반환하는 함수
@@ -49,7 +50,12 @@ class _HomeCalendarState extends State<HomeCalendar> {
     setState(() {
       _selectedIndex = index;
     });
-    if (index == 2) {
+    if (index == 0) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => FriendScreen()),
+      );
+    } else if (index == 2) {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => TimetableScreen()),

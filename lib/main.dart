@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 //import 'package:flutter_logcat/flutter_logcat.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:new_project_1/HomeCalendar.dart';
+import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
 //import 'package:new_project_1/naver_auth/naverAndFirebaseAuth.dart';
-import 'firebase_options.dart'; // Firebase CLI로 생성된 파일
-import 'LoginHome.dart';
+import 'auth/firebase_options.dart'; // Firebase CLI로 생성된 파일
+import 'auth/LoginHome.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 const urlScheme = 'flutterNaverLogin'; // IOS 어플에만 이용(아직 안함)

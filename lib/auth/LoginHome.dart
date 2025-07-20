@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
-import 'package:new_project_1/HomeCalendar.dart';
-import 'PsychologyStart.dart'; //심리테스트 시작하는 화면 
-import 'naver_auth/naverAndFirebaseAuth.dart'; 
-import 'HomeCalendar.dart'; // 홈(달력) 화면 
+import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
+import '../features/Psychology/PsychologyStart.dart'; //심리테스트 시작하는 화면 
+import 'naverAndFirebaseAuth.dart'; 
+import '../features/Calendar/HomeCalendar.dart'; 
 
 
 
