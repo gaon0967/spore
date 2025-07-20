@@ -1,32 +1,26 @@
 import 'package:flutter/material.dart';
 
-// FriendScreen: 친구 목록, 신청 목록, 추천 친구 탭 구현
 class FriendScreen extends StatefulWidget {
   @override
   _FriendScreenState createState() => _FriendScreenState();
 }
 
 class _FriendScreenState extends State<FriendScreen> {
-  // 친구 목록 데이터 예시
   final List<Friend> friends = [
     Friend(name: '가부기'),
     Friend(name: '햄부기'),
     Friend(name: '돼콩이'),
     Friend(name: '오덴세'),
   ];
-  // 친구 신청 목록
   final List<Friend> requests = [
     Friend(name: '홍길동'),
   ];
-  // 추천 친구 목록
   final List<Friend> recommendations = [
     Friend(name: '박민수'),
   ];
 
-  // 즐겨찾기 인덱스 저장
   final Set<int> favoriteIndices = {};
-
-  int _navIndex = 0; // 하단 네비게이션
+  int _navIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -52,7 +46,7 @@ class _FriendScreenState extends State<FriendScreen> {
           actions: [
             IconButton(
               icon: Icon(Icons.search),
-              onPressed: () {}, // TODO: 검색 기능 구현
+              onPressed: () {}, // TODO: 검색 기능
             ),
           ],
         ),
@@ -65,26 +59,24 @@ class _FriendScreenState extends State<FriendScreen> {
           ],
         ),
         bottomNavigationBar: BottomNavigationBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
           currentIndex: _navIndex,
           onTap: (i) {
             setState(() => _navIndex = i);
-            // TODO: 페이지 전환 로직 구현
+            // 페이지 이동은 여기서 구현 가능
           },
           showSelectedLabels: false,
           showUnselectedLabels: false,
           items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.person, color: Colors.grey),
+              icon: Icon(Icons.person),
               label: '친구',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.home, color: Colors.grey),
+              icon: Icon(Icons.home),
               label: '홈',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month, color: Colors.grey),
+              icon: Icon(Icons.calendar_month),
               label: '시간표',
             ),
           ],
@@ -92,7 +84,7 @@ class _FriendScreenState extends State<FriendScreen> {
         floatingActionButton: FloatingActionButton(
           child: Icon(Icons.person_add),
           onPressed: () {
-            // TODO: 친구 추가 기능 구현
+            // 친구 추가 기능
           },
         ),
       ),
@@ -130,7 +122,6 @@ class _FriendScreenState extends State<FriendScreen> {
                       },
                       child: Icon(
                         isFav ? Icons.star : Icons.star_border,
-                        size: 24,
                         color: isFav ? Colors.amber : Colors.grey,
                       ),
                     ),
@@ -142,16 +133,10 @@ class _FriendScreenState extends State<FriendScreen> {
                   children: [
                     TextButton(
                       onPressed: () {
-                        // TODO: 차단 기능 구현
                         setState(() {
-                          // 예시: 차단 로직
                           list.removeAt(index);
                         });
                       },
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.blue,
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                      ),
                       child: Text('차단'),
                     ),
                     TextButton(
@@ -160,10 +145,6 @@ class _FriendScreenState extends State<FriendScreen> {
                           list.removeAt(index);
                         });
                       },
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                      ),
                       child: Text('삭제'),
                     ),
                   ],
@@ -177,7 +158,6 @@ class _FriendScreenState extends State<FriendScreen> {
   }
 }
 
-// Friend 모델
 class Friend {
   final String name;
   Friend({required this.name});
