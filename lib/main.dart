@@ -49,7 +49,7 @@ class MyApp extends StatelessWidget {
 }
 
 
-
+// 사용하지 않는 코드. 
 /*
 class MyApp extends StatefulWidget {
   const MyApp({super.key});
