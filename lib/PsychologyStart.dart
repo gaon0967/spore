@@ -9,6 +9,7 @@ class CharacterInfo {
 }
 
 const List<CharacterInfo> characterData = [
+  // 사진 경로 입력 
   CharacterInfo(name: '정의로운 용사', bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle1-1.png'),
   CharacterInfo(name: '마이웨이', bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle2-1.png'),
   CharacterInfo(name: '해피 바이러스', bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle1-2.png'),
@@ -52,7 +53,7 @@ const _characterLayouts = [
 class PsychologyStart extends StatelessWidget {
   const PsychologyStart({super.key});
 
-  // The design screen dimensions. All UI elements are based on these.
+
   static const double _designWidth = 411;
   static const double _designHeight = 731;
 
@@ -60,13 +61,13 @@ class PsychologyStart extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     
-    // Calculate scale factors for both width and height.
+    
     final scaleW = size.width / _designWidth;
     final scaleH = size.height / _designHeight;
-    // Use the smaller scale factor to ensure the entire design fits on the screen without distortion (letterboxing).
+    
     final scale = min(scaleW, scaleH);
 
-    // Calculate the scaled dimensions for the main content area.
+  
     final scaledWidth = _designWidth * scale;
     final scaledHeight = _designHeight * scale;
 
@@ -75,7 +76,7 @@ class PsychologyStart extends StatelessWidget {
       body: SafeArea(
         child: Stack(
           children: [
-            // Center the entire content area to handle letterboxing on different aspect ratios.
+          
             Center(
               child: SizedBox(
                 width: scaledWidth,
@@ -116,7 +117,7 @@ class PsychologyStart extends StatelessWidget {
                           ),
                         ),
                       ),
-                    // Central blurred character and question mark, perfectly centered.
+                    
                     Positioned(
                       left: 119.92 * scale,
                       top: 279.49 * scale,
@@ -181,7 +182,7 @@ class PsychologyStart extends StatelessWidget {
                 ),
               ),
             ),
-            // The bottom button remains fixed, its responsiveness is handled separately.
+          
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
