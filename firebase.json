@@ -1,0 +1,39 @@
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "const-0412",
+          "appId": "1:72576508107:android:e855653ad6132a4033bb4e",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "const-0412",
+          "configurations": {
+            "android": "1:72576508107:android:e855653ad6132a4033bb4e",
+            "ios": "1:72576508107:ios:224bb8a55378cf9c33bb4e"
+          }
+        }
+      }
+    }
+  },
+  "functions": [
+    {
+      "source": "naverlogin",
+      "codebase": "naverlogin",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ],
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run lint",
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
+    }
+  ]
+}
