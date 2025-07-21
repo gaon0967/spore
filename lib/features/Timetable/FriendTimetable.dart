@@ -28,7 +28,7 @@ class FriendTimetable extends StatelessWidget {
 
    FriendTimetable({super.key, required this.friendName});
 
-  // 친구의 샘플 강의 데이터 (실제 앱에서는 친구 ID를 통해 서버에서 받아와야 합니다)
+  // 실제 앱에서는 친구 ID를 통해 서버에서 받아와야 함 
   final List<Course> friendCourses =  [
     Course(title: '리눅스눅스', professor: '함부기', room: '제2호관-401', day: 0, startTime: 9, endTime: 11, color: Color(0xFFCDDEE3)),
     Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 1, startTime: 11, endTime: 13, color: Color(0xFF8E9CBF)),

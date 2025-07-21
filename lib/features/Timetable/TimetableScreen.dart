@@ -438,7 +438,7 @@ class _AddCourseModalState extends State<AddCourseModal> {
       children: [
         SizedBox(width: 80, child: Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54))),
         const Expanded(child: Text("00 : 00", style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500))),
-        // TODO: 실제 TimePicker 기능 연동 필요
+        // TODO: 실제 TimePicker 기능 연동 필요-------------- 아직 개발 안함. 
       ],
     );
   }

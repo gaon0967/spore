@@ -27,7 +27,7 @@ class _TimetableListState extends State<TimetableList> {
     SemesterTimetable(year: '2024', semester: '1학기', color: const Color(0xFFE9EBE0)),
   ];
 
-  // 선택된 시간표의 인덱스를 저장 (0번째 아이템이 기본으로 선택됨)
+  // 선택된 시간표의 인덱스를 저장
   int _selectedIndex = 0;
 
   @override
@@ -51,7 +51,8 @@ class _TimetableListState extends State<TimetableList> {
             padding: const EdgeInsets.only(right: 16.0),
             child: ElevatedButton(
               onPressed: () {
-                // 시간표 추가 기능 구현-------------------
+                // 시간표 추가 기능 구현-------------------아직 안함. !!!
+            
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF0F0F0),
