@@ -3,7 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import '../Friend/FriendScreen.dart';
 import '../Timetable/TimetableScreen.dart';
-import 'event.dart';
+import 'Event.dart';
 
 // UTC 자정 기준으로 날짜를 반환하는 함수
 DateTime getToday() {
