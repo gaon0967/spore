@@ -1,0 +1,130 @@
+// lib/main_screen.dart
+
+import 'package:flutter/material.dart';
+import '../Friend/FriendScreen.dart';
+import '../Timetable/TimetableScreen.dart';
+import '../Calendar/HomeCalendar.dart';
+
+class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
+  @override
+  State<MainScreen> createState() => _MainScreenState();
+}
+
+class _MainScreenState extends State<MainScreen> {
+  int _selectedIndex = 1; // 시작 페이지를 '홈'으로 설정
+
+  // 각 탭에 해당하는 페이지 위젯 목록
+  static final List<Widget> _widgetOptions = <Widget>[
+    FriendScreen(),
+    HomeCalendar(), // 기존 HomeCalendar 위젯
+    TimetableScreen(),
+  ];
+
+  // 탭을 눌렀을 때 index를 변경하는 함수
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    return Scaffold(
+      // 선택된 인덱스에 맞는 페이지를 보여줌
+      body: _widgetOptions.elementAt(_selectedIndex),
+
+      bottomNavigationBar: Container(
+        padding: EdgeInsets.only(bottom: screenHeight * 0.01),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: Colors.black.withOpacity(0.05)),
+        ),
+        child: BottomNavigationBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          type: BottomNavigationBarType.fixed, // 아이콘과 텍스트가 함께 보이도록 타입 변경
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          showSelectedLabels: false, // label 숨기기
+          showUnselectedLabels: false,
+          items: [
+            // 0번 탭: 친구
+            BottomNavigationBarItem(
+              icon: Column(
+                children: [
+                  Image.asset(
+                    _selectedIndex == 0
+                     ? 'assets/images/mainpage/friend_on.png'  // 선택됐을 때
+                     : 'assets/images/mainpage/friend_off.png', // 선택 안됐을 때
+                   width: screenWidth * 0.058,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '친구',
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.024,
+                      color:const Color(0xFF515151),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              label: '',
+              ),
+            // 1번 탭: 홈
+            BottomNavigationBarItem(
+              icon: Column(
+                children: [
+                  Image.asset(
+                    _selectedIndex == 1
+                      ? 'assets/images/mainpage/home_on.png'
+                      : 'assets/images/mainpage/home_off.png',
+                    width: screenWidth * 0.058,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '홈',
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.024,
+                      color: const Color(0xFF515151),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              label: '',
+            ),
+            // 2번 탭: 시간표
+            BottomNavigationBarItem(
+              icon: Column(
+                children: [
+                  Image.asset(
+                    _selectedIndex == 2
+                      ? 'assets/images/mainpage/timetable_on.png'
+                      : 'assets/images/mainpage/timetable_off.png',
+                    width: screenWidth * 0.058,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '시긴표',
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.024,
+                      color: const Color(0xFF515151),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+              label: '',
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

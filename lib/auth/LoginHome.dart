@@ -3,7 +3,7 @@ import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
 import '../features/Psychology/PsychologyStart.dart'; //심리테스트 시작하는 화면 
 import 'naverAndFirebaseAuth.dart'; 
-import '../features/Calendar/HomeCalendar.dart'; 
+import 'package:new_project_1/features/Home/main_screen.dart';
 
 
 
@@ -320,7 +320,7 @@ class _BottomSection extends StatelessWidget {
               // 4. 성공 시 HomeCalendar 화면으로 이동
               Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const HomeCalendar()),
+              MaterialPageRoute(builder: (context) => const MainScreen()),
     );
 
   } catch (e) {
