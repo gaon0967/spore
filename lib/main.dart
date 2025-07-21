@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 //import 'package:flutter_logcat/flutter_logcat.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
+import 'package:new_project_1/features/Home/main_screen.dart';
 //import 'package:new_project_1/naver_auth/naverAndFirebaseAuth.dart';
 import 'auth/firebase_options.dart'; // Firebase CLI로 생성된 파일
 import 'auth/LoginHome.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 const urlScheme = 'flutterNaverLogin'; // IOS 어플에만 이용(아직 안함)
 const clientId = 'eW2zZw8AjJC4iudM9OzD'; // naver api id
@@ -41,6 +42,16 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false, // 디버그 배너 숨기기
+      locale: Locale('ko', 'KR'), // 앱의 기본 언어를 한국어로 설정
+      localizationsDelegates: [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: [
+        Locale('ko', 'KR'),
+        Locale('en', 'US'),
+      ],
       // home  첫 화면 만듬.
       home: LoginScreen(),
       //home: HomeCalendar(),

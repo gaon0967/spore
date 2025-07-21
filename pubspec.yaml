@@ -8,13 +8,16 @@ environment:
 
 dependencies:
   table_calendar: ^3.0.9
-  intl: ^0.18.0
+  intl: ^0.20.2
   cloud_firestore: ^5.6.7  # db
   cloud_functions: ^5.5.0  # firebase functions 이용을 위함
   firebase_auth: ^5.5.3    # 인증을 위함
   firebase_core: ^3.13.0   # firebase 이용을 위함
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_slidable: ^3.0.0
   naver_login_sdk: ^3.0.1  # naver login sdk로 쉽게 로직을 짬._찬홍 
   flutter_native_splash: ^2.4.6 # 앱 로팅화면  구현할 때 사용. _ 가령 
   auto_size_text: ^3.0.0 #설문 조사 할떄 질문이 도형을 넘지 못하게 자동으로 맞춰줄 때 사용. _가령
@@ -36,9 +39,15 @@ flutter:
     - assets/images/LoginHome/talk2.png
     - assets/images/LoginHome/talk3.png
 
-    - assets/images/mainpage/callender.png
-    - assets/images/mainpage/friend.png
-    - assets/images/mainpage/home.png
+    - assets/images/mainpage/friend_on.png
+    - assets/images/mainpage/friend_off.png
+    - assets/images/mainpage/home_on.png
+    - assets/images/mainpage/home_off.png
+    - assets/images/mainpage/timetable_on.png
+    - assets/images/mainpage/timetable_off.png
+    - assets/images/mainpage/setting.png
+    - assets/images/mainpage/notifications.png
+    - assets/images/mainpage/delete.png
 
     - assets/images/PsychologyTest/Character/ch1_1.png
     - assets/images/PsychologyTest/Character/ch1_2.png

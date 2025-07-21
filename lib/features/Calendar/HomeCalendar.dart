@@ -1,9 +1,11 @@
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import '../Friend/FriendScreen.dart';
-import '../Timetable/TimetableScreen.dart';
 import 'Event.dart';
+import 'Setting.dart';
+import 'Notification.dart';
+import 'package:flutter/cupertino.dart';
 
 // UTC 자정 기준으로 날짜를 반환하는 함수
 DateTime getToday() {
@@ -19,9 +21,9 @@ class HomeCalendar extends StatefulWidget {
 }
 
 class _HomeCalendarState extends State<HomeCalendar> {
-  int _selectedIndex = 1;
   DateTime _focusedDay = getToday();
   DateTime _selectedDay = getToday();
+  bool _isSettingsPressed = false;
 
   // 날짜별 일정 데이터를 저장할 Map
   final Map<DateTime, List<Event>> _events = {
@@ -44,23 +46,6 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
   List<Event> _getEventsForDay(DateTime day) {
     return _events[DateTime.utc(day.year, day.month, day.day)] ?? [];
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    if (index == 0) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => FriendScreen()),
-      );
-    } else if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => TimetableScreen()),
-      );
-    }
   }
 
   // '+' 버튼을 눌렀을 때 새 다이얼로그를 띄우는 함수
@@ -103,6 +88,12 @@ class _HomeCalendarState extends State<HomeCalendar> {
         DateFormat('EEE', 'en').format(selectedDate).toUpperCase();
 
     final eventsForSelectedDay = _getEventsForDay(_selectedDay);
+    eventsForSelectedDay.sort((a, b) {
+      // TimeOfDay(시, 분)를 분 단위로 변환하여 비교
+      final aTotalMinutes = a.startTime.hour * 60 + a.startTime.minute;
+      final bTotalMinutes = b.startTime.hour * 60 + b.startTime.minute;
+      return aTotalMinutes.compareTo(bTotalMinutes);
+    });
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
@@ -119,8 +110,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      offset: const Offset(0, 1),
+                      color: Colors.black.withOpacity(0.06),
+                      offset: const Offset(0, 0.6),
                       blurRadius: 10,
                     ),
                   ],
@@ -130,7 +121,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                     SizedBox(height: verticalPadding),
                     Padding(
                       padding: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.09,
+                        horizontal: screenWidth * 0.07,
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -160,18 +151,81 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           ),
                           Row(
                             children: [
-                              Icon(
-                                Icons.notifications_none,
-                                size: screenWidth * 0.065,
-                                color: Colors.black54,
+                              GestureDetector(
+                                onTap: () {
+                                  print('알림 아이콘 클릭됨!');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const NotificationPage()),
+                                  );
+                                },
+                                // --- 투명도 효과를 위한 부분 ---
+                                onTapDown: (details) {
+                                  setState(() {
+                                    _isSettingsPressed = true; // 누르기 시작하면 true
+                                  });
+                                },
+                                onTapUp: (details) {
+                                  setState(() {
+                                    _isSettingsPressed = false; // 손가락을 떼면 false
+                                  });
+                                },
+                                onTapCancel: () {
+                                  setState(() {
+                                    _isSettingsPressed = false; // 터치가 취소되어도 false
+                                  });
+                                },
+                                // --------------------------
+                                child: Opacity(
+                                  // _isSettingsPressed 상태에 따라 투명도를 조절 (눌렸을 때 50% 투명)
+                                  opacity: _isSettingsPressed ? 0.5 : 1.0,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(0.5),
+                                    child: Image.asset(
+                                      'assets/images/mainpage/notifications.png',
+                                      width: screenWidth * 0.052,
+                                      height: screenWidth * 0.052,
+                                    ),
+                                  ),
+                                ),
                               ),
-                              SizedBox(width: screenWidth * 0.03),
-                              Container(
-                                padding: const EdgeInsets.all(3),
-                                child: Icon(
-                                  Icons.settings,
-                                  size: screenWidth * 0.06,
-                                  color: Colors.black54,
+                              SizedBox(width: screenWidth * 0.04),
+                              GestureDetector(
+                                onTap: () {
+                                  print('설정 아이콘 클릭됨!');
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const SettingsPage()),
+                                  );
+                                },
+                                // --- 투명도 효과를 위한 부분 ---
+                                onTapDown: (details) {
+                                  setState(() {
+                                    _isSettingsPressed = true; // 누르기 시작하면 true
+                                  });
+                                },
+                                onTapUp: (details) {
+                                  setState(() {
+                                    _isSettingsPressed = false; // 손가락을 떼면 false
+                                  });
+                                },
+                                onTapCancel: () {
+                                  setState(() {
+                                    _isSettingsPressed = false; // 터치가 취소되어도 false
+                                  });
+                                },
+                                // --------------------------
+                                child: Opacity(
+                                  // _isSettingsPressed 상태에 따라 투명도를 조절 (눌렸을 때 50% 투명)
+                                  opacity: _isSettingsPressed ? 0.5 : 1.0,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(0.1),
+                                    child: Image.asset(
+                                      'assets/images/mainpage/setting.png',
+                                      width: screenWidth * 0.085,
+                                      height: screenWidth * 0.085,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
@@ -275,7 +329,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           defaultBuilder: (context, day, focusedDay) {
                             final isSaturday = day.weekday == DateTime.saturday;
                             final isSunday = day.weekday == DateTime.sunday;
-                            Color dateColor = Colors.black;
+                            Color dateColor = const Color(0xFF555555);
                             if (isSaturday) dateColor = const Color(0xFF616192);
                             if (isSunday) dateColor = const Color(0xFF8D2F2F);
                             return Center(
@@ -315,7 +369,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                             shape: BoxShape.circle,
                           ),
                           todayTextStyle: TextStyle(
-                            color: Colors.black,
+                            color: const Color(0xFF555555),
                             fontSize: screenWidth * 0.035,
                           ),
                         ),
@@ -390,7 +444,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                   child: Text(
                                     '+',
                                     style: TextStyle(
-                                      fontSize: 28,
+                                      fontSize: 25,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -410,50 +464,87 @@ class _HomeCalendarState extends State<HomeCalendar> {
                             itemCount: eventsForSelectedDay.length,
                             itemBuilder: (context, index) {
                               final event = eventsForSelectedDay[index];
-                              return Container(
-                                margin: EdgeInsets.only(
-                                  bottom: screenWidth * 0.025,
-                                ),
-                                height: 75,
-                                decoration: BoxDecoration(
-                                  color: event.color,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: ListTile(
-                                  title: Text(
-                                    event.title,
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: const Color(0xFF4C4747),
-                                      decoration:
-                                          event.isCompleted
-                                              ? TextDecoration.lineThrough
-                                              : TextDecoration.none,
+                              return Slidable(
+                                key: Key(event.title + event.startTime.toString()), // 각 항목을 구분할 고유 키
+
+                                // 오른쪽에서 왼쪽으로 밀었을 때 나타날 액션 창
+                                endActionPane: ActionPane(
+                                  motion: const DrawerMotion(), // 슬라이드 애니메이션 효과
+                                  children: [
+                                    // 삭제 액션 버튼
+                                    CustomSlidableAction(
+                                      onPressed: (context) {
+                                        // 버튼을 눌렀을 때 실행될 삭제 로직
+                                        setState(() {
+                                          final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+                                          _events[day]?.remove(event);
+
+                                          //ScaffoldMessenger.of(context).showSnackBar(
+                                            //SnackBar(content: Text('${event.title} 일정이 삭제되었습니다.')),
+                                          //);
+                                        });
+                                      },
+                                      backgroundColor: const Color(0xFFFFFF9),
+                                      foregroundColor: const Color(0xFFDA6464),
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center, // 아이콘과 텍스트를 세로 중앙 정렬
+                                        children: [
+                                          Image.asset(
+                                            'assets/images/mainpage/delete.png', // 실제 이미지 경로
+                                            width: 18, // 원하는 이미지 크기
+                                            height: 18,
+                                            //color: const Color.fromARGB(255, 121, 31, 31), // 이미지 색상 (단색 아이콘일 경우)
+                                          ),
+                                          const SizedBox(height: 4), // 이미지와 텍스트 사이 간격
+                                        ],
+                                      ),
                                     ),
+                                  ],
+                                ),
+
+                                // 슬라이드 될 메인 컨텐츠 (기존의 일정 블록 UI)
+                                child: Container(
+                                  margin: EdgeInsets.only(
+                                    bottom: screenWidth * 0.025,
                                   ),
-                                  subtitle: Text(
-                                    '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      color: Color(0xFF626262),
+                                  height: 75,
+                                  decoration: BoxDecoration(
+                                    color: event.color,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    title: Text(
+                                      event.title,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: const Color(0xFF4C4747),
+                                        decoration: event.isCompleted
+                                            ? TextDecoration.lineThrough
+                                            : TextDecoration.none,
+                                      ),
                                     ),
-                                  ),
-                                  trailing: GestureDetector(
-                                    onTap: () {
-                                      setState(() {
-                                        event.isCompleted = !event.isCompleted;
-                                      });
-                                    },
-                                    child:
-                                        event.isCompleted
-                                            ? const Text(
+                                    subtitle: Text(
+                                      '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        color: Color(0xFF626262),
+                                      ),
+                                    ),
+                                    trailing: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          event.isCompleted = !event.isCompleted;
+                                        });
+                                      },
+                                      child: event.isCompleted
+                                          ? const Text(
                                               '✓',
                                               style: TextStyle(
                                                 fontSize: 16,
                                                 color: Color(0xFF6B6060),
                                               ),
                                             )
-                                            : Container(
+                                          : Container(
                                               width: 15,
                                               height: 15,
                                               decoration: BoxDecoration(
@@ -466,6 +557,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                                     BorderRadius.circular(2),
                                               ),
                                             ),
+                                    ),
                                   ),
                                 ),
                               );
@@ -480,83 +572,6 @@ class _HomeCalendarState extends State<HomeCalendar> {
             ],
           ),
         ],
-      ),
-      bottomNavigationBar: Container(
-        padding: EdgeInsets.only(bottom: screenHeight * 0.01),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.black.withOpacity(0.05)),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          items: [
-            BottomNavigationBarItem(
-              icon: Column(
-                children: [
-                  Icon(
-                    Icons.person,
-                    size: screenWidth * 0.058,
-                    color: const Color(0xFF515151),
-                  ),
-                  SizedBox(height: 0),
-                  Text(
-                    '친구',
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.025,
-                      color: const Color(0xFF515151),
-                    ),
-                  ),
-                ],
-              ),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Column(
-                children: [
-                  Icon(
-                    Icons.home,
-                    size: screenWidth * 0.058,
-                    color: const Color(0xFF515151),
-                  ),
-                  SizedBox(height: 0),
-                  Text(
-                    '홈',
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.025,
-                      color: const Color(0xFF515151),
-                    ),
-                  ),
-                ],
-              ),
-              label: '',
-            ),
-            BottomNavigationBarItem(
-              icon: Column(
-                children: [
-                  Icon(
-                    Icons.calendar_month,
-                    size: screenWidth * 0.058,
-                    color: const Color(0xFF515151),
-                  ),
-                  SizedBox(height: 0),
-                  Text(
-                    '시간표',
-                    style: TextStyle(
-                      fontSize: screenWidth * 0.025,
-                      color: const Color(0xFF515151),
-                    ),
-                  ),
-                ],
-              ),
-              label: '',
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -577,6 +592,8 @@ class _AddEventDialogState extends State<AddEventDialog> {
   final _titleController = TextEditingController();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
+  bool _isStartTimeSelected = false;
+  bool _isEndTimeSelected = false;
 
   // CSS 기반 색상 목록
   final List<Color> _colorOptions = [
@@ -595,25 +612,74 @@ class _AddEventDialogState extends State<AddEventDialog> {
   void initState() {
     super.initState();
     _selectedColor = _colorOptions.first; // 첫 번째 색상을 기본값으로 설정
+
+    final now = TimeOfDay.now();
+    _startTime = now;
+    // 종료 시간은 시작 시간보다 1시간 뒤로 설정 (사용자 편의성)
+    // 23시일 경우 0시로 넘어가도록 % 24 연산 추가
+    _endTime = now.replacing(hour: (now.hour + 1) % 24);
   }
 
   Future<void> _pickTime(
     BuildContext context, {
     required bool isStartTime,
   }) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
+    final initialTime = isStartTime ? _startTime : _endTime;
+    final now = DateTime.now();
+    DateTime tempPickedTime = DateTime( // 1. 선택한 시간을 임시로 저장할 변수
+      now.year,
+      now.month,
+      now.day,
+      initialTime?.hour ?? now.hour,
+      initialTime?.minute ?? now.minute,
     );
-    if (picked != null) {
-      setState(() {
-        if (isStartTime) {
-          _startTime = picked;
-        } else {
-          _endTime = picked;
-        }
-      });
-    }
+
+    await showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 250,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CupertinoButton(
+                    child: const Text('완료'),
+                    onPressed: () {
+                      // 3. '완료' 버튼을 누를 때만 setState로 최종 반영
+                      setState(() {
+                        final newTime = TimeOfDay.fromDateTime(tempPickedTime);
+                        if (isStartTime) {
+                          _startTime = newTime;
+                          _isStartTimeSelected = true;
+                        } else {
+                          _endTime = newTime;
+                          _isEndTimeSelected = true;
+                        }
+                      });
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  use24hFormat: false,
+                  initialDateTime: tempPickedTime,
+                  onDateTimeChanged: (DateTime newDateTime) {
+                    // 2. 휠을 돌릴 때는 임시 변수 값만 변경 (setState 없음!)
+                    tempPickedTime = newDateTime;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   void _saveEvent() {
@@ -690,6 +756,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
               TextField(
                 controller: _titleController,
                 textAlign: TextAlign.left,
+                keyboardType: TextInputType.text,
                 style: TextStyle(
                   fontSize: hintFontSize,
                   fontWeight: FontWeight.w500,
@@ -711,6 +778,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
                 () => _pickTime(context, isStartTime: true),
                 timeLabelFontSize,
                 timeValueFontSize,
+                _isStartTimeSelected,
               ),
               SizedBox(height: spacingHeight * 0.5), // 시간 줄 사이 간격
               _buildTimeRow(
@@ -719,6 +787,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
                 () => _pickTime(context, isStartTime: false),
                 timeLabelFontSize,
                 timeValueFontSize,
+                _isEndTimeSelected,
               ),
               SizedBox(height: spacingHeight * 3.2),
               Padding(
@@ -791,32 +860,36 @@ class _AddEventDialogState extends State<AddEventDialog> {
     VoidCallback onPressed,
     double labelSize,
     double valueSize,
+    bool isSelected, // <--- 시간이 선택되었는지 여부를 받는 파라미터 추가
   ) {
     return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 16.0), // <-- 이 값을 조절해 여백 크기 변경
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: labelSize * 0.94,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF000000),
-          ),
-        ),
-        TextButton(
-          onPressed: onPressed,
-          child: Text(
-            time?.format(context) ?? '00:00',
+      padding: const EdgeInsets.symmetric(
+        horizontal: 16.0,
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
             style: TextStyle(
-              fontSize: valueSize * 0.94,
-              color: time == null ? const Color(0xFFDADADA) : Colors.black,
+              fontSize: labelSize * 0.94,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF000000),
             ),
           ),
-        ),
-      ],
-    ),
-  );
+          TextButton(
+            onPressed: onPressed,
+            child: Text(
+              time?.format(context) ?? '00:00',
+              style: TextStyle(
+                fontSize: valueSize * 0.94,
+                // ▼▼▼▼▼ isSelected 값에 따라 색상 결정 ▼▼▼▼▼
+                color: isSelected ? Colors.black : const Color(0xFFDADADA),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
