@@ -1,8 +1,8 @@
-// FriendTimetable.dart
+
 
 import 'package:flutter/material.dart';
 
-// Course 데이터 모델 (TimetableScreen과 동일하게 사용)
+// Course 데이터 모델
 class Course {
   final String title;
   final String professor;
@@ -94,8 +94,7 @@ class FriendTimetable extends StatelessWidget {
 
   // 시간표 위젯 (TimetableScreen의 코드를 재사용)
   Widget _buildTimetable(BuildContext context) {
-    // ... (이하 시간표를 그리는 _buildTimetable, _buildGrid, _buildCourseItem 코드는
-    //      TimetableScreen의 것과 거의 동일하므로 여기에 그대로 복사해서 사용합니다.)
+   
     final scale = MediaQuery.of(context).size.width / 411.0;
     final screenWidth = MediaQuery.of(context).size.width;
 

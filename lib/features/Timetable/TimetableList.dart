@@ -89,7 +89,7 @@ class _TimetableListState extends State<TimetableList> {
                   _selectedIndex = index;
                 });
               },
-              // ## 3. 개별 시간표 카드 위젯 ##
+             
               child: Container(
                 padding: const EdgeInsets.all(16.0),
                 decoration: BoxDecoration(
