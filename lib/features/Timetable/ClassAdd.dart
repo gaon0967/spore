@@ -29,8 +29,8 @@ class _AddCourseModalState extends State<AddCourseModal> {
 
   // 색상 선택 상태 관리
   final List<Color> _colors = const [
-    Color(0xFFD6E4FF), Color(0xFF8A9ABD), Color(0xFFB8CBFF),
-    Color(0xFFC8EDC8), Color(0xFFE4C4DE), Color(0xFFFFF2CC),
+    Color(0xFFCDDEE3), Color(0xFF8E9CBF), Color(0xFF97B4C7),
+    Color(0xFFBBCDC0), Color(0xFFE5EAEF), Color(0xFFE8EBDF),
   ];
   late Color _selectedColor;
 
@@ -161,11 +161,11 @@ class _AddCourseModalState extends State<AddCourseModal> {
                 ),
               const SizedBox(height: 20),
               SizedBox(
-                height: 90,
+                height: 40,
                 child: GridView.builder(
                   physics: const NeverScrollableScrollPhysics(),
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12,
+                    crossAxisCount: 6, crossAxisSpacing: 12, mainAxisSpacing: 12,
                   ),
                   itemCount: _colors.length,
                   itemBuilder: (context, index) => _buildColorCircle(_colors[index]),
@@ -195,6 +195,7 @@ class _AddCourseModalState extends State<AddCourseModal> {
   Widget _buildTextField({required TextEditingController controller, required String hintText}) {
     return TextField(
       controller: controller,
+      keyboardType: TextInputType.text,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey[400]),
@@ -257,8 +258,8 @@ class _AddCourseModalState extends State<AddCourseModal> {
               contentPadding: EdgeInsets.zero,
             ),
             inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
-              LengthLimitingTextInputFormatter(4),
+              FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
+              LengthLimitingTextInputFormatter(5),
               _TimeTextInputFormatter(),
             ],
           ),
