@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'Event.dart';
-import 'Setting.dart';
+import '../Settings/SettingsScreen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -195,8 +195,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                   print('설정 아이콘 클릭됨!');
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (context) => const SettingsPage()),
-                                  );
+                                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                                  ); // 설정 화면으로 넘어감
                                 },
                                 // --- 투명도 효과를 위한 부분 ---
                                 onTapDown: (details) {
