@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'naver_auth/naverAndFirebaseAuth.dart';
-import 'HomeCalendar.dart';
+import '../../auth/naverAndFirebaseAuth.dart';
+import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
 
 // --- 데이터 모델 및 저장소 ---
 class Character {

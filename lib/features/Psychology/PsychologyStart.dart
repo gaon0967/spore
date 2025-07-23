@@ -20,7 +20,7 @@ const List<CharacterInfo> characterData = [
   CharacterInfo(name: '게으른 철학자', bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle2-4.png'),
 ];
 
-// A data class for better readability of layout properties.
+
 class _CharacterLayout {
   final double left;
   final double top;
