@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'ProfileEdit.dart'; // 프로필 변경 화면
+import 'profile_edit.dart'; // 프로필 변경 화면
+import '../Friend/friend_management.dart'; // 프로필 변경 화면
 
 /// ==============================
 /// 클래스명: SettingsScreen
@@ -133,7 +134,16 @@ class SettingsScreen extends StatelessWidget {
                     /// 반환: 없음
                     /// 예외: 없음
                     /// ------------------------------
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder:
+                              (context) => const friend_management(),
+                          // 친구 관리 버튼 클릭 시 friend_management 화면으로 이동
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFCDDEE3),
                       // 버튼 배경색
