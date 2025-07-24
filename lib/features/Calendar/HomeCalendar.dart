@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'Event.dart';
-import 'Setting.dart';
+import '../Settings/settings_screen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -26,7 +26,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   DateTime _selectedDay = getToday();
   bool _isSettingsPressed = false;
   bool _isNotificationsPressed = false;
-
+  Object? _pressedIndex;
   // 날짜별 일정 데이터를 저장할 Map
   final Map<DateTime, List<Event>> _events = {};
 
@@ -39,7 +39,6 @@ class _HomeCalendarState extends State<HomeCalendar> {
     final result = await showDialog<Event>(
       context: context,
       builder: (BuildContext context) {
-        // 수정 모드일 경우 기존 데이터를, 아닐 경우 새 데이터를 Dialog에 전달
         return AddEventDialog(
           selectedDate: _selectedDay,
           eventToEdit: existingEvent,
@@ -47,31 +46,273 @@ class _HomeCalendarState extends State<HomeCalendar> {
       },
     );
 
-    // Dialog에서 무언가 반환되었을 때 (저장 또는 수정 완료)
-    if (result != null) {
-      setState(() {
-        final day = DateTime.utc(
-          _selectedDay.year,
-          _selectedDay.month,
-          _selectedDay.day,
-        );
+    if (result == null) return;
 
-        if (existingEvent != null && eventIndex != null) {
-          // 수정 모드: 기존 eventIndex 위치의 데이터를 새로운 데이터(result)로 교체
-          if (_events[day] != null) {
-            _events[day]![eventIndex] = result;
-          }
-        } else {
-          // 추가 모드: 새로운 일정(result)을 목록에 추가
-          if (_events[day] != null) {
-            _events[day]!.add(result);
-          } else {
-            _events[day] = [result];
-          }
-        }
+    final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+
+    // 수정 모드
+    if (existingEvent != null && eventIndex != null) {
+      setState(() {
+        _getEventsForDay(day)[eventIndex] = result;
       });
     }
+    // 추가 모드
+    else {
+      if (_events[day] == null) {
+        _events[day] = [];
+      }
+      final eventsList = _getEventsForDay(day);
+      final insertIndex = eventsList.length;
+
+      // 1. 데이터 소스에 아이템을 추가하고 UI(카운터 등)를 업데이트
+      setState(() {
+        eventsList.add(result);
+      });
+
+      // 2. AnimatedList에 아이템 추가를 알림
+      _listKey.currentState?.insertItem(insertIndex, duration: const Duration(milliseconds: 180));
+    }
   }
+
+  // 삭제 버튼 로직 (AnimatedList에 맞게 수정)
+  void _removeItem(int index) {
+    final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+    if (_events[day] == null || index >= _events[day]!.length) return;
+
+    // 1. 데이터 소스에서 아이템을 제거하고, 그 아이템을 변수에 저장
+    final eventToRemove = _events[day]!.removeAt(index);
+
+    // 2. 다른 UI(예: 카운터)를 업데이트하기 위해 setState 호출
+    setState(() {});
+
+    // 3. AnimatedList에 아이템 제거 애니메이션 요청
+    _listKey.currentState?.removeItem(
+      index,
+      (context, animation) {
+        // 제거될 때 보여줄 위젯 (애니메이션 효과)
+        return _buildRemovingAnimatedItem(eventToRemove, animation);
+      },
+      duration: const Duration(milliseconds: 180),
+    );
+  }
+
+  Widget _buildEventContent(Event event, {int? index}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return GestureDetector(
+      onTap: () {
+        if (index != null) {
+          _showAddEventDialog(
+            existingEvent: event,
+            eventIndex: index,
+          );
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+        height: 75,
+        decoration: BoxDecoration(
+          color: event.color,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ListTile(
+          title: Text(
+            event.title,
+            style: TextStyle(
+              fontSize: screenWidth * 0.032,
+              color: event.isCompleted ? const Color(0xFF626262) : const Color(0xFF4C4747),
+              decoration: event.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+            ),
+          ),
+          subtitle: Text(
+            '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+            style: TextStyle(
+              fontSize: screenWidth * 0.024,
+              color: const Color(0xFF626262),
+            ),
+          ),
+          trailing: GestureDetector(
+            onTap: () {
+              setState(() {
+                event.isCompleted = !event.isCompleted;
+              });
+            },
+            child: event.isCompleted
+                ? Text('✓', style: TextStyle(fontSize: screenWidth * 0.04, color: const Color(0xFF6B6060)))
+                : Container(
+                    width: screenWidth * 0.035,
+                    height: screenWidth * 0.035,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF6B6060)),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemovingAnimatedItem(Event event, Animation<double> animation) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // SizeTransition이 애니메이션의 주체가 되도록 수정
+    return SizeTransition(
+      sizeFactor: animation,
+      child: Row(
+        children: [
+          // 원래 Slidable의 비율(extentRatio: 0.7)에 맞춰 확장
+          Expanded(
+            flex: 7,
+            child: _buildEventContent(event), // index를 null로 전달
+          ),
+          // 삭제 버튼 부분 (비율 0.3)
+          Expanded(
+            flex: 3,
+            child: Container(
+              margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+              height: 75, // 높이를 명시적으로 지정
+              child: CustomSlidableAction(
+                onPressed: (context) {}, // 애니메이션 중에는 동작 안 함
+                backgroundColor: const Color(0xFFFFFEF9),
+                foregroundColor: const Color(0xFFDA6464),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/mainpage/delete.png',
+                      width: screenWidth * 0.043,
+                      height: screenWidth * 0.043,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // AnimatedList의 아이템을 만드는 헬퍼 함수
+Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  return SizeTransition(
+    sizeFactor: animation,
+    child: Listener(
+      onPointerDown: (_) => setState(() => _pressedIndex = index),
+      onPointerUp: (_) => setState(() => _pressedIndex = null),
+      onPointerCancel: (_) => setState(() => _pressedIndex = null),
+      // [ ✨ 그림자 제거 ✨ ]
+      // Material 위젯으로 감싸고 type을 transparency로 설정하여 그림자 효과를 제거합니다.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Slidable(
+          key: ValueKey(event),
+          endActionPane: ActionPane(
+            motion: const DrawerMotion(),
+            extentRatio: 0.3,
+            children: [
+              CustomSlidableAction(
+                onPressed: (context) => _removeItem(index),
+                backgroundColor: const Color(0xFFFFFFF9),
+                foregroundColor: const Color(0xFFDA6464),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/mainpage/delete.png',
+                      width: screenWidth * 0.043,
+                      height: screenWidth * 0.043,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          child: Container(
+            margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+            height: 75,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: event.color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      // [ ✨ 네모 효과 제거 ✨ ]
+                      // ListTile의 기본 터치 효과를 투명하게 만들어 제거합니다.
+                      splashColor: Colors.transparent,
+                      onTap: () {
+                        _showAddEventDialog(
+                            existingEvent: event, eventIndex: index);
+                      },
+                      title: Text(
+                        event.title,
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.032,
+                          color: event.isCompleted
+                              ? const Color(0xFF626262)
+                              : const Color(0xFF4C4747),
+                          decoration: event.isCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.024,
+                          color: const Color(0xFF626262),
+                        ),
+                      ),
+                      trailing: GestureDetector(
+                        onTap: () {
+                          setState(() => event.isCompleted = !event.isCompleted);
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                          padding: const EdgeInsets.all(8.0),
+                          child: event.isCompleted
+                              ? Text('✓',
+                                  style: TextStyle(
+                                      fontSize: screenWidth * 0.04,
+                                      color: const Color(0xFF6B6060)))
+                              : Container(
+                                  width: screenWidth * 0.035,
+                                  height: screenWidth * 0.035,
+                                  decoration: BoxDecoration(
+                                    border:
+                                        Border.all(color: const Color(0xFF6B6060)),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IgnorePointer(
+                    ignoring: true,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOut,
+                      color: _pressedIndex == index
+                          ? Colors.black.withAlpha(38)
+                          : Colors.transparent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
 
   Widget _buildEventsMarker(DateTime day, List<Event> events) {
     // 상위 3개의 이벤트만 가져오거나, 3개 미만이면 있는 만큼만 가져옵니다.
@@ -224,7 +465,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                     context,
                                     MaterialPageRoute(
                                       builder:
-                                          (context) => const SettingsPage(),
+                                          (context) => const SettingsScreen(),
                                     ),
                                   );
                                 },
@@ -506,138 +747,15 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           thickness: 0.8,
                         ),
                         Expanded(
-                          child: ListView.builder(
+                          // 여기가 AnimatedList로 변경된 부분
+                          child: AnimatedList(
+                            key: _listKey,
                             padding: EdgeInsets.zero,
-                            itemCount: eventsForSelectedDay.length,
-                            itemBuilder: (context, index) {
+                            initialItemCount: eventsForSelectedDay.length,
+                            itemBuilder: (context, index, animation) {
+                              if (index >= eventsForSelectedDay.length) return const SizedBox.shrink();
                               final event = eventsForSelectedDay[index];
-                              return Slidable(
-                                key: Key(
-                                  event.title + event.startTime.toString(),
-                                ), // 각 항목을 구분할 고유 키
-                                // 오른쪽에서 왼쪽으로 밀었을 때 나타날 액션 창
-                                endActionPane: ActionPane(
-                                  motion: const DrawerMotion(), // 슬라이드 애니메이션 효과
-                                  extentRatio: 0.3,
-                                  children: [
-                                    // 삭제 액션 버튼
-                                    CustomSlidableAction(
-                                      onPressed: (context) {
-                                        // 버튼을 눌렀을 때 실행될 삭제 로직
-                                        setState(() {
-                                          final day = DateTime.utc(
-                                            _selectedDay.year,
-                                            _selectedDay.month,
-                                            _selectedDay.day,
-                                          );
-                                          _events[day]?.remove(event);
-
-                                          //ScaffoldMessenger.of(context).showSnackBar(
-                                          //SnackBar(content: Text('${event.title} 일정이 삭제되었습니다.')),
-                                          //);
-                                        });
-                                      },
-                                      backgroundColor: const Color(0xFFFFFF9),
-                                      foregroundColor: const Color(0xFFDA6464),
-                                      child: Column(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment
-                                                .center, // 아이콘과 텍스트를 세로 중앙 정렬
-                                        children: [
-                                          Image.asset(
-                                            'assets/images/mainpage/delete.png', // 실제 이미지 경로
-                                            width:
-                                                screenWidth *
-                                                0.043, // 원하는 이미지 크기
-                                            height: screenWidth * 0.043,
-                                            //color: const Color.fromARGB(255, 121, 31, 31), // 이미지 색상 (단색 아이콘일 경우)
-                                          ),
-                                          const SizedBox(
-                                            height: 4,
-                                          ), // 이미지와 텍스트 사이 간격
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                // 슬라이드 될 메인 컨텐츠 (기존의 일정 블록 UI)
-                                child: GestureDetector(
-                                  onTap: () {
-                                    // 탭하면 수정 다이얼로그를 띄움
-                                    _showAddEventDialog(
-                                      existingEvent: event,
-                                      eventIndex: index,
-                                    );
-                                  },
-                                  child: Container(
-                                    margin: EdgeInsets.only(
-                                      bottom: screenWidth * 0.025,
-                                    ),
-                                    height: 75,
-                                    decoration: BoxDecoration(
-                                      color: event.color,
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: ListTile(
-                                      title: Text(
-                                        event.title,
-                                        style: TextStyle(
-                                          fontSize: screenWidth * 0.032,
-                                          color:
-                                              event.isCompleted
-                                                  ? const Color(0xFF626262)
-                                                  : const Color(0xFF4C4747),
-                                          decoration:
-                                              event.isCompleted
-                                                  ? TextDecoration.lineThrough
-                                                  : TextDecoration.none,
-                                        ),
-                                      ),
-                                      subtitle: Text(
-                                        '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
-                                        style: TextStyle(
-                                          fontSize: screenWidth * 0.024,
-                                          color: Color(0xFF626262),
-                                        ),
-                                      ),
-                                      trailing: GestureDetector(
-                                        onTap: () {
-                                          setState(() {
-                                            event.isCompleted =
-                                                !event.isCompleted;
-                                          });
-                                        },
-                                        child:
-                                            event.isCompleted
-                                                ? Text(
-                                                  '✓',
-                                                  style: TextStyle(
-                                                    fontSize:
-                                                        screenWidth * 0.04,
-                                                    color: Color(0xFF6B6060),
-                                                  ),
-                                                )
-                                                : Container(
-                                                  width: screenWidth * 0.035,
-                                                  height: screenWidth * 0.035,
-                                                  decoration: BoxDecoration(
-                                                    border: Border.all(
-                                                      color: const Color(
-                                                        0xFF6B6060,
-                                                      ),
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          2,
-                                                        ),
-                                                  ),
-                                                ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
+                              return _buildAnimatedItem(event, index, animation);
                             },
                           ),
                         ),
