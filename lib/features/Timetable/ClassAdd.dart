@@ -1,6 +1,6 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import '../Timetable/TimetableScreen.dart';
+import '../Timetable/TimetableScreen.dart'; // 프로젝트에 맞게 경로 확인
 
 /// 수업 추가 모달 위젯
 class AddCourseModal extends StatefulWidget {
@@ -15,17 +15,17 @@ class _AddCourseModalState extends State<AddCourseModal> {
   final _courseNameController = TextEditingController();
   final _professorController = TextEditingController();
   final _locationController = TextEditingController();
-  final _startTimeController = TextEditingController();
-  final _endTimeController = TextEditingController();
+
+  // TimeOfDay 상태 변수
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
 
   // 시간 유효성 검사 에러 메시지
   String? _timeErrorText;
 
-  // --- [추가된 부분 1] ---
   // 요일 선택 상태 관리
   final List<String> _days = ['월', '화', '수', '목', '금'];
-  String _selectedDay = '월'; // 기본 선택 요일
-  // ----------------------
+  String _selectedDay = '월';
 
   // 색상 선택 상태 관리
   final List<Color> _colors = const [
@@ -38,87 +38,125 @@ class _AddCourseModalState extends State<AddCourseModal> {
   void initState() {
     super.initState();
     _selectedColor = _colors.first;
+
+    // 초기 시간을 30분 단위로 설정
+    final now = DateTime.now();
+    final roundedMinute = (now.minute ~/ 30) * 30;
+    final initialTime = TimeOfDay(hour: now.hour, minute: roundedMinute);
+
+    _startTime = initialTime;
+
+    // 시작 시간에서 30분 뒤로 종료 시간 설정
+    final initialDateTime = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
+    final endDateTime = initialDateTime.add(const Duration(minutes: 30));
+    _endTime = TimeOfDay.fromDateTime(endDateTime);
   }
+
 
   @override
   void dispose() {
-    // 컨트롤러 메모리 정리
     _courseNameController.dispose();
     _professorController.dispose();
     _locationController.dispose();
-    _startTimeController.dispose();
-    _endTimeController.dispose();
     super.dispose();
   }
 
-  void _validateAndSubmit() {
-    final startTime = _parseTime(_startTimeController.text);
-    final endTime = _parseTime(_endTimeController.text);
+  // Cupertino 시간 피커를 띄우는 함수
+  Future<void> _pickTime(BuildContext context, {required bool isStartTime}) async {
+    final initialTime = isStartTime ? _startTime : _endTime;
+    DateTime tempPickedTime = DateTime(
+      DateTime.now().year, DateTime.now().month, DateTime.now().day,
+      initialTime?.hour ?? TimeOfDay.now().hour,
+      initialTime?.minute ?? TimeOfDay.now().minute,
+    );
 
-    if (startTime == null || endTime == null) {
-      setState(() {
-        _timeErrorText = '시간을 HH:mm 형식으로 입력해주세요. (예: 14:30)';
-      });
+    await showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.3,
+          color: CupertinoColors.systemBackground.resolveFrom(context),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CupertinoButton(
+                    child: const Text('완료'),
+                    onPressed: () {
+                      setState(() {
+                        final newTime = TimeOfDay.fromDateTime(tempPickedTime);
+                        if (isStartTime) {
+                          _startTime = newTime;
+                        } else {
+                          _endTime = newTime;
+                        }
+                      });
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  // [개선] 오전/오후 선택을 위해 12시간제 사용
+                  use24hFormat: false,
+                  minuteInterval: 30,
+                  initialDateTime: tempPickedTime,
+                  onDateTimeChanged: (DateTime newDateTime) {
+                    tempPickedTime = newDateTime;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 유효성 검사 및 제출 함수
+  void _validateAndSubmit() {
+    if (_startTime == null || _endTime == null) {
+      setState(() => _timeErrorText = '시간을 선택해주세요.');
       return;
     }
 
-    final startMinutes = startTime.hour * 60 + startTime.minute;
-    final endMinutes = endTime.hour * 60 + endTime.minute;
+    final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
+    final endMinutes = _endTime!.hour * 60 + _endTime!.minute;
 
     if (endMinutes <= startMinutes) {
-      setState(() {
-        _timeErrorText = '종료 시간은 시작 시간보다 늦어야 합니다.';
-      });
+      setState(() => _timeErrorText = '종료 시간은 시작 시간보다 늦어야 합니다.');
       return;
     }
-    
-    setState(() {
-      _timeErrorText = null;
-    });
 
-    // --- [수정된 부분 2] ---
-    // Course 객체 생성 시 선택된 요일의 인덱스를 전달합니다.
+    setState(() => _timeErrorText = null);
+
     final newCourse = Course(
       title: _courseNameController.text,
       professor: _professorController.text,
       room: _locationController.text,
-      day: _days.indexOf(_selectedDay), // '월' -> 0, '화' -> 1 ...
-      startTime: startTime.hour,
-      endTime: endTime.hour,
+      day: _days.indexOf(_selectedDay),
+      startTime: _startTime!,
+      endTime: _endTime!,
       color: _selectedColor,
     );
-    // -----------------------
-    
+
     Navigator.of(context).pop(newCourse);
   }
 
-  TimeOfDay? _parseTime(String text) {
-    try {
-      final parts = text.split(':');
-      if (parts.length != 2) return null;
-      
-      final hour = int.tryParse(parts[0]);
-      final minute = int.tryParse(parts[1]);
-
-      if (hour == null || minute == null || hour < 0 || hour > 23 || minute < 0 || minute > 59) {
-        return null;
-      }
-      return TimeOfDay(hour: hour, minute: minute);
-    } catch (e) {
-      return null;
-    }
-  }
-
-
   @override
   Widget build(BuildContext context) {
+    final horizontalPadding = MediaQuery.of(context).size.width * 0.06;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
       backgroundColor: Colors.white,
       elevation: 0,
       child: SingleChildScrollView(
         child: Container(
-          padding: const EdgeInsets.all(24.0),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 24.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -129,24 +167,19 @@ class _AddCourseModalState extends State<AddCourseModal> {
               const SizedBox(height: 12),
               _buildTextField(controller: _locationController, hintText: '장소'),
               const SizedBox(height: 20),
-              
-              // --- [추가된 부분 3] ---
-              // 요일 선택 UI 위젯 호출
               _buildDayPicker(),
               const SizedBox(height: 20),
-              // ----------------------
-
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
                   children: [
-                    _buildTimeInputRow('시작 시간', _startTimeController),
-                    const SizedBox(height: 8),
-                    _buildTimeInputRow('종료 시간', _endTimeController),
+                    _buildTimePickerRow('시작 시간', true),
+                    const Divider(height: 1, color: Colors.black12),
+                    _buildTimePickerRow('종료 시간', false),
                   ],
                 ),
               ),
@@ -172,7 +205,6 @@ class _AddCourseModalState extends State<AddCourseModal> {
                 ),
               ),
               const SizedBox(height: 20),
-
               ElevatedButton(
                 onPressed: _validateAndSubmit,
                 style: ElevatedButton.styleFrom(
@@ -192,10 +224,72 @@ class _AddCourseModalState extends State<AddCourseModal> {
     );
   }
 
+  // [개선] 시간 표시를 '오전/오후' 형식으로 변경
+  Widget _buildTimePickerRow(String label, bool isStartTime) {
+    final time = isStartTime ? _startTime : _endTime;
+    String formattedTime = '선택';
+
+    if (time != null) {
+      // MaterialLocalizations를 사용하여 디바이스 설정에 맞는 오전/오후 형식으로 변환
+      formattedTime = MaterialLocalizations.of(context).formatTimeOfDay(time, alwaysUse24HourFormat: false);
+    }
+
+    return InkWell(
+      onTap: () => _pickTime(context, isStartTime: isStartTime),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        child: Row(
+          children: [
+            Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54)),
+            const Spacer(),
+            Text(
+              formattedTime,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_drop_down, color: Colors.black54),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDayPicker() {
+    return Row(
+      children: _days.asMap().entries.map((entry) {
+        final int index = entry.key;
+        final String day = entry.value;
+        final isSelected = _selectedDay == day;
+
+        return Expanded(
+          child: GestureDetector(
+            onTap: () => setState(() => _selectedDay = day),
+            child: Container(
+              margin: EdgeInsets.only(left: index == 0 ? 0 : 4, right: index == _days.length - 1 ? 0 : 4),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.blueAccent : Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Center(
+                child: Text(
+                  day,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.black,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   Widget _buildTextField({required TextEditingController controller, required String hintText}) {
     return TextField(
       controller: controller,
-      keyboardType: TextInputType.text,
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: TextStyle(color: Colors.grey[400]),
@@ -207,67 +301,6 @@ class _AddCourseModalState extends State<AddCourseModal> {
     );
   }
 
-  // --- [추가된 부분 4] ---
-  // 요일 선택 UI를 만드는 위젯 함수
-  Widget _buildDayPicker() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: _days.map((day) {
-        final isSelected = _selectedDay == day;
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedDay = day;
-            });
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: isSelected ? Colors.blueAccent : Colors.grey[200],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              day,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-  // ----------------------
-
-  Widget _buildTimeInputRow(String label, TextEditingController controller) {
-    return Row(
-      children: [
-        Text(label, style: const TextStyle(fontSize: 16, color: Colors.black54)),
-        const Spacer(),
-        SizedBox(
-          width: 80,
-          child: TextField(
-            controller: controller,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
-            keyboardType: TextInputType.datetime,
-            decoration: const InputDecoration(
-              hintText: '00:00',
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.zero,
-            ),
-            inputFormatters: [
-              FilteringTextInputFormatter.allow(RegExp(r'[0-9:]')),
-              LengthLimitingTextInputFormatter(5),
-              _TimeTextInputFormatter(),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-  
   Widget _buildColorCircle(Color color) {
     bool isSelected = _selectedColor == color;
     return GestureDetector(
@@ -283,22 +316,23 @@ class _AddCourseModalState extends State<AddCourseModal> {
   }
 }
 
-class _TimeTextInputFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(
-    TextEditingValue oldValue,
-    TextEditingValue newValue,
-  ) {
-    final text = newValue.text;
+// Course 클래스 예시 (프로젝트의 실제 정의와 일치해야 합니다)
+class Course {
+  final String title;
+  final String professor;
+  final String room;
+  final int day;
+  final TimeOfDay startTime;
+  final TimeOfDay endTime;
+  final Color color;
 
-    if (text.length > 2) {
-      return newValue.copyWith(
-        text: '${text.substring(0, 2)}:${text.substring(2)}',
-        selection: TextSelection.fromPosition(
-          TextPosition(offset: text.length + 1),
-        ),
-      );
-    }
-    return newValue;
-  }
+  Course({
+    required this.title,
+    required this.professor,
+    required this.room,
+    required this.day,
+    required this.startTime,
+    required this.endTime,
+    required this.color,
+  });
 }
