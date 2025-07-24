@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'Event.dart';
-import '../Settings/SettingsScreen.dart';
+import '../Settings/settings_screen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 
@@ -21,56 +21,318 @@ class HomeCalendar extends StatefulWidget {
 }
 
 class _HomeCalendarState extends State<HomeCalendar> {
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   DateTime _focusedDay = getToday();
   DateTime _selectedDay = getToday();
   bool _isSettingsPressed = false;
-
+  bool _isNotificationsPressed = false;
+  Object? _pressedIndex;
   // 날짜별 일정 데이터를 저장할 Map
-  final Map<DateTime, List<Event>> _events = {
-    DateTime.utc(2025, 7, 31): [
-      Event(
-        title: '리눅스 과제 제출',
-        startTime: TimeOfDay(hour: 9, minute: 0),
-        endTime: TimeOfDay(hour: 23, minute: 59),
-        color: const Color(0xFFF4ECD2),
-      ),
-      Event(
-        title: '학원 알바',
-        startTime: TimeOfDay(hour: 10, minute: 0),
-        endTime: TimeOfDay(hour: 22, minute: 0),
-        color: const Color(0xFFCDDEE3),
-        isCompleted: true,
-      ),
-    ],
-  };
+  final Map<DateTime, List<Event>> _events = {};
 
   List<Event> _getEventsForDay(DateTime day) {
     return _events[DateTime.utc(day.year, day.month, day.day)] ?? [];
   }
 
   // '+' 버튼을 눌렀을 때 새 다이얼로그를 띄우는 함수
-  void _showAddEventDialog() async {
-    final newEvent = await showDialog<Event>(
+  void _showAddEventDialog({Event? existingEvent, int? eventIndex}) async {
+    final result = await showDialog<Event>(
       context: context,
       builder: (BuildContext context) {
-        return AddEventDialog(selectedDate: _selectedDay);
+        return AddEventDialog(
+          selectedDate: _selectedDay,
+          eventToEdit: existingEvent,
+        );
       },
     );
 
-    if (newEvent != null) {
+    if (result == null) return;
+
+    final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+
+    // 수정 모드
+    if (existingEvent != null && eventIndex != null) {
       setState(() {
-        final day = DateTime.utc(
-          _selectedDay.year,
-          _selectedDay.month,
-          _selectedDay.day,
-        );
-        if (_events[day] != null) {
-          _events[day]!.add(newEvent);
-        } else {
-          _events[day] = [newEvent];
-        }
+        _getEventsForDay(day)[eventIndex] = result;
       });
     }
+    // 추가 모드
+    else {
+      if (_events[day] == null) {
+        _events[day] = [];
+      }
+      final eventsList = _getEventsForDay(day);
+      final insertIndex = eventsList.length;
+
+      // 1. 데이터 소스에 아이템을 추가하고 UI(카운터 등)를 업데이트
+      setState(() {
+        eventsList.add(result);
+      });
+
+      // 2. AnimatedList에 아이템 추가를 알림
+      _listKey.currentState?.insertItem(insertIndex, duration: const Duration(milliseconds: 180));
+    }
+  }
+
+  // 삭제 버튼 로직 (AnimatedList에 맞게 수정)
+  void _removeItem(int index) {
+    final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+    if (_events[day] == null || index >= _events[day]!.length) return;
+
+    // 1. 데이터 소스에서 아이템을 제거하고, 그 아이템을 변수에 저장
+    final eventToRemove = _events[day]!.removeAt(index);
+
+    // 2. 다른 UI(예: 카운터)를 업데이트하기 위해 setState 호출
+    setState(() {});
+
+    // 3. AnimatedList에 아이템 제거 애니메이션 요청
+    _listKey.currentState?.removeItem(
+      index,
+      (context, animation) {
+        // 제거될 때 보여줄 위젯 (애니메이션 효과)
+        return _buildRemovingAnimatedItem(eventToRemove, animation);
+      },
+      duration: const Duration(milliseconds: 180),
+    );
+  }
+
+  Widget _buildEventContent(Event event, {int? index}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return GestureDetector(
+      onTap: () {
+        if (index != null) {
+          _showAddEventDialog(
+            existingEvent: event,
+            eventIndex: index,
+          );
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+        height: 75,
+        decoration: BoxDecoration(
+          color: event.color,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: ListTile(
+          title: Text(
+            event.title,
+            style: TextStyle(
+              fontSize: screenWidth * 0.032,
+              color: event.isCompleted ? const Color(0xFF626262) : const Color(0xFF4C4747),
+              decoration: event.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+            ),
+          ),
+          subtitle: Text(
+            '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+            style: TextStyle(
+              fontSize: screenWidth * 0.024,
+              color: const Color(0xFF626262),
+            ),
+          ),
+          trailing: GestureDetector(
+            onTap: () {
+              setState(() {
+                event.isCompleted = !event.isCompleted;
+              });
+            },
+            child: event.isCompleted
+                ? Text('✓', style: TextStyle(fontSize: screenWidth * 0.04, color: const Color(0xFF6B6060)))
+                : Container(
+                    width: screenWidth * 0.035,
+                    height: screenWidth * 0.035,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF6B6060)),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRemovingAnimatedItem(Event event, Animation<double> animation) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    
+    // SizeTransition이 애니메이션의 주체가 되도록 수정
+    return SizeTransition(
+      sizeFactor: animation,
+      child: Row(
+        children: [
+          // 원래 Slidable의 비율(extentRatio: 0.7)에 맞춰 확장
+          Expanded(
+            flex: 7,
+            child: _buildEventContent(event), // index를 null로 전달
+          ),
+          // 삭제 버튼 부분 (비율 0.3)
+          Expanded(
+            flex: 3,
+            child: Container(
+              margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+              height: 75, // 높이를 명시적으로 지정
+              child: CustomSlidableAction(
+                onPressed: (context) {}, // 애니메이션 중에는 동작 안 함
+                backgroundColor: const Color(0xFFFFFEF9),
+                foregroundColor: const Color(0xFFDA6464),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/mainpage/delete.png',
+                      width: screenWidth * 0.043,
+                      height: screenWidth * 0.043,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  // AnimatedList의 아이템을 만드는 헬퍼 함수
+Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  return SizeTransition(
+    sizeFactor: animation,
+    child: Listener(
+      onPointerDown: (_) => setState(() => _pressedIndex = index),
+      onPointerUp: (_) => setState(() => _pressedIndex = null),
+      onPointerCancel: (_) => setState(() => _pressedIndex = null),
+      // [ ✨ 그림자 제거 ✨ ]
+      // Material 위젯으로 감싸고 type을 transparency로 설정하여 그림자 효과를 제거합니다.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Slidable(
+          key: ValueKey(event),
+          endActionPane: ActionPane(
+            motion: const DrawerMotion(),
+            extentRatio: 0.3,
+            children: [
+              CustomSlidableAction(
+                onPressed: (context) => _removeItem(index),
+                backgroundColor: const Color(0xFFFFFFF9),
+                foregroundColor: const Color(0xFFDA6464),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/mainpage/delete.png',
+                      width: screenWidth * 0.043,
+                      height: screenWidth * 0.043,
+                    ),
+                    const SizedBox(height: 4),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          child: Container(
+            margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+            height: 75,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: event.color,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      // [ ✨ 네모 효과 제거 ✨ ]
+                      // ListTile의 기본 터치 효과를 투명하게 만들어 제거합니다.
+                      splashColor: Colors.transparent,
+                      onTap: () {
+                        _showAddEventDialog(
+                            existingEvent: event, eventIndex: index);
+                      },
+                      title: Text(
+                        event.title,
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.032,
+                          color: event.isCompleted
+                              ? const Color(0xFF626262)
+                              : const Color(0xFF4C4747),
+                          decoration: event.isCompleted
+                              ? TextDecoration.lineThrough
+                              : TextDecoration.none,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.024,
+                          color: const Color(0xFF626262),
+                        ),
+                      ),
+                      trailing: GestureDetector(
+                        onTap: () {
+                          setState(() => event.isCompleted = !event.isCompleted);
+                        },
+                        child: Container(
+                          color: Colors.transparent,
+                          padding: const EdgeInsets.all(8.0),
+                          child: event.isCompleted
+                              ? Text('✓',
+                                  style: TextStyle(
+                                      fontSize: screenWidth * 0.04,
+                                      color: const Color(0xFF6B6060)))
+                              : Container(
+                                  width: screenWidth * 0.035,
+                                  height: screenWidth * 0.035,
+                                  decoration: BoxDecoration(
+                                    border:
+                                        Border.all(color: const Color(0xFF6B6060)),
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  IgnorePointer(
+                    ignoring: true,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.easeOut,
+                      color: _pressedIndex == index
+                          ? Colors.black.withAlpha(38)
+                          : Colors.transparent,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+  );
+}
+
+  Widget _buildEventsMarker(DateTime day, List<Event> events) {
+    // 상위 3개의 이벤트만 가져오거나, 3개 미만이면 있는 만큼만 가져옵니다.
+    final eventsToShow = events.length > 3 ? events.sublist(0, 3) : events;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children:
+          eventsToShow.map((event) {
+            return Container(
+              width: 4.5, // 점의 너비
+              height: 4.5, // 점의 높이
+              margin: const EdgeInsets.symmetric(horizontal: 1.0), // 점 사이의 간격
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: event.color, // 각 일정의 색상으로 점 색상 지정
+              ),
+            );
+          }).toList(),
+    );
   }
 
   @override
@@ -156,29 +418,35 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                   print('알림 아이콘 클릭됨!');
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (context) => const NotificationPage()),
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => const NotificationPage(),
+                                    ),
                                   );
                                 },
                                 // --- 투명도 효과를 위한 부분 ---
                                 onTapDown: (details) {
                                   setState(() {
-                                    _isSettingsPressed = true; // 누르기 시작하면 true
+                                    _isNotificationsPressed =
+                                        true; // 누르기 시작하면 true
                                   });
                                 },
                                 onTapUp: (details) {
                                   setState(() {
-                                    _isSettingsPressed = false; // 손가락을 떼면 false
+                                    _isNotificationsPressed =
+                                        false; // 손가락을 떼면 false
                                   });
                                 },
                                 onTapCancel: () {
                                   setState(() {
-                                    _isSettingsPressed = false; // 터치가 취소되어도 false
+                                    _isNotificationsPressed =
+                                        false; // 터치가 취소되어도 false
                                   });
                                 },
                                 // --------------------------
                                 child: Opacity(
                                   // _isSettingsPressed 상태에 따라 투명도를 조절 (눌렸을 때 50% 투명)
-                                  opacity: _isSettingsPressed ? 0.5 : 1.0,
+                                  opacity: _isNotificationsPressed ? 0.5 : 1.0,
                                   child: Padding(
                                     padding: const EdgeInsets.all(0.5),
                                     child: Image.asset(
@@ -195,8 +463,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                   print('설정 아이콘 클릭됨!');
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (context) => const SettingsScreen()),
-                                  ); // 설정 화면으로 넘어감
+                                    MaterialPageRoute(
+                                      builder:
+                                          (context) => const SettingsScreen(),
+                                    ),
+                                  );
                                 },
                                 // --- 투명도 효과를 위한 부분 ---
                                 onTapDown: (details) {
@@ -211,7 +482,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                 },
                                 onTapCancel: () {
                                   setState(() {
-                                    _isSettingsPressed = false; // 터치가 취소되어도 false
+                                    _isSettingsPressed =
+                                        false; // 터치가 취소되어도 false
                                   });
                                 },
                                 // --------------------------
@@ -306,6 +578,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                         horizontal: screenWidth * 0.048,
                       ),
                       child: TableCalendar(
+                        eventLoader: _getEventsForDay,
                         locale: 'ko_KR',
                         firstDay: DateTime.utc(2020, 1, 1),
                         lastDay: DateTime.utc(2030, 12, 31),
@@ -325,7 +598,21 @@ class _HomeCalendarState extends State<HomeCalendar> {
                             _focusedDay = focusedDay;
                           });
                         },
+
                         calendarBuilders: CalendarBuilders(
+                          markerBuilder: (context, day, events) {
+                            final eventList = events.cast<Event>().toList();
+                            if (eventList.isNotEmpty) {
+                              return Align(
+                                alignment: Alignment(
+                                  0.0,
+                                  0.8,
+                                ), // 가로는 중앙, 세로는 중앙에서 약간 아래
+                                child: _buildEventsMarker(day, eventList),
+                              );
+                            }
+                            return null;
+                          },
                           defaultBuilder: (context, day, focusedDay) {
                             final isSaturday = day.weekday == DateTime.saturday;
                             final isSunday = day.weekday == DateTime.sunday;
@@ -345,6 +632,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           },
                         ),
                         calendarStyle: CalendarStyle(
+                          cellMargin: const EdgeInsets.all(12.5),
                           weekendTextStyle: TextStyle(
                             color: Colors.black,
                             fontSize: screenWidth * 0.035,
@@ -440,11 +728,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                     ),
                                   ],
                                 ),
-                                child: const Center(
+                                child: Center(
                                   child: Text(
                                     '+',
                                     style: TextStyle(
-                                      fontSize: 25,
+                                      fontSize: screenWidth * 0.05,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -459,108 +747,15 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           thickness: 0.8,
                         ),
                         Expanded(
-                          child: ListView.builder(
+                          // 여기가 AnimatedList로 변경된 부분
+                          child: AnimatedList(
+                            key: _listKey,
                             padding: EdgeInsets.zero,
-                            itemCount: eventsForSelectedDay.length,
-                            itemBuilder: (context, index) {
+                            initialItemCount: eventsForSelectedDay.length,
+                            itemBuilder: (context, index, animation) {
+                              if (index >= eventsForSelectedDay.length) return const SizedBox.shrink();
                               final event = eventsForSelectedDay[index];
-                              return Slidable(
-                                key: Key(event.title + event.startTime.toString()), // 각 항목을 구분할 고유 키
-
-                                // 오른쪽에서 왼쪽으로 밀었을 때 나타날 액션 창
-                                endActionPane: ActionPane(
-                                  motion: const DrawerMotion(), // 슬라이드 애니메이션 효과
-                                  children: [
-                                    // 삭제 액션 버튼
-                                    CustomSlidableAction(
-                                      onPressed: (context) {
-                                        // 버튼을 눌렀을 때 실행될 삭제 로직
-                                        setState(() {
-                                          final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
-                                          _events[day]?.remove(event);
-
-                                          //ScaffoldMessenger.of(context).showSnackBar(
-                                            //SnackBar(content: Text('${event.title} 일정이 삭제되었습니다.')),
-                                          //);
-                                        });
-                                      },
-                                      backgroundColor: const Color(0xFFFFFF9),
-                                      foregroundColor: const Color(0xFFDA6464),
-                                      child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.center, // 아이콘과 텍스트를 세로 중앙 정렬
-                                        children: [
-                                          Image.asset(
-                                            'assets/images/mainpage/delete.png', // 실제 이미지 경로
-                                            width: 18, // 원하는 이미지 크기
-                                            height: 18,
-                                            //color: const Color.fromARGB(255, 121, 31, 31), // 이미지 색상 (단색 아이콘일 경우)
-                                          ),
-                                          const SizedBox(height: 4), // 이미지와 텍스트 사이 간격
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-
-                                // 슬라이드 될 메인 컨텐츠 (기존의 일정 블록 UI)
-                                child: Container(
-                                  margin: EdgeInsets.only(
-                                    bottom: screenWidth * 0.025,
-                                  ),
-                                  height: 75,
-                                  decoration: BoxDecoration(
-                                    color: event.color,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: ListTile(
-                                    title: Text(
-                                      event.title,
-                                      style: TextStyle(
-                                        fontSize: 14,
-                                        color: const Color(0xFF4C4747),
-                                        decoration: event.isCompleted
-                                            ? TextDecoration.lineThrough
-                                            : TextDecoration.none,
-                                      ),
-                                    ),
-                                    subtitle: Text(
-                                      '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        color: Color(0xFF626262),
-                                      ),
-                                    ),
-                                    trailing: GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          event.isCompleted = !event.isCompleted;
-                                        });
-                                      },
-                                      child: event.isCompleted
-                                          ? const Text(
-                                              '✓',
-                                              style: TextStyle(
-                                                fontSize: 16,
-                                                color: Color(0xFF6B6060),
-                                              ),
-                                            )
-                                          : Container(
-                                              width: 15,
-                                              height: 15,
-                                              decoration: BoxDecoration(
-                                                border: Border.all(
-                                                  color: const Color(
-                                                    0xFF6B6060,
-                                                  ),
-                                                ),
-                                                borderRadius:
-                                                    BorderRadius.circular(2),
-                                              ),
-                                            ),
-                                    ),
-                                  ),
-                                ),
-                              );
+                              return _buildAnimatedItem(event, index, animation);
                             },
                           ),
                         ),
@@ -580,8 +775,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
 // --- 새로운 디자인의 일정 추가 다이얼로그 위젯 ---
 class AddEventDialog extends StatefulWidget {
   final DateTime selectedDate;
-
-  const AddEventDialog({Key? key, required this.selectedDate})
+  final Event? eventToEdit;
+  const AddEventDialog({Key? key, required this.selectedDate, this.eventToEdit})
     : super(key: key);
 
   @override
@@ -610,14 +805,21 @@ class _AddEventDialogState extends State<AddEventDialog> {
 
   @override
   void initState() {
-    super.initState();
-    _selectedColor = _colorOptions.first; // 첫 번째 색상을 기본값으로 설정
-
-    final now = TimeOfDay.now();
-    _startTime = now;
-    // 종료 시간은 시작 시간보다 1시간 뒤로 설정 (사용자 편의성)
-    // 23시일 경우 0시로 넘어가도록 % 24 연산 추가
-    _endTime = now.replacing(hour: (now.hour + 1) % 24);
+    if (widget.eventToEdit != null) {
+      // 수정 모드일 때: 전달받은 데이터로 초기값 설정
+      _titleController.text = widget.eventToEdit!.title;
+      _startTime = widget.eventToEdit!.startTime;
+      _endTime = widget.eventToEdit!.endTime;
+      _selectedColor = widget.eventToEdit!.color;
+      _isStartTimeSelected = true; // 이미 시간이 설정되었으므로 true
+      _isEndTimeSelected = true;
+    } else {
+      // 추가 모드일 때: 기존 로직
+      _selectedColor = _colorOptions.first;
+      final now = TimeOfDay.now();
+      _startTime = now;
+      _endTime = now.replacing(hour: (now.hour + 1) % 24);
+    }
   }
 
   Future<void> _pickTime(
@@ -626,7 +828,8 @@ class _AddEventDialogState extends State<AddEventDialog> {
   }) async {
     final initialTime = isStartTime ? _startTime : _endTime;
     final now = DateTime.now();
-    DateTime tempPickedTime = DateTime( // 1. 선택한 시간을 임시로 저장할 변수
+    DateTime tempPickedTime = DateTime(
+      // 1. 선택한 시간을 임시로 저장할 변수
       now.year,
       now.month,
       now.day,
@@ -634,11 +837,14 @@ class _AddEventDialogState extends State<AddEventDialog> {
       initialTime?.minute ?? now.minute,
     );
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     await showCupertinoModalPopup(
       context: context,
       builder: (BuildContext context) {
         return Container(
-          height: 250,
+          height: screenWidth * 0.4,
           color: Colors.white,
           child: Column(
             children: [
@@ -791,9 +997,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
               ),
               SizedBox(height: spacingHeight * 3.2),
               Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: screenWidth * 0.12,
-                ), // 이 값을 조절해 여백 크기를 변경하세요.
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.12),
                 child: GridView.count(
                   crossAxisCount: 4,
                   shrinkWrap: true,
@@ -814,7 +1018,12 @@ class _AddEventDialogState extends State<AddEventDialog> {
                               border:
                                   _selectedColor == color
                                       ? Border.all(
-                                        color: const Color(0xFF504A4A),
+                                        color: Color.fromARGB(
+                                          150,
+                                          109,
+                                          101,
+                                          101,
+                                        ), // 알파 값 150으로 변경
                                         width: screenWidth * 0.005,
                                       )
                                       : null, // 테두리 두께도 반응형
@@ -863,9 +1072,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
     bool isSelected, // <--- 시간이 선택되었는지 여부를 받는 파라미터 추가
   ) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 16.0,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -883,7 +1090,6 @@ class _AddEventDialogState extends State<AddEventDialog> {
               time?.format(context) ?? '00:00',
               style: TextStyle(
                 fontSize: valueSize * 0.94,
-                // ▼▼▼▼▼ isSelected 값에 따라 색상 결정 ▼▼▼▼▼
                 color: isSelected ? Colors.black : const Color(0xFFDADADA),
               ),
             ),

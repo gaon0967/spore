@@ -27,13 +27,14 @@ class _FriendScreenState extends State<FriendScreen> {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
-        backgroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFFFEF9),
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: const Color(0xFFFFFEF9),
           foregroundColor: Colors.black,
           elevation: 0,
           title: Text('친구'),
           bottom: TabBar(
+            indicatorSize: TabBarIndicatorSize.tab,
             indicatorColor: Colors.black,
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
@@ -58,35 +59,6 @@ class _FriendScreenState extends State<FriendScreen> {
             _buildListWithActions(recommendations),
           ],
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          currentIndex: _navIndex,
-          onTap: (i) {
-            setState(() => _navIndex = i);
-            // 페이지 이동은 여기서 구현 가능
-          },
-          showSelectedLabels: false,
-          showUnselectedLabels: false,
-          items: [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: '친구',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: '홈',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_month),
-              label: '시간표',
-            ),
-          ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          child: Icon(Icons.person_add),
-          onPressed: () {
-            // 친구 추가 기능
-          },
-        ),
       ),
     );
   }
@@ -98,12 +70,13 @@ class _FriendScreenState extends State<FriendScreen> {
         itemCount: list.length,
         separatorBuilder: (_, __) => SizedBox(height: 12),
         itemBuilder: (context, index) {
+          final screenWidth = MediaQuery.of(context).size.width;
           final friend = list[index];
           final isFav = favoriteIndices.contains(index);
           return Container(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: const Color(0xFFF8F8F8),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
@@ -120,12 +93,24 @@ class _FriendScreenState extends State<FriendScreen> {
                             favoriteIndices.add(index);
                         });
                       },
-                      child: Icon(
-                        isFav ? Icons.star : Icons.star_border,
-                        color: isFav ? Colors.amber : Colors.grey,
+                      child: SizedBox(
+                        height: screenWidth * 0.06, // 이미지 크기보다 약간 크게 설정
+                        child: Align(
+                          alignment: Alignment.center,
+                          child: Image.asset(
+                            isFav
+                              ? 'assets/images/friendScreen/star_on.png'
+                              : 'assets/images/friendScreen/star_off.png',
+                            width: screenWidth * 0.042, // 반응형 크기
+                            height: screenWidth * 0.042,
+                            color: null,
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true, // 이미지가 바뀔 때 깜빡임 방지
+                          ),
+                        ),
                       ),
                     ),
-                    SizedBox(width: 12),
+                    SizedBox(width: 14),
                     Text(friend.name, style: TextStyle(fontSize: 16)),
                   ],
                 ),
