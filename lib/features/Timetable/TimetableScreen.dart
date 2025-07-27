@@ -21,6 +21,8 @@ import '../Timetable/course_model.dart';
 
 
 */
+
+
 class TimetableScreen extends StatefulWidget {
   const TimetableScreen({super.key});
 
@@ -48,7 +50,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
       endTime: 15,
       color: const Color(0xFF97B4C7),
     ),
-    // ...(이하 생략, 위 예시대로 쭉 쓰시면 됩니다)
+    
   ];
 
   Course? _checkTimeConflict(Course newCourse) {
@@ -397,93 +399,103 @@ class _TimetableScreenState extends State<TimetableScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return Align(
-          alignment: Alignment.bottomCenter,
-          child: Container(
-            width: 414,
-            height: 210,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFFFF9),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0x0A000000),
-                  blurRadius: 4,
-                  offset: Offset(1, 1),
-                  spreadRadius: 0,
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.start,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline,
-                      color: Colors.black54,
-                      size: 20,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final modalWidth = constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+            return Align(
+              alignment: Alignment.bottomCenter,
+              child: Container(
+                width: modalWidth,
+                height: 210,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFFFF9),
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(20.0),
+                    topRight: Radius.circular(20.0),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      blurRadius: 4,
+                      offset: Offset(1, 1),
+                      spreadRadius: 0,
                     ),
-                    const SizedBox(width: 6),
+                  ],
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline,
+                          color: Colors.black54,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          course.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
                     Text(
-                      course.title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.black87,
+                      course.professor,
+                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      "${_dayToString(course.day)} ${_formatTime(course.startTime)} ~ ${_formatTime(course.endTime)}",
+                      style: const TextStyle(fontSize: 14, color: Colors.black45),
+                    ),
+                    Text(
+                      course.room,
+                      style: const TextStyle(fontSize: 14, color: Colors.black45),
+                    ),
+                    const Spacer(),
+                    const Divider(),
+                    GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          courses.remove(course);
+                        });
+                        Navigator.pop(context);
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outline, color: Colors.grey),
+                            SizedBox(width: 6),
+                            Text(
+                              "삭제",
+                              style: TextStyle(fontSize: 14, color: Colors.black54),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  course.professor,
-                  style: const TextStyle(fontSize: 14, color: Colors.black54),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  "${_dayToString(course.day)} ${_formatTime(course.startTime)} ~ ${_formatTime(course.endTime)}",
-                  style: const TextStyle(fontSize: 14, color: Colors.black45),
-                ),
-                Text(
-                  course.room,
-                  style: const TextStyle(fontSize: 14, color: Colors.black45),
-                ),
-                const Spacer(),
-                const Divider(),
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      courses.remove(course);
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete_outline, color: Colors.grey),
-                        SizedBox(width: 6),
-                        Text(
-                          "삭제",
-                          style: TextStyle(fontSize: 14, color: Colors.black54),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  // 친구 시간표 섹션 (샘플, 필요시 생략)
   Widget _buildFriendsSection() {
     final scale = _scale(context);
+    final List<String> friends = ['김가부기', '가부스탁스']; // 친구 목록
+
     return Container(
       width: double.infinity,
       margin: EdgeInsets.only(top: 20 * scale),
@@ -524,9 +536,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
             ),
           ),
           SizedBox(height: 12 * scale),
-          _buildFriendButton('김가부기'),
-          SizedBox(height: 8 * scale),
-          _buildFriendButton('가부스탁스'),
+          ...friends.map((friendName) => Padding(
+            padding: const EdgeInsets.only(bottom: 8.0),
+            child: _buildFriendButton(friendName),
+          )),
         ],
       ),
     );
@@ -536,8 +549,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final scale = _scale(context);
     return ElevatedButton(
       onPressed: () {
-        // 친구 시간표 화면으로 이동
-        // Navigator.push(context, MaterialPageRoute(builder: (context) => FriendTimetable(friendName: name)));
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => FriendTimetable(friendName: name)),
+        );
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5F5F5F),

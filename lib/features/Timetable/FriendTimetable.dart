@@ -72,31 +72,35 @@ final List<Course> friendCourses = [
   }
 
   Widget _buildTimetable(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 411.0;
-    final screenWidth = MediaQuery.of(context).size.width;
-    final horizontalPadding = 14.0;
-    final containerWidth = screenWidth - (horizontalPadding * 2);
-    final timeColumnWidth = 30.0 * scale;
-    final dayColumnWidth = (containerWidth - timeColumnWidth) / 5;
-    final rowHeight = 55.0 * scale;
-    const int totalHours = 10;
-    final double headerHeight = 22 * scale;
-    final double containerHeight = rowHeight * totalHours + headerHeight;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final scale = constraints.maxWidth / 411.0;
+        final screenWidth = constraints.maxWidth;
+        final horizontalPadding = 14.0;
+        final containerWidth = screenWidth - (horizontalPadding * 2);
+        final timeColumnWidth = 30.0 * scale;
+        final dayColumnWidth = (containerWidth - timeColumnWidth) / 5;
+        final rowHeight = 55.0 * scale;
+        const int totalHours = 10;
+        final double headerHeight = 22 * scale;
+        final double containerHeight = rowHeight * totalHours + headerHeight;
 
-    return Container(
-      width: containerWidth,
-      height: containerHeight,
-      decoration: BoxDecoration(
-        border: Border.all(color: const Color(0xFFB3A6A6), width: 0.5),
-        borderRadius: BorderRadius.circular(10 * scale),
-        color: Colors.white,
-      ),
-      child: Stack(
-        children: [
-          _buildGrid(context, containerWidth, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight),
-          ...friendCourses.map((course) => _buildCourseItem(context, course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight)),
-        ],
-      ),
+        return Container(
+          width: containerWidth,
+          height: containerHeight,
+          decoration: BoxDecoration(
+            border: Border.all(color: const Color(0xFFB3A6A6), width: 0.5),
+            borderRadius: BorderRadius.circular(10 * scale),
+            color: Colors.white,
+          ),
+          child: Stack(
+            children: [
+              _buildGrid(context, containerWidth, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight),
+              ...friendCourses.map((course) => _buildCourseItem(context, course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight)),
+            ],
+          ),
+        );
+      },
     );
   }
 
