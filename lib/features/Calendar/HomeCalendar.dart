@@ -109,7 +109,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
       },
       child: Container(
         margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-        height: 75,
+        height: screenWidth*0.175,
         decoration: BoxDecoration(
           color: event.color,
           borderRadius: BorderRadius.circular(12),
@@ -170,7 +170,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
             flex: 3,
             child: Container(
               margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-              height: 75, // 높이를 명시적으로 지정
+              height: screenWidth*0.175, 
               child: CustomSlidableAction(
                 onPressed: (context) {}, // 애니메이션 중에는 동작 안 함
                 backgroundColor: const Color(0xFFFFFEF9),
@@ -183,7 +183,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                       width: screenWidth * 0.043,
                       height: screenWidth * 0.043,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height:screenWidth*0.03),
                   ],
                 ),
               ),
@@ -198,113 +198,118 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
   final screenWidth = MediaQuery.of(context).size.width;
   return SizeTransition(
     sizeFactor: animation,
-    child: Listener(
-      onPointerDown: (_) => setState(() => _pressedIndex = index),
-      onPointerUp: (_) => setState(() => _pressedIndex = null),
-      onPointerCancel: (_) => setState(() => _pressedIndex = null),
-      // [ ✨ 그림자 제거 ✨ ]
-      // Material 위젯으로 감싸고 type을 transparency로 설정하여 그림자 효과를 제거합니다.
-      child: Material(
-        type: MaterialType.transparency,
-        child: Slidable(
-          key: ValueKey(event),
-          endActionPane: ActionPane(
-            motion: const DrawerMotion(),
-            extentRatio: 0.3,
-            children: [
-              CustomSlidableAction(
-                onPressed: (context) => _removeItem(index),
-                backgroundColor: const Color(0xFFFFFFF9),
-                foregroundColor: const Color(0xFFDA6464),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
+    // Slidable을 가장 바깥으로 이동
+    child: Slidable(
+      key: ValueKey(event),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.3,
+        children: [
+          CustomSlidableAction(
+            onPressed: (context) => _removeItem(index),
+            backgroundColor: const Color(0xFFFFFFF9),
+            foregroundColor: const Color(0xFFFFFFF9),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/mainpage/delete.png',
+                  width: screenWidth * 0.043,
+                  height: screenWidth * 0.043,
+                ),
+                 SizedBox(height:screenWidth*0.03),
+              ],
+            ),
+          ),
+        ],
+      ),
+      // Listener와 GestureDetector를 Slidable의 자식으로 이동
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressedIndex = index),
+        onPointerUp: (_) => setState(() => _pressedIndex = null),
+        onPointerCancel: (_) => setState(() => _pressedIndex = null),
+        child: GestureDetector(
+          onTap: () {
+            _showAddEventDialog(existingEvent: event, eventIndex: index);
+          },
+          child: Material(
+            type: MaterialType.transparency,
+            child: Container(
+              margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+              height: screenWidth * 0.175,
+              child: Material(
+                borderRadius: BorderRadius.circular(12),
+                clipBehavior: Clip.antiAlias,
+                color: Colors.transparent,
+                child: Stack(
                   children: [
-                    Image.asset(
-                      'assets/images/mainpage/delete.png',
-                      width: screenWidth * 0.043,
-                      height: screenWidth * 0.043,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: event.color,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ListTile(
+                        title: Text(
+                          event.title,
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.032,
+                            color: event.isCompleted
+                                ? const Color(0xFF626262)
+                                : const Color(0xFF4C4747),
+                            decoration: event.isCompleted
+                                ? TextDecoration.lineThrough
+                                : TextDecoration.none,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.024,
+                            color: const Color(0xFF626262),
+                          ),
+                        ),
+                        trailing: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              event.isCompleted = !event.isCompleted;
+                            });
+                          },
+                          child: Container(
+                            color: Colors.transparent,
+                            padding: const EdgeInsets.all(8.0),
+                            child: event.isCompleted
+                                ? Text('✓',
+                                    style: TextStyle(
+                                        fontSize: screenWidth * 0.04,
+                                        color: const Color(0xFF6B6060)))
+                                : Container(
+                                    width: screenWidth * 0.035,
+                                    height: screenWidth * 0.035,
+                                    decoration: BoxDecoration(
+                                      border:
+                                          Border.all(color: const Color(0xFF6B6060)),
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ),
                     ),
-                    const SizedBox(height: 4),
+                    IgnorePointer(
+                      ignoring: true,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        curve: Curves.easeOut,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          color: _pressedIndex == index
+                              ? Colors.black.withAlpha(38)
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            ],
-          ),
-          child: Container(
-            margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-            height: 75,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: event.color,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      // [ ✨ 네모 효과 제거 ✨ ]
-                      // ListTile의 기본 터치 효과를 투명하게 만들어 제거합니다.
-                      splashColor: Colors.transparent,
-                      onTap: () {
-                        _showAddEventDialog(
-                            existingEvent: event, eventIndex: index);
-                      },
-                      title: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.032,
-                          color: event.isCompleted
-                              ? const Color(0xFF626262)
-                              : const Color(0xFF4C4747),
-                          decoration: event.isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.024,
-                          color: const Color(0xFF626262),
-                        ),
-                      ),
-                      trailing: GestureDetector(
-                        onTap: () {
-                          setState(() => event.isCompleted = !event.isCompleted);
-                        },
-                        child: Container(
-                          color: Colors.transparent,
-                          padding: const EdgeInsets.all(8.0),
-                          child: event.isCompleted
-                              ? Text('✓',
-                                  style: TextStyle(
-                                      fontSize: screenWidth * 0.04,
-                                      color: const Color(0xFF6B6060)))
-                              : Container(
-                                  width: screenWidth * 0.035,
-                                  height: screenWidth * 0.035,
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: const Color(0xFF6B6060)),
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  IgnorePointer(
-                    ignoring: true,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      curve: Curves.easeOut,
-                      color: _pressedIndex == index
-                          ? Colors.black.withAlpha(38)
-                          : Colors.transparent,
-                    ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -317,14 +322,14 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
   Widget _buildEventsMarker(DateTime day, List<Event> events) {
     // 상위 3개의 이벤트만 가져오거나, 3개 미만이면 있는 만큼만 가져옵니다.
     final eventsToShow = events.length > 3 ? events.sublist(0, 3) : events;
-
+    final screenWidth = MediaQuery.of(context).size.width;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children:
           eventsToShow.map((event) {
             return Container(
-              width: 4.5, // 점의 너비
-              height: 4.5, // 점의 높이
+              width: screenWidth*0.0105, // 점의 너비
+              height: screenWidth*0.0105, // 점의 높이
               margin: const EdgeInsets.symmetric(horizontal: 1.0), // 점 사이의 간격
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -572,7 +577,7 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
                         ],
                       ),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: screenWidth*0.02),
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: screenWidth * 0.048,
