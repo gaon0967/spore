@@ -38,7 +38,6 @@ flutter:
     - assets/images/LoginHome/talk1.png
     - assets/images/LoginHome/talk2.png
     - assets/images/LoginHome/talk3.png
-
     - assets/images/mainpage/friend_on.png
     - assets/images/mainpage/friend_off.png
     - assets/images/mainpage/home_on.png
@@ -48,16 +47,11 @@ flutter:
     - assets/images/mainpage/setting.png
     - assets/images/mainpage/notifications.png
     - assets/images/mainpage/delete.png
-
-<<<<<<< HEAD
-=======
     - assets/images/Notification/calendar.png
     - assets/images/Notification/friend.png
     - assets/images/Notification/title.png
-
     - assets/images/friendScreen/star_on.png
     - assets/images/friendScreen/star_off.png
->>>>>>> test_branch
     - assets/images/PsychologyTest/Character/ch1_1.png
     - assets/images/PsychologyTest/Character/ch1_2.png
     - assets/images/PsychologyTest/Character/ch1_3.png
@@ -68,7 +62,6 @@ flutter:
     - assets/images/PsychologyTest/Character/ch2_4.png
     - assets/images/PsychologyTest/Character/QuestionMark.png
     - assets/images/PsychologyTest/Character/TestStart_Character.png
-
     - assets/images/PsychologyTest/Shape/Rectangle1-1.png
     - assets/images/PsychologyTest/Shape/Rectangle1-2.png
     - assets/images/PsychologyTest/Shape/Rectangle1-3.png
@@ -77,12 +70,10 @@ flutter:
     - assets/images/PsychologyTest/Shape/Rectangle2-2.png
     - assets/images/PsychologyTest/Shape/Rectangle2-3.png
     - assets/images/PsychologyTest/Shape/Rectangle2-4.png
-
     - assets/images/PsychologyTest/Shape/Ellipse.png
     - assets/images/PsychologyTest/Shape/Polygon.png
     - assets/images/PsychologyTest/Shape/Star.png
     - assets/images/PsychologyTest/TestLoading.png
-
     - assets/images/Setting/
 
 
