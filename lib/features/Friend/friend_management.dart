@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // lib/Friend/friend_management.dart
 
 import 'package:flutter/material.dart';
@@ -22,10 +23,17 @@ class _friend_managementState extends State<friend_management> {
     {'name': '차단2', 'image': null},
     {'name': '차단3', 'image': null},
   ];
+=======
+import 'package:flutter/material.dart';
+
+class friend_management extends StatelessWidget {
+  const friend_management({super.key});
+>>>>>>> test_branch
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+<<<<<<< HEAD
       backgroundColor: Colors.white,  // 전체 백그라운드 흰색
       appBar: AppBar(
         title: const Text('친구 관리', style: TextStyle(color: Color(0xFF504A4A))),
@@ -126,6 +134,13 @@ class _friend_managementState extends State<friend_management> {
             }).toList(),
           ),
         ],
+=======
+      appBar: AppBar(
+        title: const Text('친구 관리'),
+      ),
+      body: const Center(
+        child: Text('친구 관리 화면'),
+>>>>>>> test_branch
       ),
     );
   }
