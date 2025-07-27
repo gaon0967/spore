@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../Timetable/TimetableList.dart';
-import '../Timetable/ClassAdd.dart';
-import '../Timetable/FriendTimetable.dart';
+import 'TimetableList.dart';
+import 'ClassAdd.dart';
+import 'FriendTimetable.dart';
 
 // Course 데이터 모델
 class Course {
@@ -126,6 +126,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
     ),
   ];
 
+
+
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -192,19 +196,26 @@ class _TimetableScreenState extends State<TimetableScreen> {
           Row(
             children: [
               // + 버튼 (누르면 모달 표시)
+
+               // + 버튼 (누르면 ClassAdd.dart의 위젯을 표시)
               IconButton(
-                icon: Icon(
-                  Icons.add,
-                  color: const Color(0xFF3B3737),
-                  size: 24 * scale,
-                ),
-                onPressed: () {
-                  showDialog(
+                icon: Icon(Icons.add, color: const Color(0xFF3B3737), size: 24 * scale),
+                onPressed: () async {
+                  // --- 여기가 핵심 변경 부분 ---
+                  final newCourse = await showDialog<Course>(
                     context: context,
+                    barrierColor: Colors.black.withOpacity(0.5),
                     builder: (BuildContext context) {
-                      return const AddCourseModal();
+                      // 기존 AddCourseModal 대신 ClassAdd()를 호출합니다.
+                      return const ClassAdd();
                     },
                   );
+
+                  if (newCourse != null) {
+                    setState(() {
+                      courses.add(newCourse);
+                    });
+                  }
                 },
               ),
               // 메뉴 버튼
