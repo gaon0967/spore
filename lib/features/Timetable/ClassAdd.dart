@@ -1,8 +1,8 @@
-import 'package:flutter/cupertino.dart'; // Cupertino 위젯을 위해 추가
+// lib/features/Timetable/ClassAdd.dart
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'TimetableScreen.dart';
+import 'course_model.dart' as model;
 
-// 수업 추가 모달 위젯
 class ClassAdd extends StatefulWidget {
   const ClassAdd({super.key});
 
@@ -11,24 +11,18 @@ class ClassAdd extends StatefulWidget {
 }
 
 class _ClassAddState extends State<ClassAdd> {
-  // 텍스트 입력 컨트롤러
   final _courseNameController = TextEditingController();
   final _professorController = TextEditingController();
   final _locationController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // 시간 상태 변수
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
-
-  // 시간 유효성 검사 에러 메시지
   String? _timeErrorText;
 
-  // 요일 선택 상태 관리
   final List<String> _days = ['월', '화', '수', '목', '금'];
   String _selectedDay = '월';
 
-  // 색상 선택 상태 관리
   final List<Color> _colors = const [
     Color(0xFFCDDEE3), Color(0xFF8E9CBF), Color(0xFF97B4C7),
     Color(0xFFBBCDC0), Color(0xFFE5EAEF), Color(0xFFE8EBDF),
@@ -39,14 +33,10 @@ class _ClassAddState extends State<ClassAdd> {
   void initState() {
     super.initState();
     _selectedColor = _colors.first;
-
-    // 초기 시간 설정
     final now = DateTime.now();
-    // 현재 시간에서 가장 가까운 30분 단위 시간으로 초기화
     final initialMinute = (now.minute / 30).round() * 30;
     final initialHour = now.hour + (initialMinute >= 60 ? 1 : 0);
     _startTime = TimeOfDay(hour: initialHour % 24, minute: initialMinute % 60);
-
     final startDateTime = DateTime(now.year, now.month, now.day, _startTime!.hour, _startTime!.minute);
     final endDateTime = startDateTime.add(const Duration(hours: 1));
     _endTime = TimeOfDay.fromDateTime(endDateTime);
@@ -60,49 +50,41 @@ class _ClassAddState extends State<ClassAdd> {
     super.dispose();
   }
 
-  // 유효성 검사 및 제출 함수
   void _validateAndSubmit() {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
-
+    if (!_formKey.currentState!.validate()) return;
     if (_startTime == null || _endTime == null) {
       setState(() => _timeErrorText = '시간을 선택해주세요.');
       return;
     }
-
     final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
     final endMinutes = _endTime!.hour * 60 + _endTime!.minute;
-
     if (endMinutes <= startMinutes) {
       setState(() => _timeErrorText = '종료 시간은 시작 시간보다 늦어야 합니다.');
       return;
     }
-
     setState(() => _timeErrorText = null);
 
-    final newCourse = Course(
+    final newCourse = model.Course(
       title: _courseNameController.text.trim(),
       professor: _professorController.text.trim(),
       room: _locationController.text.trim(),
       day: _days.indexOf(_selectedDay),
-      startTime: _startTime!,
-      endTime: _endTime!,
+      startTime: _startTime!.hour,
+      endTime: _endTime!.hour,
       color: _selectedColor,
     );
-
     Navigator.of(context).pop(newCourse);
   }
 
-  /// [새로운 기능] 휠 스타일의 시간 선택기를 표시하는 함수
   Future<void> _showTimePicker({
     required BuildContext context,
     required TimeOfDay initialTime,
     required ValueChanged<TimeOfDay> onTimeChanged,
   }) async {
     final now = DateTime.now();
-    DateTime tempPickedDate = DateTime(now.year, now.month, now.day, initialTime.hour, initialTime.minute);
-
+    DateTime tempPickedDate = DateTime(
+      now.year, now.month, now.day, initialTime.hour, initialTime.minute,
+    );
     await showModalBottomSheet(
       context: context,
       builder: (BuildContext builder) {
@@ -111,7 +93,6 @@ class _ClassAddState extends State<ClassAdd> {
           color: Colors.white,
           child: Column(
             children: [
-              // '완료' 버튼을 포함한 헤더
               SizedBox(
                 height: 44,
                 child: Row(
@@ -128,7 +109,7 @@ class _ClassAddState extends State<ClassAdd> {
                 child: CupertinoDatePicker(
                   mode: CupertinoDatePickerMode.time,
                   initialDateTime: tempPickedDate,
-                  minuteInterval: 30, // 30분 단위로 설정
+                  minuteInterval: 30,
                   use24hFormat: false,
                   onDateTimeChanged: (DateTime newDateTime) {
                     tempPickedDate = newDateTime;
@@ -140,15 +121,12 @@ class _ClassAddState extends State<ClassAdd> {
         );
       },
     );
-    // 모달이 닫히면 최종 선택된 시간으로 상태 업데이트
     onTimeChanged(TimeOfDay.fromDateTime(tempPickedDate));
   }
-
 
   @override
   Widget build(BuildContext context) {
     final horizontalPadding = MediaQuery.of(context).size.width * 0.06;
-
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
       backgroundColor: Colors.white,
@@ -170,8 +148,6 @@ class _ClassAddState extends State<ClassAdd> {
                 const SizedBox(height: 20),
                 _buildDayPicker(),
                 const SizedBox(height: 20),
-                
-                // [수정] 시작 시간 선택 UI 변경
                 _buildTimePickerRow(
                   label: '시작 시간',
                   time: _startTime,
@@ -191,8 +167,6 @@ class _ClassAddState extends State<ClassAdd> {
                   },
                 ),
                 const SizedBox(height: 12),
-
-                // [수정] 종료 시간 선택 UI 변경
                 _buildTimePickerRow(
                   label: '종료 시간',
                   time: _endTime,
@@ -206,15 +180,10 @@ class _ClassAddState extends State<ClassAdd> {
                     );
                   },
                 ),
-
                 if (_timeErrorText != null)
                   Padding(
                     padding: const EdgeInsets.only(top: 8.0),
-                    child: Text(
-                      _timeErrorText!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12),
-                      textAlign: TextAlign.center,
-                    ),
+                    child: Text(_timeErrorText!, style: const TextStyle(color: Colors.red, fontSize: 12), textAlign: TextAlign.center),
                   ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -227,17 +196,35 @@ class _ClassAddState extends State<ClassAdd> {
                   ),
                 ),
                 const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _validateAndSubmit,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A4A4A),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text(
-                    '추가 +',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: _validateAndSubmit,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A4A4A),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        child: const Text('추가 +', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.grey[600],
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: Colors.grey[300]!),
+                          ),
+                        ),
+                        child: const Text('닫기', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -247,16 +234,14 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  /// [새로운 위젯] 시간 레이블과 선택된 시간을 표시하는 행
-  Widget _buildTimePickerRow({required String label, TimeOfDay? time, required VoidCallback onTap}) {
+  Widget _buildTimePickerRow({
+    required String label, TimeOfDay? time, required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12),
-        ),
+        decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(12)),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -279,7 +264,6 @@ class _ClassAddState extends State<ClassAdd> {
         final int index = entry.key;
         final String day = entry.value;
         final isSelected = _selectedDay == day;
-
         return Expanded(
           child: GestureDetector(
             onTap: () => setState(() => _selectedDay = day),
@@ -340,25 +324,4 @@ class _ClassAddState extends State<ClassAdd> {
       ),
     );
   }
-}
-
-// Course 클래스 예시 (프로젝트의 실제 정의와 일치해야 합니다)
-class Course {
-  final String title;
-  final String professor;
-  final String room;
-  final int day;
-  final TimeOfDay startTime;
-  final TimeOfDay endTime;
-  final Color color;
-
-  Course({
-    required this.title,
-    required this.professor,
-    required this.room,
-    required this.day,
-    required this.startTime,
-    required this.endTime,
-    required this.color,
-  });
 }

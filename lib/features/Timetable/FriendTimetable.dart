@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'ClassAdd.dart';
+import 'course_model.dart';
+
 
 class FriendTimetable extends StatelessWidget {
   final String friendName;
@@ -7,18 +9,17 @@ class FriendTimetable extends StatelessWidget {
   FriendTimetable({super.key, required this.friendName});
 
   // 실제 앱에서는 친구 ID를 통해 서버에서 받아와야 함
-  final List<Course> friendCourses = [
-  // [수정] 모든 TimeOfDay에 minute: 0 추가
-  Course(title: '리눅스눅스', professor: '함부기', room: '제2호관-401', day: 0, startTime: const TimeOfDay(hour: 9, minute: 0), endTime: const TimeOfDay(hour: 11, minute: 0), color: Color(0xFFCDDEE3)),
-  Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 1, startTime: const TimeOfDay(hour: 11, minute: 0), endTime: const TimeOfDay(hour: 13, minute: 0), color: Color(0xFF8E9CBF)),
-  Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 2, startTime: const TimeOfDay(hour: 9, minute: 0), endTime: const TimeOfDay(hour: 11, minute: 0), color: Color(0xFF97B4C7)),
-  Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 2, startTime: const TimeOfDay(hour: 12, minute: 0), endTime: const TimeOfDay(hour: 14, minute: 0), color: Color(0xFFBBCDC0)),
-  Course(title: '밥 얻어먹는 기술', professor: '각설이', room: '제10호관-101', day: 3, startTime: const TimeOfDay(hour: 12, minute: 0), endTime: const TimeOfDay(hour: 14, minute: 0), color: Color(0xFFE5EAEF)),
-  Course(title: '인간과 모기', professor: '전기파리채', room: '제9호관-105', day: 4, startTime: const TimeOfDay(hour: 9, minute: 0), endTime: const TimeOfDay(hour: 11, minute: 0), color: Color(0xFFE8EBDF)),
-  Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 0, startTime: const TimeOfDay(hour: 14, minute: 0), endTime: const TimeOfDay(hour: 16, minute: 0), color: Color(0xFF97B4C7)),
-  Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 2, startTime: const TimeOfDay(hour: 14, minute: 0), endTime: const TimeOfDay(hour: 16, minute: 0), color: Color(0xFF8E9CBF)),
-  Course(title: '오펜세의 법칙', professor: '오씨부인', room: '제3호관-301', day: 0, startTime: const TimeOfDay(hour: 15, minute: 0), endTime: const TimeOfDay(hour: 17, minute: 0), color: Color(0xFFCDDEE3)),
-  Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 4, startTime: const TimeOfDay(hour: 14, minute: 0), endTime: const TimeOfDay(hour: 16, minute: 0), color: Color(0xFFBBCDC0)),
+final List<Course> friendCourses = [
+  Course(title: '리눅스눅스', professor: '함부기', room: '제2호관-401', day: 0, startTime: 9, endTime: 11, color: Color(0xFFCDDEE3)),
+  Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 1, startTime: 11, endTime: 13, color: Color(0xFF8E9CBF)),
+  Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 2, startTime: 9, endTime: 11, color: Color(0xFF97B4C7)),
+  Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 2, startTime: 12, endTime: 14, color: Color(0xFFBBCDC0)),
+  Course(title: '밥 얻어먹는 기술', professor: '각설이', room: '제10호관-101', day: 3, startTime: 12, endTime: 14, color: Color(0xFFE5EAEF)),
+  Course(title: '인간과 모기', professor: '전기파리채', room: '제9호관-105', day: 4, startTime: 9, endTime: 11, color: Color(0xFFE8EBDF)),
+  Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 0, startTime: 14, endTime: 16, color: Color(0xFF97B4C7)),
+  Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 2, startTime: 14, endTime: 16, color: Color(0xFF8E9CBF)),
+  Course(title: '오펜세의 법칙', professor: '오씨부인', room: '제3호관-301', day: 0, startTime: 15, endTime: 17, color: Color(0xFFCDDEE3)),
+  Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 4, startTime: 14, endTime: 16, color: Color(0xFFBBCDC0)),
 ];
 
   @override
@@ -129,11 +130,11 @@ class FriendTimetable extends StatelessWidget {
   Widget _buildCourseItem(BuildContext context, Course course, double headerHeight, double timeColWidth, double dayColWidth, double rowHeight) {
     final scale = MediaQuery.of(context).size.width / 411.0;
     
-    final top = headerHeight + (course.startTime.hour - 9) * rowHeight + (course.startTime.minute / 60.0) * rowHeight;
+    final top = headerHeight + (course.startTime - 9) * rowHeight + (course.startTime / 60.0) * rowHeight;
     final left = timeColWidth + (course.day * dayColWidth);
 
-    final startMinutes = course.startTime.hour * 60 + course.startTime.minute;
-    final endMinutes = course.endTime.hour * 60 + course.endTime.minute;
+    final startMinutes = course.startTime * 60 + course.startTime;
+    final endMinutes = course.endTime * 60 + course.endTime;
     final durationMinutes = endMinutes - startMinutes;
     final height = (durationMinutes / 60.0) * rowHeight;
 
