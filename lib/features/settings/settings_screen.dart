@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../Settings/profile_edit.dart'; // 프로필 변경 화면
+import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 프로필 변경 화면
 
 /// ==============================
