@@ -49,6 +49,10 @@ flutter:
     - assets/images/mainpage/notifications.png
     - assets/images/mainpage/delete.png
 
+    - assets/images/Notification/calendar.png
+    - assets/images/Notification/friend.png
+    - assets/images/Notification/title.png
+
     - assets/images/friendScreen/star_on.png
     - assets/images/friendScreen/star_off.png
     - assets/images/PsychologyTest/Character/ch1_1.png
