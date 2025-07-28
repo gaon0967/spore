@@ -9,6 +9,7 @@ class Event {
   final TimeOfDay endTime;
   final Color color;
   bool isCompleted;
+  String? id;
 
   Event({
     required this.title,
@@ -16,5 +17,7 @@ class Event {
     required this.endTime,
     required this.color,
     this.isCompleted = false,
+    this.id,
   });
 }
+
