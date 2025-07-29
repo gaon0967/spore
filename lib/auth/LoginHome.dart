@@ -304,7 +304,7 @@ class _BottomSection extends StatelessWidget {
             try {
               // 2, 로그인 전용.
               final userData = await authService.signInWithNaver(default_id);
-
+              print("characterId : ${userData["characterId"]}");
               if (userData["characterId"] == -1) {
                 if (!context.mounted) return;
                 await Navigator.pushReplacement(

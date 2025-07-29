@@ -168,20 +168,17 @@ class AuthService {
         'createdAt': FieldValue.serverTimestamp(),
         'updatedAt': FieldValue.serverTimestamp(),
       };
-
+      print("유저 정보가 있는지 : ${userDocSnapShot.exists}");
       if (!userDocSnapShot.exists) {
         // 로그인 정보가 있는 경우에 다시 심리 테스트 한 경우 , 정보 업데이트 되게 _ 가령
         // 신규 유저(회원가입): 문서를 새로 생성 (set)
         await userRef.set(userDoc);
-      } else {
-        // 기존 유저: character와 updatedAt 필드만 수정
-        await userRef.update({
-          'characterId': characterId,
-          'updatedAt': FieldValue.serverTimestamp(),
-        });
+      } else if (characterId != -1) {
+        await userRef.update(userDoc);
       }
 
       final updatedUserDoc = await userRef.get();
+      print("로그인 단계 : ${updatedUserDoc.data()}");
       return updatedUserDoc.data() ?? {};
     } catch (e) {
       print('Error: $e');
