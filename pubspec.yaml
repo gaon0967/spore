@@ -9,9 +9,9 @@ environment:
 dependencies:
   table_calendar: ^3.0.9
   intl: ^0.20.0
-  cloud_firestore: ^5.6.7  # db
+  cloud_firestore: ^5.6.12  # db
   cloud_functions: ^5.5.0  # firebase functions 이용을 위함
-  firebase_auth: ^5.5.3    # 인증을 위함
+  firebase_auth: ^5.7.0    # 인증을 위함
   firebase_core: ^3.13.0   # firebase 이용을 위함
   flutter:
     sdk: flutter
