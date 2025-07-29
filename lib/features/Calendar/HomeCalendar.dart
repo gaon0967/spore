@@ -46,6 +46,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   Object? _pressedIndex; // 사용자가 누른 리스트 아이템의 인덱스나 고유값을 담을 변수
   StreamSubscription? _plansSubscription;
   bool _isChangingDate = false;
+  bool _isInitialLoad = true; // 앱이 처음 로딩 중인지 확인
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
@@ -98,6 +99,9 @@ class _HomeCalendarState extends State<HomeCalendar> {
         setState(() { // 화면 갱신 (UI 업데이트)
           _events.clear();
           _events.addAll(loadedEvents);
+          if (_isInitialLoad) {
+            _isInitialLoad = false;
+          }
         });
       });
     }
@@ -924,23 +928,25 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           thickness: 0.8,
                         ),
                         Expanded(
-                          child: _isChangingDate
-                              ? Container() 
+                          child: (_isInitialLoad)
+                          ? const Center(child: CupertinoActivityIndicator()) // 초기 로딩 중일 때 로딩 아이콘 표시
+                          : (_isChangingDate)
+                              ? Container() // 날짜 변경 중일 때 빈 화면 표시
                               : AnimatedList(
-                                key: _listKey,
-                                padding: EdgeInsets.zero,
-                                initialItemCount: eventsForSelectedDay.length,
-                                itemBuilder: (context, index, animation) {
-                                  if (index >= eventsForSelectedDay.length)
-                                    return const SizedBox.shrink();
-                                  final event = eventsForSelectedDay[index];
-                                  return _buildAnimatedItem(
-                                    event,
-                                    index,
-                                    animation,
-                                  );
-                                },
-                              ),
+                                  key: _listKey,
+                                  initialItemCount: eventsForSelectedDay.length,
+                                  itemBuilder: (context, index, animation) {
+                                    if (index >= eventsForSelectedDay.length) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final event = eventsForSelectedDay[index];
+                                    return _buildAnimatedItem(
+                                      event,
+                                      index,
+                                      animation,
+                                    );
+                                  },
+                                ),
                             ),
                           ],
                         ),
