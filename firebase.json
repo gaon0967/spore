@@ -21,7 +21,7 @@
   },
   "functions": [
     {
-      "source": "naverlogin",
+      "source": "lib/src/naverlogin",
       "codebase": "naverlogin",
       "ignore": [
         "node_modules",
