@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import '../Psychology/PsychologyResult.dart'; // Character 모델
 import 'ChatScreen.dart';                     // ChatScreen 위젯
 
-/// --- 데이터 모델 ---
 class Friend {
   final String name;
   final List<String> tags;
