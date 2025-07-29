@@ -103,14 +103,14 @@ class _HomeCalendarState extends State<HomeCalendar> {
     }
   }
 
-
+  // ============== dispose() :  화면이 없어질 때 데이터 수신을 중단하여 메모리 누수를 방지 ========================
   @override
   void dispose() {
     _plansSubscription?.cancel();
     super.dispose();
   }
 
-  //=================일정 추가 firebase 관리용==========================================
+  //================= 새로운 일정을 데이터베이스에 추가하거나 기존 일정을 수정(업데이트)하는 역할 ==========================================
   void _addOrUpdateEvent(Event event, {bool isUpdating = false}) {
     if (_currentUser == null) return;
 
@@ -120,7 +120,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
     }
 
     final dayKey = DateFormat('yyyyMMdd').format(_selectedDay);
-    final docRef = _firestore.collection('plans').doc(_currentUser!.uid);
+    final docRef = _firestore.collection('plans').doc(_currentUser!.uid); 
 
     final eventMap = {
       'id': event.id,
@@ -134,12 +134,12 @@ class _HomeCalendarState extends State<HomeCalendar> {
     };
 
     // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
-    docRef.set({
+    docRef.set({ // // 최종적으로 변환된 eventMap 데이터를 Firestore에 저장
       'userId': _currentUser!.uid, // 사용자 ID도 함께 저장
       'date': {
         dayKey: {event.id: eventMap},
       },
-    }, SetOptions(merge: true)); // merge:true는 다른 날짜 데이터를 보존합니다.
+    }, SetOptions(merge: true)); // merge:true는 다른 날짜 데이터를 보존
   }
 
   //=====================일정 삭제 firebase 관리용================================
