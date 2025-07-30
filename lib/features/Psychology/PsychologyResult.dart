@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../auth/naverAndFirebaseAuth.dart';
-import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
+import 'package:new_project_1/features/Home/main_screen.dart';
 
 // --- 데이터 모델 및 저장소 ---
 class Character {
@@ -248,7 +248,8 @@ class _InfoContainer extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const HomeCalendar(),
+                        builder: (context) => const MainScreen(),
+                        
                       ),
                     );
                   } catch (e) {

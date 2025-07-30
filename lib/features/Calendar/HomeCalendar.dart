@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -6,38 +8,165 @@ import 'Event.dart';
 import '../Settings/settings_screen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
+import 'dart:async'; 
+/* ├── HomeCalendar (StatefulWidget)
+│   ├── State: _HomeCalendarState
+│   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
+│   │   ├── 일정 데이터: _events (Map<DateTime, List<Event>>)
+│   │   ├── 일정 CRUD: 추가, 수정, 삭제
+│   │   ├── UI 구성
+│   │   │   ├── 상단: 월/년 텍스트 + 설정/알림 버튼
+│   │   │   ├── TableCalendar (달력)
+│   │   │   ├── 선택된 날짜 아래 일정 목록 (AnimatedList + Slidable)
+│   └── 일정 추가 다이얼로그: AddEventDialog (Dialog 위젯)
+*/
 
-// UTC 자정 기준으로 날짜를 반환하는 함수
+//========== getToday() : 시간은 제외하고, 오늘 날짜만 UTC 기준으로 반환해줌 ==========
 DateTime getToday() {
-  final now = DateTime.now();
-  return DateTime.utc(now.year, now.month, now.day);
+  final now = DateTime.now(); // 현재 시간(날짜 + 시각)을 가져옴
+  return DateTime.utc(now.year, now.month, now.day); // 현재 날짜에서 연도, 월, 일만 꺼냄
 }
 
 class HomeCalendar extends StatefulWidget {
+  // 사용자 정의 Stateful 위젯 클래스(화면 자동 갱신)
   const HomeCalendar({Key? key}) : super(key: key);
 
   @override
-  State<HomeCalendar> createState() => _HomeCalendarState();
+  State<HomeCalendar> createState() => _HomeCalendarState(); //실제 UI는 _HomeCalendarState 에서 정의됨
 }
 
+// =========== 상태를 관리하고 화면을 다시 그리는 _HomeCalendarState 클래스 ===========
 class _HomeCalendarState extends State<HomeCalendar> {
-  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-  DateTime _focusedDay = getToday();
-  DateTime _selectedDay = getToday();
-  bool _isSettingsPressed = false;
-  bool _isNotificationsPressed = false;
-  Object? _pressedIndex;
-  // 날짜별 일정 데이터를 저장할 Map
-  final Map<DateTime, List<Event>> _events = {};
+  final GlobalKey<AnimatedListState> _listKey =
+      GlobalKey<AnimatedListState>(); //AnimatedList 위젯을 제어하기 위한 키
+  DateTime _focusedDay = getToday(); //현재 화면에 보이는 날짜
+  DateTime _selectedDay = getToday(); // 사용자가 직접 선택한 날짜
+  bool _isSettingsPressed = false; // 설정 아이콘이 눌렸는지 여부 나타냄
+  bool _isNotificationsPressed = false; // 알림 아이콘이 눌렸는지
+  Object? _pressedIndex; // 사용자가 누른 리스트 아이템의 인덱스나 고유값을 담을 변수
+  StreamSubscription? _plansSubscription;
+  bool _isChangingDate = false;
+  bool _isInitialLoad = true; // 앱이 처음 로딩 중인지 확인
 
-  List<Event> _getEventsForDay(DateTime day) {
-    return _events[DateTime.utc(day.year, day.month, day.day)] ?? [];
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final User? _currentUser = FirebaseAuth.instance.currentUser;
+
+  final Map<DateTime, List<Event>> _events =
+      {}; //날짜(DateTime)를 키로, 해당 날짜에 있는 일정(Event) 리스트를 값으로 갖는 Map
+
+  //============initState() :  캘린더 화면이 처음 열릴 때, Firestore 데이터베이스에 실시간 연결을 설정하고 자동 업데이트를 준비하는 역할 =================
+  @override
+  void initState() {
+    super.initState();
+    if (_currentUser != null) {
+      _plansSubscription = _firestore //실시간 연결 설정 (구독)
+          .collection('plans')
+          .doc(_currentUser!.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (!mounted) return;
+
+        final Map<DateTime, List<Event>> loadedEvents = {}; // 데이터 변환 (파싱)
+
+        if (snapshot.exists) { // 서버에 데이터가 있으면
+          final data = snapshot.data();
+          if (data != null && data['date'] != null) {
+            final dateMap = data['date'] as Map<String, dynamic>;
+
+            dateMap.forEach((dateString, dailyEventsMap) { //date 정보 덩어리를 날짜별로 쪼갠다
+              final year = int.parse(dateString.substring(0, 4));
+              final month = int.parse(dateString.substring(4, 6));
+              final day = int.parse(dateString.substring(6, 8));
+              final dateTime = DateTime.utc(year, month, day);
+
+              final events = (dailyEventsMap as Map<String, dynamic>).values.map((eventData) { // 각 날짜에 있는 일정들을 Event 객체로 변환
+                final startTimeParts = (eventData['startTime'] as String).split(':');
+                final endTimeParts = (eventData['endTime'] as String).split(':');
+                return Event(
+                  id: eventData['id'],
+                  title: eventData['title'],
+                  color: Color(eventData['color']),
+                  isCompleted: eventData['isDone'],
+                  startTime: TimeOfDay(hour: int.parse(startTimeParts[0]), minute: int.parse(startTimeParts[1])),
+                  endTime: TimeOfDay(hour: int.parse(endTimeParts[0]), minute: int.parse(endTimeParts[1])),
+                );
+              }).toList();
+              loadedEvents[dateTime] = events; //깔끔하게 변환된 Event 객체들을 날짜별로 묶어 loadedEvents 라는 최종 결과물에 차곡차곡 정리
+            });
+          }
+        }
+        
+        setState(() { // 화면 갱신 (UI 업데이트)
+          _events.clear();
+          _events.addAll(loadedEvents);
+          if (_isInitialLoad) {
+            _isInitialLoad = false;
+          }
+        });
+      });
+    }
   }
 
-  // '+' 버튼을 눌렀을 때 새 다이얼로그를 띄우는 함수
+  // ============== dispose() :  화면이 없어질 때 데이터 수신을 중단하여 메모리 누수를 방지 ========================
+  @override
+  void dispose() {
+    _plansSubscription?.cancel();
+    super.dispose();
+  }
+
+  //================= 새로운 일정을 데이터베이스에 추가하거나 기존 일정을 수정(업데이트)하는 역할 ==========================================
+  void _addOrUpdateEvent(Event event, {bool isUpdating = false}) {
+    if (_currentUser == null) return;
+
+    // 새 이벤트인 경우 고유 ID 생성
+    if (!isUpdating && event.id == null) {
+      event.id = _firestore.collection('plans').doc().id;
+    }
+
+    final dayKey = DateFormat('yyyyMMdd').format(_selectedDay);
+    final docRef = _firestore.collection('plans').doc(_currentUser!.uid); 
+
+    final eventMap = {
+      'id': event.id,
+      'title': event.title,
+      'color': event.color.value,
+      'isDone': event.isCompleted,
+      'startTime':
+          '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
+      'endTime':
+          '${event.endTime.hour.toString().padLeft(2, '0')}:${event.endTime.minute.toString().padLeft(2, '0')}',
+    };
+
+    // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
+    docRef.set({ // // 최종적으로 변환된 eventMap 데이터를 Firestore에 저장
+      'userId': _currentUser!.uid, // 사용자 ID도 함께 저장
+      'date': {
+        dayKey: {event.id: eventMap},
+      },
+    }, SetOptions(merge: true)); // merge:true는 다른 날짜 데이터를 보존
+  }
+
+  //=====================일정 삭제 firebase 관리용================================
+  void _deleteEvent(Event event) {
+    if (_currentUser == null || event.id == null) return;
+
+    final dayKey = DateFormat('yyyyMMdd').format(_selectedDay);
+    final docRef = _firestore.collection('plans').doc(_currentUser!.uid);
+
+    // FieldValue.delete()를 사용하여 맵에서 해당 키-값 쌍을 제거
+    docRef.update({'date.$dayKey.${event.id}': FieldValue.delete()});
+  }
+
+  // ==================== _getEventsForDay() ===============================
+  List<Event> _getEventsForDay(DateTime day) {
+    return _events[DateTime.utc(day.year, day.month, day.day)] ?? [];
+  } //전달받은 day에 해당하는 날짜에 어떤 일정이 있는지 _events 맵에서 찾아서 리스트로 반환
+
+  // ===== _showAddEventDialog() : '+' 버튼을 눌렀을 때 새 다이얼로그를 띄우는 함수 ====
   void _showAddEventDialog({Event? existingEvent, int? eventIndex}) async {
     final result = await showDialog<Event>(
-      context: context,
+      // awit : 다이얼로그가 닫힐 때까지 기다림
+      context: context, // 현재 위젯의 context를 다이얼로그에 전달
       builder: (BuildContext context) {
         return AddEventDialog(
           selectedDate: _selectedDay,
@@ -48,52 +177,61 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     if (result == null) return;
 
-    final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+    final day = DateTime.utc(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    );
 
     // 수정 모드
     if (existingEvent != null && eventIndex != null) {
       setState(() {
+        // 1. 로컬 데이터 업데이트
+        result.id = existingEvent.id; // 기존 ID 유지
         _getEventsForDay(day)[eventIndex] = result;
       });
+      // 2. Firestore 업데이트
+      _addOrUpdateEvent(result, isUpdating: true);
     }
     // 추가 모드
     else {
-      if (_events[day] == null) {
-        _events[day] = [];
-      }
-      final eventsList = _getEventsForDay(day);
-      final insertIndex = eventsList.length;
+      // 1. Firestore에 먼저 추가 (ID를 받아오기 위해)
+      _addOrUpdateEvent(result); // 이 함수 내부에서 ID가 생성 및 할당됨
 
-      // 1. 데이터 소스에 아이템을 추가하고 UI(카운터 등)를 업데이트
+      // 2. 로컬 데이터 업데이트 및 애니메이션
       setState(() {
-        eventsList.add(result);
+        if (_events[day] == null) _events[day] = [];
+        _getEventsForDay(day).add(result);
       });
-
-      // 2. AnimatedList에 아이템 추가를 알림
-      _listKey.currentState?.insertItem(insertIndex, duration: const Duration(milliseconds: 180));
+      _listKey.currentState?.insertItem(
+        _getEventsForDay(day).length - 1,
+        duration: const Duration(milliseconds: 180),
+      );
     }
   }
 
-  // 삭제 버튼 로직 (AnimatedList에 맞게 수정)
+  // 삭제 버튼 로직
   void _removeItem(int index) {
-    final day = DateTime.utc(_selectedDay.year, _selectedDay.month, _selectedDay.day);
+    final day = DateTime.utc(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    );
     if (_events[day] == null || index >= _events[day]!.length) return;
 
-    // 1. 데이터 소스에서 아이템을 제거하고, 그 아이템을 변수에 저장
-    final eventToRemove = _events[day]!.removeAt(index);
+    // 1. 로컬 리스트에서 제거할 아이템을 먼저 가져옴
+    final eventToRemove = _getEventsForDay(day).removeAt(index);
 
-    // 2. 다른 UI(예: 카운터)를 업데이트하기 위해 setState 호출
+    // 2. 애니메이션 실행
+    _listKey.currentState?.removeItem(index, (context, animation) {
+      return _buildRemovingAnimatedItem(eventToRemove, animation);
+    }, duration: const Duration(milliseconds: 180));
+
+    // 3. UI 상태 업데이트 (카운터 등)
     setState(() {});
 
-    // 3. AnimatedList에 아이템 제거 애니메이션 요청
-    _listKey.currentState?.removeItem(
-      index,
-      (context, animation) {
-        // 제거될 때 보여줄 위젯 (애니메이션 효과)
-        return _buildRemovingAnimatedItem(eventToRemove, animation);
-      },
-      duration: const Duration(milliseconds: 180),
-    );
+    // 4. Firestore에서 데이터 삭제
+    _deleteEvent(eventToRemove);
   }
 
   Widget _buildEventContent(Event event, {int? index}) {
@@ -101,15 +239,12 @@ class _HomeCalendarState extends State<HomeCalendar> {
     return GestureDetector(
       onTap: () {
         if (index != null) {
-          _showAddEventDialog(
-            existingEvent: event,
-            eventIndex: index,
-          );
+          _showAddEventDialog(existingEvent: event, eventIndex: index);
         }
       },
       child: Container(
         margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-        height: 75,
+        height: screenWidth * 0.175,
         decoration: BoxDecoration(
           color: event.color,
           borderRadius: BorderRadius.circular(12),
@@ -119,8 +254,14 @@ class _HomeCalendarState extends State<HomeCalendar> {
             event.title,
             style: TextStyle(
               fontSize: screenWidth * 0.032,
-              color: event.isCompleted ? const Color(0xFF626262) : const Color(0xFF4C4747),
-              decoration: event.isCompleted ? TextDecoration.lineThrough : TextDecoration.none,
+              color:
+                  event.isCompleted
+                      ? const Color(0xFF626262)
+                      : const Color(0xFF4C4747),
+              decoration:
+                  event.isCompleted
+                      ? TextDecoration.lineThrough
+                      : TextDecoration.none,
             ),
           ),
           subtitle: Text(
@@ -136,16 +277,23 @@ class _HomeCalendarState extends State<HomeCalendar> {
                 event.isCompleted = !event.isCompleted;
               });
             },
-            child: event.isCompleted
-                ? Text('✓', style: TextStyle(fontSize: screenWidth * 0.04, color: const Color(0xFF6B6060)))
-                : Container(
-                    width: screenWidth * 0.035,
-                    height: screenWidth * 0.035,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: const Color(0xFF6B6060)),
-                      borderRadius: BorderRadius.circular(2),
+            child:
+                event.isCompleted
+                    ? Text(
+                      '✓',
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.04,
+                        color: const Color(0xFF6B6060),
+                      ),
+                    )
+                    : Container(
+                      width: screenWidth * 0.035,
+                      height: screenWidth * 0.035,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFF6B6060)),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
           ),
         ),
       ),
@@ -154,7 +302,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
   Widget _buildRemovingAnimatedItem(Event event, Animation<double> animation) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     // SizeTransition이 애니메이션의 주체가 되도록 수정
     return SizeTransition(
       sizeFactor: animation,
@@ -170,7 +318,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
             flex: 3,
             child: Container(
               margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-              height: 75, // 높이를 명시적으로 지정
+              height: screenWidth * 0.175,
               child: CustomSlidableAction(
                 onPressed: (context) {}, // 애니메이션 중에는 동작 안 함
                 backgroundColor: const Color(0xFFFFFEF9),
@@ -183,7 +331,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                       width: screenWidth * 0.043,
                       height: screenWidth * 0.043,
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: screenWidth * 0.03),
                   ],
                 ),
               ),
@@ -193,138 +341,160 @@ class _HomeCalendarState extends State<HomeCalendar> {
       ),
     );
   }
+
   // AnimatedList의 아이템을 만드는 헬퍼 함수
-Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  return SizeTransition(
-    sizeFactor: animation,
-    child: Listener(
-      onPointerDown: (_) => setState(() => _pressedIndex = index),
-      onPointerUp: (_) => setState(() => _pressedIndex = null),
-      onPointerCancel: (_) => setState(() => _pressedIndex = null),
-      // [ ✨ 그림자 제거 ✨ ]
-      // Material 위젯으로 감싸고 type을 transparency로 설정하여 그림자 효과를 제거합니다.
-      child: Material(
-        type: MaterialType.transparency,
-        child: Slidable(
-          key: ValueKey(event),
-          endActionPane: ActionPane(
-            motion: const DrawerMotion(),
-            extentRatio: 0.3,
-            children: [
-              CustomSlidableAction(
-                onPressed: (context) => _removeItem(index),
-                backgroundColor: const Color(0xFFFFFFF9),
-                foregroundColor: const Color(0xFFDA6464),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/mainpage/delete.png',
-                      width: screenWidth * 0.043,
-                      height: screenWidth * 0.043,
-                    ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          child: Container(
-            margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-            height: 75,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Stack(
+  Widget _buildAnimatedItem(
+    Event event,
+    int index,
+    Animation<double> animation,
+  ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return SizeTransition(
+      sizeFactor: animation,
+      // Slidable을 가장 바깥으로 이동
+      child: Slidable(
+        key: ValueKey(event.id),
+        endActionPane: ActionPane(
+          motion: const DrawerMotion(),
+          extentRatio: 0.3,
+          children: [
+            CustomSlidableAction(
+              onPressed: (context) => _removeItem(index),
+              backgroundColor: const Color(0xFFFFFFF9),
+              foregroundColor: const Color(0xFFFFFFF9),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: event.color,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: ListTile(
-                      // [ ✨ 네모 효과 제거 ✨ ]
-                      // ListTile의 기본 터치 효과를 투명하게 만들어 제거합니다.
-                      splashColor: Colors.transparent,
-                      onTap: () {
-                        _showAddEventDialog(
-                            existingEvent: event, eventIndex: index);
-                      },
-                      title: Text(
-                        event.title,
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.032,
-                          color: event.isCompleted
-                              ? const Color(0xFF626262)
-                              : const Color(0xFF4C4747),
-                          decoration: event.isCompleted
-                              ? TextDecoration.lineThrough
-                              : TextDecoration.none,
-                        ),
-                      ),
-                      subtitle: Text(
-                        '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.024,
-                          color: const Color(0xFF626262),
-                        ),
-                      ),
-                      trailing: GestureDetector(
-                        onTap: () {
-                          setState(() => event.isCompleted = !event.isCompleted);
-                        },
-                        child: Container(
-                          color: Colors.transparent,
-                          padding: const EdgeInsets.all(8.0),
-                          child: event.isCompleted
-                              ? Text('✓',
-                                  style: TextStyle(
-                                      fontSize: screenWidth * 0.04,
-                                      color: const Color(0xFF6B6060)))
-                              : Container(
-                                  width: screenWidth * 0.035,
-                                  height: screenWidth * 0.035,
-                                  decoration: BoxDecoration(
-                                    border:
-                                        Border.all(color: const Color(0xFF6B6060)),
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
+                  Image.asset(
+                    'assets/images/mainpage/delete.png',
+                    width: screenWidth * 0.043,
+                    height: screenWidth * 0.043,
                   ),
-                  IgnorePointer(
-                    ignoring: true,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      curve: Curves.easeOut,
-                      color: _pressedIndex == index
-                          ? Colors.black.withAlpha(38)
-                          : Colors.transparent,
-                    ),
-                  ),
+                  SizedBox(height: screenWidth * 0.03),
                 ],
+              ),
+            ),
+          ],
+        ),
+        // Listener와 GestureDetector를 Slidable의 자식으로 이동
+        child: Listener(
+          onPointerDown: (_) => setState(() => _pressedIndex = index),
+          onPointerUp: (_) => setState(() => _pressedIndex = null),
+          onPointerCancel: (_) => setState(() => _pressedIndex = null),
+          child: GestureDetector(
+            onTap: () {
+              _showAddEventDialog(existingEvent: event, eventIndex: index);
+            },
+            child: Material(
+              type: MaterialType.transparency,
+              child: Container(
+                margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+                height: screenWidth * 0.175,
+                child: Material(
+                  borderRadius: BorderRadius.circular(12),
+                  clipBehavior: Clip.antiAlias,
+                  color: Colors.transparent,
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          color: event.color,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          title: Text(
+                            event.title,
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.032,
+                              color:
+                                  event.isCompleted
+                                      ? const Color(0xFF626262)
+                                      : const Color(0xFF4C4747),
+                              decoration:
+                                  event.isCompleted
+                                      ? TextDecoration.lineThrough
+                                      : TextDecoration.none,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.024,
+                              color: const Color(0xFF626262),
+                            ),
+                          ),
+                          trailing: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                event.isCompleted = !event.isCompleted;
+                              });
+                              // isDone 상태만 Firestore에 업데이트
+                              _addOrUpdateEvent(event, isUpdating: true);
+                            },
+                            child: Container(
+                              color: Colors.transparent,
+                              padding: const EdgeInsets.all(8.0),
+                              child:
+                                  event.isCompleted
+                                      ? Text(
+                                        '✓',
+                                        style: TextStyle(
+                                          fontSize: screenWidth * 0.04,
+                                          color: const Color(0xFF6B6060),
+                                        ),
+                                      )
+                                      : Container(
+                                        width: screenWidth * 0.035,
+                                        height: screenWidth * 0.035,
+                                        decoration: BoxDecoration(
+                                          border: Border.all(
+                                            color: const Color(0xFF6B6060),
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            2,
+                                          ),
+                                        ),
+                                      ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      IgnorePointer(
+                        ignoring: true,
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          curve: Curves.easeOut,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            color:
+                                _pressedIndex == index
+                                    ? Colors.black.withAlpha(38)
+                                    : Colors.transparent,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildEventsMarker(DateTime day, List<Event> events) {
     // 상위 3개의 이벤트만 가져오거나, 3개 미만이면 있는 만큼만 가져옵니다.
     final eventsToShow = events.length > 3 ? events.sublist(0, 3) : events;
-
+    final screenWidth = MediaQuery.of(context).size.width;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children:
           eventsToShow.map((event) {
             return Container(
-              width: 4.5, // 점의 너비
-              height: 4.5, // 점의 높이
+              width: screenWidth * 0.0105, // 점의 너비
+              height: screenWidth * 0.0105, // 점의 높이
               margin: const EdgeInsets.symmetric(horizontal: 1.0), // 점 사이의 간격
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
@@ -337,6 +507,7 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
 
   @override
   Widget build(BuildContext context) {
+    
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
     final verticalPadding = screenHeight * 0.03;
@@ -572,7 +743,7 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
                         ],
                       ),
                     ),
-                    SizedBox(height: 2),
+                    SizedBox(height: screenWidth * 0.02),
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: screenWidth * 0.048,
@@ -588,9 +759,19 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
                         selectedDayPredicate:
                             (day) => isSameDay(_selectedDay, day),
                         onDaySelected: (selectedDay, focusedDay) {
+                          if (isSameDay(_selectedDay, selectedDay)) return;
+
                           setState(() {
                             _selectedDay = selectedDay;
                             _focusedDay = focusedDay;
+                            _isChangingDate = true; // 날짜가 바뀌었음을 알림
+                          });
+
+                          //  한 프레임 뒤에 _isChangingDate를 false로 되돌려 리스트를 다시 표시
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            setState(() {
+                              _isChangingDate = false;
+                            });
                           });
                         },
                         onPageChanged: (focusedDay) {
@@ -747,30 +928,38 @@ Widget _buildAnimatedItem(Event event, int index, Animation<double> animation) {
                           thickness: 0.8,
                         ),
                         Expanded(
-                          // 여기가 AnimatedList로 변경된 부분
-                          child: AnimatedList(
-                            key: _listKey,
-                            padding: EdgeInsets.zero,
-                            initialItemCount: eventsForSelectedDay.length,
-                            itemBuilder: (context, index, animation) {
-                              if (index >= eventsForSelectedDay.length) return const SizedBox.shrink();
-                              final event = eventsForSelectedDay[index];
-                              return _buildAnimatedItem(event, index, animation);
-                            },
-                          ),
+                          child: (_isInitialLoad)
+                          ? const Center(child: CupertinoActivityIndicator()) // 초기 로딩 중일 때 로딩 아이콘 표시
+                          : (_isChangingDate)
+                              ? Container() // 날짜 변경 중일 때 빈 화면 표시
+                              : AnimatedList(
+                                  key: _listKey,
+                                  initialItemCount: eventsForSelectedDay.length,
+                                  itemBuilder: (context, index, animation) {
+                                    if (index >= eventsForSelectedDay.length) {
+                                      return const SizedBox.shrink();
+                                    }
+                                    final event = eventsForSelectedDay[index];
+                                    return _buildAnimatedItem(
+                                      event,
+                                      index,
+                                      animation,
+                                    );
+                                  },
+                                ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-}
+        );
+      }
+    }
 
 // --- 새로운 디자인의 일정 추가 다이얼로그 위젯 ---
 class AddEventDialog extends StatefulWidget {

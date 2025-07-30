@@ -36,7 +36,10 @@ class _MainScreenState extends State<MainScreen> {
 
     return Scaffold(
       // 선택된 인덱스에 맞는 페이지를 보여줌
-      body: _widgetOptions.elementAt(_selectedIndex),
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _widgetOptions,
+      ),
 
       bottomNavigationBar: Container(
         padding: EdgeInsets.only(bottom: screenHeight * 0.01),
