@@ -3,15 +3,67 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
-Widget _buildStyledNotiBox(AppNotification noti) {
+// 스타일 정의
+final baseStyle = TextStyle(
+  fontFamily: 'Golos Text',
+  fontWeight: FontWeight.w500,
+  fontSize: 15,
+  color: Color(0xFF645E5E),
+);
+
+final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.bold);
+
+List<TextSpan> _buildStyledTextSpans(
+    AppNotification noti,
+    String userName,
+    String eventTitle,
+    List<String> splitContent,
+    List<String> splitEvent,
+    ) {
+  if (noti.title.contains("친구") && userName.isNotEmpty) {
+    return [
+      TextSpan(text: splitContent[0], style: baseStyle),
+      TextSpan(text: userName, style: boldStyle),
+      if (splitContent.length > 1)
+        TextSpan(text: splitContent[1], style: baseStyle),
+    ];
+  } else if (noti.title.contains("D-Day") && eventTitle.isNotEmpty) {
+    return [
+      TextSpan(text: splitEvent[0], style: baseStyle),
+      TextSpan(text: eventTitle, style: boldStyle),
+      if (splitEvent.length > 1)
+        TextSpan(text: splitEvent[1], style: baseStyle),
+    ];
+  } else {
+    return [TextSpan(text: noti.content, style: baseStyle)];
+  }
+}
+
+
+Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
   Color bgColor = Color(0xFFFFFEF9);
   String? label;
   String? buttonText;
   String? badgeText;
   String? rightText;
+  Widget? requestButtons;
+  Widget iconWidget = SizedBox.shrink();
 
-Widget iconWidget = SizedBox.shrink();
-  // 타입별 스타일 커스터마이즈
+
+
+  // 닉네임 추출
+  final nameMatch = RegExp(r'(\S+)\s님').firstMatch(noti.content);
+  final userName = nameMatch != null ? nameMatch.group(1)! : '';
+  final splitContent = userName.isNotEmpty
+      ? noti.content.split(userName)
+      : [noti.content];
+
+  //  일정 이름 추출
+  final eventMatch = RegExp(r'(\S+\s?할일\s?\S*)').firstMatch(noti.content);
+  final eventTitle = eventMatch != null ? eventMatch.group(1)! : '';
+  final splitEvent = eventTitle.isNotEmpty ? noti.content.split(eventTitle) : [noti.content];
+
+  // 타입별 스타일
   if (noti.title.contains("D-Day")) {
     label = '일정';
     iconWidget = Image.asset('assets/images/Notification/calendar.png', width: 25, height: 27);
@@ -23,20 +75,113 @@ Widget iconWidget = SizedBox.shrink();
     if(noti.content.contains('메세지를 보냈습니다')) {
       rightText = '메세지 보내기';
     } else if (noti.content.contains('친구신청을 보냈습니다.')) {
-      /*
-      // 수락 거절 버튼
-      showRequestButtons = Row(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          _TextButton('수락', Icons.radio_button_unchecked, () {
-            // 수락
-          }),
-          SizedBox(width: 10),
-          _TextButton('거절', Icons.close, () {
-            // 거절
-          }),
-        ],
-      );*/
+      requestButtons = Padding(
+        padding: EdgeInsets.only(top: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            TextButton(
+              onPressed: () {
+                // 수락 클릭 시 기존 알림 제거
+                (context as Element).markNeedsBuild();
+                final state = context.findAncestorStateOfType<_NotificationPageState>();
+                if (state != null) {
+                  state.setState(() {
+                    state.notiList.remove(noti);
+                    state.notiList.insert(
+                      0,
+                      AppNotification(
+                        id: 'noti_new_&{DateTime.now().millisecondsSinceEpoch}',
+                        title: '친구 알림',
+                        content: '$userName 님과 친구가 되었습니다.',
+                        timestamp: DateTime.now(),
+                      ),
+                    );
+                  });
+                }
+
+                // 스낵바 표시
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${userName}님과 친구가 되었습니다!')),
+                );
+                // 수락 처리 로직 추가해야 함
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+
+              // 수락, 거절 버튼
+              child: Row(
+                children: [
+                  Text('수락',
+                    style:
+                    TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontSize: 13,
+                      color: Color(0xFF635E5E),
+                    ),
+                  ),
+                  SizedBox(width: 3),
+                  Text(
+                    'O',
+                    style:
+                    TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontSize: 13,
+                      color: Color(0xFFDA6464),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 12),
+            TextButton(
+              onPressed: () {
+                final state = context.findAncestorStateOfType<_NotificationPageState>();
+                if (state != null) {
+                  state.setState(() {
+                    state.notiList.remove(noti);
+                  });
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('친구 요청을 거절했습니다.')),
+                );
+                // 거절 처리 로직 추가해야 함
+              },
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.zero,
+                minimumSize: Size(0, 0),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '거절',
+                    style: TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontSize: 13,
+                      color: Color(0xFF635E5E),
+                    ),
+                  ),
+                  SizedBox(width: 3),
+                  Text(
+                    'X',
+                    style:
+                    TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontSize: 13,
+                      color: Color(0xFFDA6464),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
     } else {
       rightText = '바로 가기';
     }
@@ -47,120 +192,132 @@ Widget iconWidget = SizedBox.shrink();
     rightText = '바로 가기';
   }
 
+  // 알림 박스 위젯
   return Container(
     width: 363,
     height: 87,
+    padding: EdgeInsets.all(14),
     margin: EdgeInsets.only(bottom: 12),
-    padding: EdgeInsets.symmetric(horizontal: 18, vertical: 14),
     decoration: BoxDecoration(
       color: bgColor,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(25),
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    child: Stack(
       children: [
-        // 아이콘
-        Container(
-          width: 40,
-          height: 40,
-          padding: EdgeInsets.zero,
-          margin: EdgeInsets.only(right: 10),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          child: Center(child: iconWidget),
-        ),
-        // 중앙부(텍스트 등)
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-              if (label != null)
-              Padding(
-                padding: EdgeInsets.only(bottom: 2),
-                child: Text(
-                    label,
-                    style: TextStyle(
-                      fontFamily: 'Golos Text',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 12,
-                      color: Color(0xFFA5A5A5),
-                    ),
-                  ),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+
+            // 아이콘
+            Container(
+              width: 40,
+              height: 40,
+              padding: EdgeInsets.zero,
+              margin: EdgeInsets.only(right: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
               ),
-              Wrap(
-                crossAxisAlignment: WrapCrossAlignment.center,
+              child: Center(child: iconWidget),
+            ),
+            // 중앙부(텍스트 등)
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    noti.content,
-                    style: TextStyle(
-                      fontFamily: 'Golos Text',
-                      fontWeight: FontWeight.w500,
-                      fontSize: 15,
-                      color: Color(0xFF645E5E),
-                    ),
-                  ),
-                  if (badgeText != null)
-                    Container(
-                      margin: EdgeInsets.only(left: 10),
-                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: Color(0xFFF4ECD2),
-                        border: Border.all(color: Color(0xFF6A6A6A)),
-                        borderRadius: BorderRadius.circular(47),
-                      ),
+                  if (label != null)
+                    Padding(
+                      padding: EdgeInsets.only(bottom: 2),
                       child: Text(
-                        badgeText ?? '',
+                        label,
                         style: TextStyle(
                           fontFamily: 'Golos Text',
                           fontWeight: FontWeight.w500,
                           fontSize: 12,
-                          color: Color(0xFF413B3B),
+                          color: Color(0xFFA5A5A5),
                         ),
                       ),
                     ),
-                     // 우측 바로가기 버튼
-        if (rightText != null) 
-        Container(
-          alignment: Alignment.topRight,
-            child: GestureDetector(
-            onTap: () {/* 원하는 동작 */},
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  rightText,
-                  style: TextStyle(
-                    fontFamily: 'Golos Text',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 12,
-                    color: Color(0xFF635E5E),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text.rich(
+                        TextSpan(
+                          children: _buildStyledTextSpans(
+                              noti,
+                              userName,
+                              eventTitle,
+                              splitContent,
+                              splitEvent
+                          ),
+                        ),
+                      ),
+                      if (badgeText != null)
+                        Container(
+                          margin: EdgeInsets.only(left: 10),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                          decoration: BoxDecoration(
+                            color: Color(0xFFF4ECD2),
+                            border: Border.all(color: Color(0xFF6A6A6A)),
+                            borderRadius: BorderRadius.circular(47),
+                          ),
+                          child: Text(
+                            badgeText ?? '',
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontWeight: FontWeight.w500,
+                              fontSize: 12,
+                              color: Color(0xFF413B3B),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
-                ),
-                SizedBox(width: 8),
-                Image.asset(
-                  'assets/images/Setting/chevron.png',
-                  width: 7,
-                  height: 12,
-                  fit: BoxFit.contain,
-                )
+
+                ],
+              ),
+            ),
+
           ],
         ),
-            ),
-    ),     ],
-              ),
-            ],
-            ),
-            ],
-            
-          ),
-        ),
 
-       
+
+        // 우측 바로가기 버튼
+        if (requestButtons != null || rightText != null)
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Row(
+              children: [
+                if (requestButtons != null) requestButtons!,
+                if(rightText != null)
+                  GestureDetector(
+                    onTap: () {/* 원하는 동작 */},
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          rightText,
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 12,
+                            color: Color(0xFF635E5E),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Image.asset(
+                          'assets/images/Setting/chevron.png',
+                          width: 7,
+                          height: 12,
+                          fit: BoxFit.contain,
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
       ],
     ),
   );
@@ -187,6 +344,10 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends State<NotificationPage> {
   List<AppNotification> notiList = [];
 
+  // 친구 이름, 일정 이름 리스트
+  List<String> friendName = ['김세모', '김네모'];
+  List<String> eventData = ['리눅스 과제 제출'];
+
   @override
   void initState() {
     super.initState();
@@ -206,23 +367,23 @@ class _NotificationPageState extends State<NotificationPage> {
         timestamp: DateTime.parse("2025-06-09T10:01:00Z").toLocal(),
       ),
       AppNotification(
-        id: "noti_003", 
-        title: "친구 알림", 
-        content: "김세모 님이 메세지를 보냈습니다.", 
+        id: "noti_003",
+        title: "친구 알림",
+        content: "김세모 님과 친구가 되었습니다.",
         timestamp: DateTime.parse("2025-06-10T10:02:00Z").toLocal(),
-        ),
-        AppNotification(
-        id: "noti_004", 
-        title: "친구 알림", 
-        content: "김세모 님과 친구가 되었습니다.", 
+      ),
+      AppNotification(
+        id: "noti_004",
+        title: "친구 알림",
+        content: "김세모 님이 메세지를 보냈습니다.",
         timestamp: DateTime.parse("2025-06-10T10:03:00Z").toLocal(),
-        ),
-        AppNotification(
-        id: "noti_005", 
-        title: "친구 알림", 
-        content: "김네모 님이 친구신청을 보냈습니다.", 
+      ),
+      AppNotification(
+        id: "noti_005",
+        title: "친구 알림",
+        content: "김네모 님이 친구신청을 보냈습니다.",
         timestamp: DateTime.parse("2025-06-10T10:04:00Z").toLocal(),
-        ),
+      ),
     ];
     // 알림 순서를 최신순으로
     notiList.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -367,101 +528,50 @@ class _NotificationPageState extends State<NotificationPage> {
         ],
       ),
       body: notiList.isEmpty
-    ? Center(child: Text('알림이 없습니다.',
-    style: TextStyle(
-      fontFamily: 'Golos Text',
-      fontSize: 15,
-      color: Color(0xFF504A4A)
-    ),))
-    // 밀어서 삭제
-    : ListView.builder(
-        padding: EdgeInsets.all(16),
-        itemCount: notiList.length,
-        itemBuilder: (context, idx) {
-          final noti = notiList[idx];
-          return Slidable(
-            key: ValueKey(noti.id),
-            endActionPane: ActionPane(
-              motion: DrawerMotion(),
-              extentRatio: 0.25,
-              children: [
-                SlidableAction(
-                  onPressed: (_) {
-                    setState(() {
-                      notiList.removeAt(idx);
-                    });
-                  },
-                  backgroundColor: Colors.transparent,
-                  foregroundColor: Color(0xFF979797),
-                  label: '삭제',
+          ? Center(child: Text('알림이 없습니다.',
+        style: TextStyle(
+            fontFamily: 'Golos Text',
+            fontSize: 15,
+            color: Color(0xFF504A4A)
+        ),))
+      // 밀어서 삭제
+          : ListView.builder(
+          padding: EdgeInsets.only(top: 25, bottom: 25),
+          itemCount: notiList.length,
+          itemBuilder: (context, idx) {
+            final noti = notiList[idx];
+            return Align (
+              alignment: Alignment.center,  // 알림 박스 가운데 정렬
+              child: SizedBox(
+                width: 363,
+                child: Slidable(
+                  key: ValueKey(noti.id),
+                  endActionPane: ActionPane(
+                    motion: DrawerMotion(),
+                    extentRatio: 0.25,
+                    children: [
+                      SlidableAction(
+                        onPressed: (_) {
+                          setState(() {
+                            notiList.removeAt(idx);
+                          });
+                        },
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Color(0xFF979797),
+                        label: '삭제',
+                      ),
+                    ],
+                  ),
+                  child: _buildStyledNotiBox(noti, context),
                 ),
-              ],
               ),
-              child: _buildStyledNotiBox(noti),
-          );
-        }
+            );
+          }
       ),
     );
   }
 
-  // 푸시 알림 박스 위젯
-  Widget _buildPushNotiBox(AppNotification noti) {
-    return Container(
-      width: 363,
-      padding: EdgeInsets.all(14),
-      margin: EdgeInsets.only(bottom: 15),
-      decoration: BoxDecoration(
-        color: Color(0xFFF4F4F4),
-        borderRadius: BorderRadius.circular(25),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 아이콘 or 이름에 따라 아이콘 선택하면 좋아짐
-          Padding(
-            padding: EdgeInsets.only(top: 4, left: 2, right: 9),
-            child: Icon(Icons.notifications, color: Color(0xFFAFAFAF), size: 32),
-          ),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  noti.title,
-                  style: TextStyle(
-                    fontFamily: 'Golos Text',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                    color: Color(0xFFA1A1A1),
-                  ),
-                ),
-                SizedBox(height: 1),
-                Text(
-                  noti.content,
-                  style: TextStyle(
-                    fontFamily: 'Golos Text',
-                    fontWeight: FontWeight.w500,
-                    fontSize: 16,
-                    color: Color(0xFF504A4A),
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  _humanReadableTime(noti.timestamp),
-                  style: TextStyle(
-                    fontFamily: 'Golos Text',
-                    fontWeight: FontWeight.w400,
-                    fontSize: 11,
-                    color: Color(0xFFB9B2B2),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   String _humanReadableTime(DateTime time) {
     // 'yyyy.MM.dd 오전/오후 시:분' 형태로 표시
