@@ -1,9 +1,8 @@
-import 'package:flutter/cupertino.dart'; 
+import 'package:flutter/cupertino.dart';
 // Cupertino 위젯을 위해 추가
 import 'package:flutter/material.dart';
 import 'course_model.dart' as model;
 import 'TimetableScreen.dart';
-
 
 // 수업 추가 모달 위젯
 class ClassAdd extends StatefulWidget {
@@ -94,7 +93,7 @@ class _ClassAddState extends State<ClassAdd> {
 
     setState(() => _timeErrorText = null);
 
-    final newCourse =model.Course(
+    final newCourse = model.Course(
       title: _courseNameController.text.trim(),
       professor: _professorController.text.trim(),
       room: _locationController.text.trim(),
