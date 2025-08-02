@@ -34,7 +34,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
       'answers': [
         {'text': '바로 도와준다\n몸이 먼저 움직인다.', 'score': 1},
         {'text': '걱정하지만\n쉽게 도와주지 못한다.', 'score': 8},
-        {'text': '상황 봐서 자연스럽게\n챙겨준다.', 'score': 4},
+        {'text': '상황 봐서\n자연스럽게\n챙겨준다.', 'score': 4},
       ],
     },
     {
@@ -48,7 +48,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     {
       'question': 'Q4. 쉬는 시간, 나는?',
       'answers': [
-        {'text': '나만의 취미를 만들거나\n혼자 논다.', 'score': 3},
+        {'text': '취미를 즐기거나\n혼자 논다.', 'score': 3},
         {'text': '친구들과 수다를 떤다.', 'score': 5},
         {'text': '일단 눕는다...\n생각은 나중에 한다.', 'score': 2},
       ],
@@ -66,7 +66,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
       'answers': [
         {'text': '감정이입 100%,\n눈물 찔끔 흘린다.', 'score': 6},
         {'text': '주인공의 행동에\n공감한다.', 'score': 8},
-        {'text': '현실 연애는 귀찮아~\n생각한다.', 'score': 2},
+        {'text': '현실 연애는 귀찮게\n생각한다.', 'score': 2},
       ],
     },
     {
@@ -74,7 +74,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
       'answers': [
         {'text': '깊은 관계 몇 명이면\n충분하다.', 'score': 3},
         {'text': '먼저 다가가는 타입이다.', 'score': 4},
-        {'text': '누군가에게 힘이\n되어주는 스타일이다.', 'score': 1},
+        {'text': '누군가에게 힘이\n되어주는 스타일.', 'score': 1},
       ],
     },
     {
@@ -88,9 +88,9 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     {
       'question': 'Q9. 혼자 있는 걸 좋아하는 이유는?',
       'answers': [
-        {'text': '자유로워서!\n누구 눈치도 안 봐도 돼서.', 'score': 3},
-        {'text': '생각 정리하거나\n감정 정리할 시간이 되니까.', 'score': 6},
-        {'text': '아무것도 안 하고\n멍 때리는 게 힐링이라서.', 'score': 2},
+        {'text': '자유로워!\n눈치도 안 봐도 돼서.', 'score': 3},
+        {'text': '생각 정리할\n 시간이 되니까.', 'score': 6},
+        {'text': '멍 때리는 게\n 힐링이라서.', 'score': 2},
       ],
     },
     {
@@ -98,7 +98,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
       'answers': [
         {'text': '울컥하고 평생 동안\n간직한다.', 'score': 6},
         {'text': '감동하며\n답장 편지를 쓴다.', 'score': 4},
-        {'text': '이건 나만 볼 수 없어!\nSNS에 공유한다.', 'score': 5},
+        {'text': '나만 볼 수 없어!\nSNS에 공유한다.', 'score': 5},
       ],
     },
     {
@@ -120,9 +120,9 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     {
       'question': 'Q13. 당신에게 가까운 스타일은?',
       'answers': [
-        {'text': '무슨 일이든 믿고\n맡기는 스타일이다.', 'score': 1},
-        {'text': '항상 새로운 걸 찾는\n스타일이다.', 'score': 7},
-        {'text': '깊게 생각하고 쉽게\n도전하지 않는 스타일이다.', 'score': 8},
+        {'text': '무슨 일이든 믿고\n맡기는 스타일.', 'score': 1},
+        {'text': '항상 새로운 걸 찾는\n스타일.', 'score': 7},
+        {'text': '깊게 생각하고\n도전하는 스타일.', 'score': 8},
       ],
     },
     {
@@ -309,7 +309,7 @@ class _AnswerOptions extends StatelessWidget {
   final int? selectedAnswerIndex;
 
   const _AnswerOptions({
-    super.key,
+    
     required this.answers,
     required this.onAnswerSelected,
     this.selectedAnswerIndex,
@@ -323,8 +323,7 @@ class _AnswerOptions extends StatelessWidget {
       _ShapeType.triangle,
     ];
 
-    // 화면 너비를 기준으로 도형 크기를 정함. 
-    final size = MediaQuery.of(context).size;
+ 
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Stack(
@@ -333,7 +332,8 @@ class _AnswerOptions extends StatelessWidget {
         // 답변 1 - 구름 (오른쪽 위)
         if (answers.isNotEmpty)
           Align(
-            alignment: const Alignment(1.3, -0.85), // 오른쪽 위
+            //y 값 작게하면 위로 x 값 크게 하면 오른 쪽으로 
+            alignment: const Alignment(1.1, -0.8), // 0.9,-08
             child: SizedBox(
             
               width: screenWidth * 0.6,
@@ -349,7 +349,7 @@ class _AnswerOptions extends StatelessWidget {
         if (answers.length > 1)
       Align(
        
-    alignment: const Alignment(-1.3, 0.1),
+    alignment: const Alignment(-1.5, -0.2), //-1.5 ,0.1
     child: Container(
       width: screenWidth * 0.5,
       child: _AnswerShape(
@@ -365,15 +365,18 @@ class _AnswerOptions extends StatelessWidget {
         // 답변 3 - 삼각형 (오른쪽 아래)
         if (answers.length > 2)
           Align(
-            alignment: const Alignment(1.1, 0.9), // 오른쪽 아래
-            child: Container(
-              width: screenWidth * 0.6,
+            alignment: const Alignment(1.1, 0.5), // 1.1,0.9
+            child: Transform.rotate(
+              angle: 0.1, // 이 값 고정 
+               child: Container(
+              width: screenWidth * 0.6, //0.6
               child: _AnswerShape(
                 text: answers[2]['text'] as String,
                 shapeType: shapeMapping[2],
                 isSelected: selectedAnswerIndex == 2,
                 onTap: () => onAnswerSelected(2),
               ),
+               ),
             ),
           ),
       ],
@@ -412,21 +415,33 @@ class _AnswerShape extends StatelessWidget {
     String imagePath;
     double shapeWidth;
 
+    double textContainerWidth;
+    EdgeInsets textPadding;
+
   switch (shapeType) {
     case _ShapeType.cloud: // Star
       imagePath = 'assets/images/PsychologyTest/Shape/Star.png';
       //shapeWidth = 276;
       shapeWidth =size.width * 0.7;
+      textContainerWidth = shapeWidth * 0.65;
+      textPadding = EdgeInsets.symmetric(horizontal: size.width * 0.04);
       break;
+
+
     case _ShapeType.circle: //Ellipse
       imagePath = 'assets/images/PsychologyTest/Shape/Ellipse.png';
       //shapeWidth = 284;
       shapeWidth =size.width * 0.72;
+      textContainerWidth = shapeWidth * 0.7;
+      textPadding = EdgeInsets.symmetric(horizontal: size.width * 0.04);
       break;
     case _ShapeType.triangle: // Polygon
       imagePath = 'assets/images/PsychologyTest/Shape/Polygon.png';
       //shapeWidth = 277;
       shapeWidth = size.width * 0.7;
+      textContainerWidth = shapeWidth * 0.55;
+      textPadding = EdgeInsets.fromLTRB(
+      size.width * 0.02, size.height * 0.02, size.width * 0.02, 0);
       break;
   }
 
@@ -445,20 +460,20 @@ class _AnswerShape extends StatelessWidget {
           ),
           isSelected
               ? const Icon(Icons.check, color: Colors.white, size: 50)
-              : Container(
-                  width: shapeWidth * 0.7,
-                  padding: EdgeInsets.symmetric(horizontal: size.width * 0.04),
-                  child: AutoSizeText(
-                    text,
-                    textAlign: TextAlign.center,
-                    maxLines: 3,
-                    minFontSize: 8,
-                    //softWrap: true, 
-                    overflow: TextOverflow.visible,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: (size.width * 0.04).clamp(12, 18).toDouble(),
-                      color: const Color(0xFF504A4A),
+               : SizedBox(
+                  width: textContainerWidth,
+                  child: Padding(
+                    padding: textPadding,
+                    child: AutoSizeText(
+                      text,
+                      textAlign: TextAlign.center,
+                      minFontSize: 10,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w500,
+                        fontSize: (size.width * 0.04).clamp(12, 18).toDouble(),
+                        color: const Color(0xFF504A4A),
+                        height: 1.3,
+                      ),
                     ),
                   ),
                 ),
