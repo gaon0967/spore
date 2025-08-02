@@ -4,8 +4,6 @@ import '../Timetable/ClassAdd.dart';
 import '../Timetable/FriendTimetable.dart';
 import '../Timetable/course_model.dart';
 
-
-
 /*
 추가 되는 과정 설명 
 
@@ -22,36 +20,74 @@ import '../Timetable/course_model.dart';
 
 */
 
-
 class TimetableScreen extends StatefulWidget {
-  const TimetableScreen({super.key});
+  final SemesterTimetable timetable;
+  final List<Course> initialCourses;
+  final Function(List<Course>)? onCoursesUpdated;
+  final Map<String, List<Course>> allTimetableCourses;
+  final Function(String)? onTimetableSelected;
+
+  const TimetableScreen({
+    super.key,
+    required this.timetable,
+    required this.initialCourses,
+    required this.allTimetableCourses,
+    this.onCoursesUpdated,
+    this.onTimetableSelected,
+  });
 
   @override
   State<TimetableScreen> createState() => _TimetableScreenState();
 }
 
 class _TimetableScreenState extends State<TimetableScreen> {
-  final List<Course> courses = [
-    Course(
-      title: '리눅스눅스',
-      professor: '함부기',
-      room: '제2호관-401',
-      day: 0,
-      startTime: 9,
-      endTime: 11,
-      color: const Color(0xFFCDDEE3),
-    ),
-    Course(
-      title: '가부기와 햄 부기',
-      professor: '미사에',
-      room: '제5호관-409',
-      day: 0,
-      startTime: 13,
-      endTime: 15,
-      color: const Color(0xFF97B4C7),
-    ),
-    
-  ];
+  late List<Course> courses;
+
+  @override
+  void initState() {
+    super.initState();
+    courses = List.from(widget.initialCourses);
+  }
+
+  @override
+  void didUpdateWidget(covariant TimetableScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.timetable.year != oldWidget.timetable.year ||
+        widget.timetable.semester != oldWidget.timetable.semester) {
+      setState(() {
+        courses = List.from(widget.initialCourses);
+      });
+    }
+  }
+
+  void _addCourse(Course course) {
+    setState(() {
+      courses.add(course);
+    });
+    // 데이터 변경 사항을 MainScreen으로 전달
+    if (widget.onCoursesUpdated != null) {
+      widget.onCoursesUpdated!(courses);
+    }
+  }
+
+  void _removeCourse(Course course) {
+    setState(() {
+      courses.remove(course);
+    });
+    // 데이터 변경 사항을 MainScreen으로 전달
+    if (widget.onCoursesUpdated != null) {
+      widget.onCoursesUpdated!(courses);
+    }
+  }
+
+  void _updateCourses(List<Course> newCourses) {
+    setState(() {
+      courses = newCourses;
+    });
+    if (widget.onCoursesUpdated != null) {
+      widget.onCoursesUpdated!(courses);
+    }
+  }
 
   Course? _checkTimeConflict(Course newCourse) {
     for (var existingCourse in courses) {
@@ -141,7 +177,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
               ),
               SizedBox(height: 3 * scale),
               Text(
-                '2025년 여름학기',
+                '${widget.timetable.year}년 ${widget.timetable.semester}',
                 style: TextStyle(
                   color: const Color(0xFF556283),
                   fontSize: 11 * scale,
@@ -173,15 +209,15 @@ class _TimetableScreenState extends State<TimetableScreen> {
                       conflictingCourse,
                     );
                     if (wannaReplace) {
-                      setState(() {
-                        courses.remove(conflictingCourse);
-                        courses.add(newCourse);
-                      });
+                      final newCourses = List<Course>.from(courses);
+                      newCourses.remove(conflictingCourse);
+                      newCourses.add(newCourse);
+                      _updateCourses(newCourses);
                     }
                   } else {
-                    setState(() {
-                      courses.add(newCourse);
-                    });
+                    final newCourses = List<Course>.from(courses);
+                    newCourses.add(newCourse);
+                    _updateCourses(newCourses);
                   }
                 },
               ),
@@ -191,11 +227,22 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   color: const Color(0xFF3B3737),
                   size: 24 * scale,
                 ),
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  // Navigator.push가 완료되면, TimetableList에서 반환된 값을 result 변수에 담습니다.
+                  final result = await Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => TimetableList()),
+                    MaterialPageRoute(
+                      builder:
+                          (context) => TimetableList(
+                            allTimetableCourses: widget.allTimetableCourses,
+                          ),
+                    ),
                   );
+
+                  // result가 null이 아닐 경우 (즉, TimetableList에서 어떤 값을 반환했을 경우)
+                  if (result != null && widget.onTimetableSelected != null) {
+                    widget.onTimetableSelected!(result as String);
+                  }
                 },
               ),
             ],
@@ -401,13 +448,17 @@ class _TimetableScreenState extends State<TimetableScreen> {
       builder: (context) {
         return LayoutBuilder(
           builder: (context, constraints) {
-            final modalWidth = constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
+            final modalWidth =
+                constraints.maxWidth > 600 ? 600.0 : constraints.maxWidth;
             return Align(
               alignment: Alignment.bottomCenter,
               child: Container(
                 width: modalWidth,
                 height: 210,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 20,
+                ),
                 decoration: const BoxDecoration(
                   color: Color(0xFFFFFFF9),
                   borderRadius: BorderRadius.only(
@@ -448,24 +499,33 @@ class _TimetableScreenState extends State<TimetableScreen> {
                     const SizedBox(height: 6),
                     Text(
                       course.professor,
-                      style: const TextStyle(fontSize: 14, color: Colors.black54),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
                     ),
                     const SizedBox(height: 6),
                     Text(
                       "${_dayToString(course.day)} ${_formatTime(course.startTime)} ~ ${_formatTime(course.endTime)}",
-                      style: const TextStyle(fontSize: 14, color: Colors.black45),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black45,
+                      ),
                     ),
                     Text(
                       course.room,
-                      style: const TextStyle(fontSize: 14, color: Colors.black45),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black45,
+                      ),
                     ),
                     const Spacer(),
                     const Divider(),
                     GestureDetector(
                       onTap: () {
-                        setState(() {
-                          courses.remove(course);
-                        });
+                        final newCourses = List<Course>.from(courses);
+                        newCourses.remove(course);
+                        _updateCourses(newCourses);
                         Navigator.pop(context);
                       },
                       child: const Padding(
@@ -476,7 +536,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
                             SizedBox(width: 6),
                             Text(
                               "삭제",
-                              style: TextStyle(fontSize: 14, color: Colors.black54),
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
                             ),
                           ],
                         ),
@@ -536,10 +599,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
             ),
           ),
           SizedBox(height: 12 * scale),
-          ...friends.map((friendName) => Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: _buildFriendButton(friendName),
-          )),
+          ...friends.map(
+            (friendName) => Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: _buildFriendButton(friendName),
+            ),
+          ),
         ],
       ),
     );
@@ -551,7 +616,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
       onPressed: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => FriendTimetable(friendName: name)),
+          MaterialPageRoute(
+            builder: (context) => FriendTimetable(friendName: name),
+          ),
         );
       },
       style: ElevatedButton.styleFrom(
