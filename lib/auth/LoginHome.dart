@@ -85,111 +85,7 @@ class _TopSection extends StatelessWidget {
   }
 }
 
-/// 클래스 : _ChatBubbleSection
-/// 목적 : 사용자에게 앱 설명하는 말풍선 UI를 표시
-/// 반환타입 : StatelessWidget (Stack 위젯을 반환)
-/// 예외 : 예외 없음
 
-// 말풍선
-
-/*
-class _ChatBubbleSection extends StatelessWidget {
-  const _ChatBubbleSection();
-
-  @override
-  Widget build(BuildContext context) {
-    
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
-    
-    
-    
-    const bubbleTextStyle = TextStyle(
-
-    
-      fontFamily: 'Golos Text',
-      fontSize: 12,
-      color: Color(0xFF777575),
-      fontWeight: FontWeight.w500,
-    );
-
-    return Stack(
-      children: [
-        // --- 말풍선 1 ---
-        Positioned(
-          //left: 52, top: 340, 고정형임.
-
-           left: screenWidth * 0.13,
-           top: screenHeight * 0.45,
-          child: Image.asset('assets/images/talk1.png', width: screenWidth * 0.5, height: screenHeight * 0.06,),
-        ),
-        Positioned(
-          //left: 52, top: 340, width: 190, height: 42,
-
-          left: screenWidth * 0.13,
-          top: screenHeight * 0.45,
-          width: screenWidth * 0.47,
-          height: screenHeight * 0.05,
-
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text("💬오늘 일정 뭐였지 ?? 💬", style: bubbleTextStyle),
-            ),
-          ),
-        ),
-
-        // --- 말풍선 2 ---
-        Positioned(
-          left: screenWidth * 0.21,
-           top: screenHeight * 0.54,
-
-          child: Image.asset('assets/images/talk2.png', width: screenWidth * 0.75, height: screenHeight * 0.06) 
-          ),
-        Positioned(
-          //left: 82, top: 410, width: 282, height: 42,
-
-          
-          left: screenWidth * 0.21,
-          top: screenHeight * 0.54,
-          width: screenWidth * 0.73,
-          height: screenHeight * 0.055,
-
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text("spore 로 관리해봐! 친구들 일정도 볼 수 있대 📅", style: bubbleTextStyle),
-            ),
-          ),
-        ),
-
-        // --- 말풍선 3 ---
-        Positioned(
-          //left: 51, top: 480,
-
-          left: screenWidth * 0.13,
-          top: screenHeight * 0.63,
-
-          child: Image.asset('assets/images/talk3.png', width: screenWidth * 0.68,height: screenHeight * 0.06,),
-        ),
-        Positioned(
-          //left: 51, top: 480, width: 251, height: 42,
-          left: screenWidth * 0.13,
-          top: screenHeight * 0.632,
-          width: screenWidth * 0.66,
-          height: screenHeight * 0.055,
-          child: const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text("새로운 친구들을 만날 수 있어서 좋네 👥", style: bubbleTextStyle),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-*/
 
 class _ChatBubbleSection extends StatelessWidget {
   const _ChatBubbleSection();
@@ -332,7 +228,7 @@ class _BottomSection extends StatelessWidget {
 
         // 원래는 계정이 없다면? 심리 테스트 바로 가기 자리인데 여기 부터 삭제. _ 심리 테스트 고치는 동안 만 사용하기.
 
-
+/*
 
         
         const SizedBox(height: 20),
@@ -372,7 +268,7 @@ class _BottomSection extends StatelessWidget {
           ),
         ),
 
-
+*/
         
       ],
     );
