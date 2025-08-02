@@ -7,7 +7,7 @@ class Course {
   final String room;
   final int day;
   final int startTime; // 시(hour) 단위
-  final int endTime;   // 시(hour) 단위
+  final int endTime; // 시(hour) 단위
   final Color color;
 
   Course({

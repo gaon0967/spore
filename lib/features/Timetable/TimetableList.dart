@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'TimetableScreen.dart';
+import 'course_model.dart';
+import 'ClassAdd.dart';
 //시간표 리스트 구성과 리스트를 추가하기 위한 코드 입니다.
 
 // 시간표 데이터를 표현하기 위한 간단한 모델 클래스
@@ -15,7 +18,8 @@ class SemesterTimetable {
 }
 
 class TimetableList extends StatefulWidget {
-  const TimetableList({super.key});
+  final Map<String, List<Course>> allTimetableCourses;
+  const TimetableList({super.key, required this.allTimetableCourses});
 
   @override
   State<TimetableList> createState() => _TimetableListState();
@@ -24,42 +28,33 @@ class TimetableList extends StatefulWidget {
 final List<String> _semesterOptions = ['1학기', '2학기', '여름학기', '겨울학기'];
 
 class _TimetableListState extends State<TimetableList> {
-  // 샘플 데이터 리스트
-  final List<SemesterTimetable> timetables = [
-    SemesterTimetable(
-      year: '2025',
-      semester: '여름학기',
-      color: const Color(0xFFDDEBF1),
-    ),
-    SemesterTimetable(
-      year: '2025',
-      semester: '1학기',
-      color: const Color(0xFFD4DAF5),
-    ),
-    SemesterTimetable(
-      year: '2024',
-      semester: '겨울학기',
-      color: const Color(0xFFA9C5D8),
-    ),
-    SemesterTimetable(
-      year: '2024',
-      semester: '2학기',
-      color: const Color(0xFFC7D7CB),
-    ),
-    SemesterTimetable(
-      year: '2024',
-      semester: '여름학기',
-      color: const Color(0xFFE3E8EE),
-    ),
-    SemesterTimetable(
-      year: '2024',
-      semester: '1학기',
-      color: const Color(0xFFE9EBE0),
-    ),
-  ];
+  late List<SemesterTimetable> _timetables;
+  int _selectedIndex = 0; // 선택된 시간표의 인덱스를 저장
 
-  // 선택된 시간표의 인덱스를 저장
-  int _selectedIndex = 0;
+  @override
+  void initState() {
+    super.initState();
+    _loadTimetables();
+  }
+
+  void _loadTimetables() {
+    // _allTimetableCourses 맵의 키를 기반으로 _timetables 리스트를 생성합니다.
+    _timetables =
+        widget.allTimetableCourses.keys.map((key) {
+          final parts = key.split('-');
+          final year = parts[0];
+          final semester = parts[1];
+          return SemesterTimetable(
+            year: year,
+            semester: semester,
+            color:
+                Colors.primaries[widget.allTimetableCourses.keys
+                        .toList()
+                        .indexOf(key) %
+                    Colors.primaries.length],
+          );
+        }).toList();
+  }
 
   // [수정] 시간표 추가 버튼을 눌렀을 때 실행될 함수
   void _showAddTimetableDialog() async {
@@ -74,12 +69,8 @@ class _TimetableListState extends State<TimetableList> {
 
     // 반환된 값이 있으면 (null이 아니면) 리스트에 추가
     if (newTimetable != null) {
-      setState(() {
-        // 리스트의 가장 앞에 새로운 시간표를 추가
-        timetables.insert(0, newTimetable);
-        // 새로 추가된 아이템을 선택된 상태로 변경
-        _selectedIndex = 0;
-      });
+      final newKey = '${newTimetable.year}-${newTimetable.semester}';
+      setState(() {});
     }
   }
 
@@ -140,25 +131,25 @@ class _TimetableListState extends State<TimetableList> {
                 mainAxisSpacing: 16,
                 childAspectRatio: 0.8, // 아이템 비율
               ),
-              itemCount: timetables.length,
+              itemCount: _timetables.length,
               itemBuilder: (context, index) {
-                final timetable = timetables[index];
+                final timetable = _timetables[index];
                 final isSelected = _selectedIndex == index;
 
                 return GestureDetector(
                   onTap: () {
-                    setState(() {
-                      _selectedIndex = index;
-                    });
+                    final key = '${timetable.year}-${timetable.semester}';
+                    Navigator.of(context).pop(key);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
                       color: timetable.color,
                       borderRadius: BorderRadius.circular(16),
-                      border: isSelected
-                          ? Border.all(color: Colors.black, width: 2)
-                          : null,
+                      border:
+                          isSelected
+                              ? Border.all(color: Colors.black, width: 2)
+                              : null,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
