@@ -139,7 +139,7 @@ class SettingsScreen extends StatelessWidget {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => const friend_management(),
+                              (context) => const FriendManagementScreen(),
                           // 친구 관리 버튼 클릭 시 friend_management 화면으로 이동
                         ),
                       );
