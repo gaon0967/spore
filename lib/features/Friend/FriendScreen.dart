@@ -47,7 +47,7 @@ class FriendScreen extends StatefulWidget {
   @override
   State<FriendScreen> createState() => _FriendScreenState();
 }
-
+//
 class _FriendScreenState extends State<FriendScreen> {
   final List<Friend> _friends = [
     const Friend(name: '가부기', tags: ['유일무이', '집순이'], characterId: 4),
