@@ -6,7 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:new_project_1/features/Psychology/PsychologyQuestion.dart';
 import 'package:new_project_1/features/Psychology/PsychologyResult.dart';
 
-// 이미지 선택 메뉴 (갤러리, 캐릭터 선택)
+// 이미지 선택 메뉴 위젯 (갤러리에서 이미지 선택 또는 내 캐릭터에서 선택)
 class ImagePickerMenu extends StatefulWidget {
   final Function(int) onSelect;
   const ImagePickerMenu({Key? key, required this.onSelect}) : super(key: key);
@@ -39,9 +39,12 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
           children: [
             const Padding(
               padding: EdgeInsets.only(bottom: 15),
-              child: Text('프로필 이미지',
-                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF837C7C))),
+              child: Text(
+                '프로필 이미지',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Color(0xFF837C7C)),
+              ),
             ),
+            // 갤러리 선택 메뉴
             InkWell(
               borderRadius: BorderRadius.circular(48),
               onTap: () {
@@ -61,13 +64,17 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('갤러리에서 선택',
-                        style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500)),
+                    const Text(
+                      '갤러리에서 선택',
+                      style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
                     Image.asset('assets/images/Setting/gallery.png', width: 22, height: 22),
                   ],
                 ),
               ),
             ),
+
+            // 내 캐릭터 선택 메뉴
             InkWell(
               borderRadius: BorderRadius.circular(48),
               onTap: () {
@@ -87,8 +94,10 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('내 캐릭터에서 선택',
-                        style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500)),
+                    const Text(
+                      '내 캐릭터에서 선택',
+                      style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500),
+                    ),
                     Image.asset('assets/images/Setting/Union.png', width: 22, height: 22),
                   ],
                 ),
@@ -101,13 +110,7 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
   }
 }
 
-// 프로필 편집화면
-class ProfileEdit extends StatefulWidget {
-  const ProfileEdit({Key? key}) : super(key: key);
-  @override
-  State<ProfileEdit> createState() => _ProfileEditPageState();
-}
-
+// 리스트 내 캐릭터 중복 제거 헬퍼 함수 (id 기준)
 List<Character> removeDuplicateCharacters(List<Character> characters) {
   final seen = <int>{};
   final distinctCharacters = <Character>[];
@@ -121,75 +124,80 @@ List<Character> removeDuplicateCharacters(List<Character> characters) {
   return distinctCharacters;
 }
 
+// 프로필 편집 화면
+class ProfileEdit extends StatefulWidget {
+  const ProfileEdit({Key? key}) : super(key: key);
+  @override
+  State<ProfileEdit> createState() => _ProfileEditPageState();
+}
+
 class _ProfileEditPageState extends State<ProfileEdit> {
   String nickname = "닉네임을 입력하세요";
   String introText = "";
   File? _profileImage;
   final ImagePicker picker = ImagePicker();
 
-  bool _isEditingNickname = false;
-  late TextEditingController _nicknameController;
+  bool _isEditingNickname = false; // 닉네임 편집 모드 여부
+  late TextEditingController _nicknameController; // 닉네임 텍스트 컨트롤러
 
-  List<int> psychologyResultIds = [];
-  List<Character> availableCharacters = [];
-  Character? selectedCharacter;
+  List<int> psychologyResultIds = []; // 심리테스트 결과 캐릭터 ID 리스트
+  List<Character> availableCharacters = []; // 현재 선택 가능한 캐릭터 리스트
+  Character? selectedCharacter; // 현재 프로필에 선택된 캐릭터
 
-  static const String psychologyResultKey = 'psychology_result_ids';
+  static const String psychologyResultKey = 'psychology_result_ids'; // 저장 키
 
   @override
   void initState() {
     super.initState();
     _nicknameController = TextEditingController(text: nickname);
-    _loadSavedPsychologyResult();
+    _loadAvailableCharacterIdsAndInit(); // 저장된 캐릭터 리스트 불러오기 시작
   }
 
-  @override
-  void dispose() {
-    _nicknameController.dispose();
-    super.dispose();
+  // 저장된 캐릭터 ID 리스트를 불러와 availableCharacters 초기화
+  Future<void> _loadAvailableCharacterIdsAndInit() async {
+    final ids = await _loadAvailableCharacterIds();
+    setState(() {
+      // ID로 캐릭터 객체 변환 후 리스트 할당
+      availableCharacters = ids
+          .map((id) => Character.getCharacterById(id))
+          .whereType<Character>()
+          .toList();
+    });
   }
 
-  Future<void> _loadSavedPsychologyResult() async {
+  // SharedPreferences에서 저장된 캐릭터 ID 리스트 불러오기
+  Future<List<int>> _loadAvailableCharacterIds() async {
     final prefs = await SharedPreferences.getInstance();
-    final storedList = prefs.getStringList(psychologyResultKey) ?? [];
-    final ids = storedList.map((e) => int.tryParse(e) ?? 0).where((e) => e != 0).toList();
-
-    debugPrint('Loaded psychology result ids: $ids');
-
-    if (ids.isNotEmpty) {
-      _applyPsychologyResult(ids);
-    }
+    final storedList = prefs.getStringList('available_character_ids') ?? [];
+    return storedList
+        .map((e) => int.tryParse(e) ?? 0)
+        .where((e) => e != 0) // 유효한 ID만
+        .toList();
   }
 
-  Future<void> _savePsychologyResult(List<int> ids) async {
+  // 캐릭터 ID 리스트를 SharedPreferences에 저장 (비동기)
+  Future<void> _saveAvailableCharacterIds(List<int> ids) async {
     final prefs = await SharedPreferences.getInstance();
-    final strList = ids.map((e) => e.toString()).toList();
-    final success = await prefs.setStringList(psychologyResultKey, strList);
-    debugPrint('Psychology result save success? $success');
-
-    if(success) {
-      final loadedList = prefs.getStringList(psychologyResultKey) ?? [];
-      debugPrint('Saved and loaded list: $loadedList');
-    }
+    final strList = ids.map((e) => e.toString()).toList(); // 문자열 리스트로 변환
+    await prefs.setStringList('available_character_ids', strList);
   }
 
+  // 심리테스트 결과 ID를 받아 앱 상태에 적용 (캐릭터 선택)
   void _applyPsychologyResult(List<int> resultIds) {
     if (resultIds.isEmpty) return;
 
     psychologyResultIds = resultIds;
 
-    // 첫 번째 캐릭터 선택
     final firstId = resultIds.first;
-    final firstCharacter = Character.getCharacterById(firstId);
+    final firstCharacter = Character.getCharacterById(firstId); // 첫 캐릭터
 
-    // 나머지 캐릭터들
     final otherIds = resultIds.length > 1 ? resultIds.sublist(1) : <int>[];
     final others = otherIds
         .map((id) => Character.getCharacterById(id))
-        .where((c) => c != null)
-        .cast<Character>()
+        .whereType<Character>()
         .toList();
 
+    // 상태 업데이트: 선택 캐릭터, 사용 가능한 캐릭터 리스트, 이미지 리셋
     setState(() {
       selectedCharacter = firstCharacter;
       availableCharacters = others;
@@ -197,9 +205,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
-
-
-  // 갤러리 이미지 선택 및 권한 요청
+  // 갤러리 이미지 선택 및 권한 요청 처리
   Future<void> _pickImageFromGallery() async {
     final status = await Permission.photos.status;
 
@@ -208,73 +214,63 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       if (pickedFile != null) {
         setState(() {
           _profileImage = File(pickedFile.path);
-          selectedCharacter = null;
+          selectedCharacter = null; // 캐릭터 선택 해제
         });
       }
     } else if (status.isDenied) {
-      // 권한 요청 다이얼로그 없이 바로 시스템 권한 요청 호출
       final result = await Permission.photos.request();
       if (result.isGranted) {
-        _pickImageFromGallery();
+        _pickImageFromGallery(); // 권한 획득 후 재시도
       } else if (result.isPermanentlyDenied) {
-        _showPermissionDeniedDialog();
+        _showPermissionDeniedDialog(); // 권한 영구 거부 시 안내
       }
     } else if (status.isPermanentlyDenied) {
       _showPermissionDeniedDialog();
     }
   }
 
-  // 권한 거부시 설정 안내
+  // 권한 거부시 설정 안내 다이얼로그 표시
   void _showPermissionDeniedDialog() {
     showDialog(
       context: context,
-      builder: (context) =>
-          AlertDialog(
-            title: const Text('권한 필요'),
-            content: const Text('갤러리 권한이 영구적으로 거부되었습니다. 앱 설정에서 권한을 허용해 주세요.'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('취소'),
-              ),
-              TextButton(
-                onPressed: () {
-                  openAppSettings();
-                  Navigator.of(context).pop();
-                },
-                child: const Text('설정 열기'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('권한 필요'),
+        content: const Text('갤러리 권한이 영구적으로 거부되었습니다. 앱 설정에서 권한을 허용해주세요.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('취소')),
+          TextButton(
+            onPressed: () {
+              openAppSettings();
+              Navigator.of(context).pop();
+            },
+            child: const Text('설정 열기'),
           ),
+        ],
+      ),
     );
   }
 
-  // 캐릭터 선택 시트
+  // 캐릭터 선택 시트 표시, 선택 후 결과 저장 및 상태 업데이트
   Future<void> _showCharacterSelectSheet() async {
     Character? tempSelectedCharacter = selectedCharacter;
 
-    final allCharacters = removeDuplicateCharacters(
-      [
-        if (selectedCharacter != null) selectedCharacter!,
-        ...availableCharacters
-      ],
-    );
+    final allCharacters = removeDuplicateCharacters([
+      if (selectedCharacter != null) selectedCharacter!,
+      ...availableCharacters
+    ]);
 
     final result = await showModalBottomSheet<Character>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
       builder: (context) {
         return StatefulBuilder(
           builder: (BuildContext context, StateSetter setModalState) {
             return FractionallySizedBox(
               heightFactor: 0.65,
               child: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24, vertical: 22),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
                 decoration: const BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
@@ -282,6 +278,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // 선택한 캐릭터 크게 보여주는 영역
                     Stack(
                       children: [
                         Align(
@@ -291,10 +288,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                               Container(
                                 width: 100,
                                 height: 100,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.white,
-                                ),
+                                decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
                                 alignment: Alignment.center,
                                 child: Container(
                                   width: 90,
@@ -303,20 +297,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                                     shape: BoxShape.circle,
                                     color: const Color(0xFFF5F5F5),
                                     border: Border.all(
-                                      color: tempSelectedCharacter != null
-                                          ? const Color(0xFF6075B8)
-                                          : Colors.grey.shade300,
-                                      width: tempSelectedCharacter != null
-                                          ? 3.2
-                                          : 1.5,
+                                      color: tempSelectedCharacter != null ? const Color(0xFF6075B8) : Colors.grey.shade300,
+                                      width: tempSelectedCharacter != null ? 3.2 : 1.5,
                                     ),
                                   ),
                                   child: ClipOval(
                                     child: tempSelectedCharacter != null
-                                        ? Image.asset(
-                                      tempSelectedCharacter!.imagePath,
-                                      fit: BoxFit.cover,
-                                    )
+                                        ? Image.asset(tempSelectedCharacter!.imagePath, fit: BoxFit.cover)
                                         : const SizedBox(),
                                   ),
                                 ),
@@ -325,32 +312,31 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                             ],
                           ),
                         ),
+
+                        // 완료 버튼
                         Positioned(
                           top: 4,
                           right: 0,
                           child: TextButton(
-                            onPressed: tempSelectedCharacter != null
-                                ? () {
-                              Navigator.pop(context, tempSelectedCharacter);
-                            }
-                                : null,
+                            onPressed: tempSelectedCharacter != null ? () => Navigator.pop(context, tempSelectedCharacter) : null,
                             child: Text(
                               '완료',
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: tempSelectedCharacter != null
-                                    ? const Color(0xFF6075B8)
-                                    : Colors.grey,
+                                color: tempSelectedCharacter != null ? const Color(0xFF6075B8) : Colors.grey,
                               ),
                             ),
                           ),
                         ),
                       ],
                     ),
+
                     const SizedBox(height: 6),
                     const Divider(thickness: 1, color: Colors.grey, height: 24),
                     const SizedBox(height: 10),
+
+                    // 캐릭터 그리드 목록
                     Expanded(
                       child: GridView.builder(
                         itemCount: allCharacters.length,
@@ -362,8 +348,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         ),
                         itemBuilder: (context, index) {
                           final character = allCharacters[index];
-                          final isSelected = tempSelectedCharacter?.id ==
-                              character.id;
+                          final isSelected = tempSelectedCharacter?.id == character.id;
 
                           return GestureDetector(
                             onTap: () {
@@ -377,10 +362,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                                 Container(
                                   width: 95,
                                   height: 95,
-                                  decoration: const BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                  ),
+                                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
                                   alignment: Alignment.center,
                                   child: Container(
                                     width: 90,
@@ -389,19 +371,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                                       shape: BoxShape.circle,
                                       color: const Color(0xFFF5F5F5),
                                       border: Border.all(
-                                        color: isSelected
-                                            ? const Color(0xFF6075B8)
-                                            : Colors.grey.shade300,
+                                        color: isSelected ? const Color(0xFF6075B8) : Colors.grey.shade300,
                                         width: isSelected ? 3.2 : 1.5,
                                       ),
                                     ),
                                     child: ClipOval(
-                                      child: Image.asset(
-                                        character.imagePath,
-                                        width: 74,
-                                        height: 74,
-                                        fit: BoxFit.cover,
-                                      ),
+                                      child: Image.asset(character.imagePath, width: 74, height: 74, fit: BoxFit.cover),
                                     ),
                                   ),
                                 ),
@@ -410,17 +385,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                                   width: 130,
                                   height: 34,
                                   alignment: Alignment.center,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F5F5),
-                                    borderRadius: BorderRadius.circular(17),
-                                  ),
+                                  decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(17)),
                                   child: Text(
                                     character.name,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF6A6A6A),
-                                    ),
+                                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF6A6A6A)),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     textAlign: TextAlign.center,
@@ -442,26 +410,32 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       },
     );
 
+    // 결과가 있으면 상태 업데이트 및 캐릭터 ID 저장
     if (result != null) {
       setState(() {
         selectedCharacter = result;
         _profileImage = null;
-        availableCharacters = removeDuplicateCharacters(
-            [if (selectedCharacter != null) selectedCharacter!, ...availableCharacters]
-        ).where((character) => character.id != selectedCharacter?.id).toList();
+
+        final newList = removeDuplicateCharacters([selectedCharacter!, ...availableCharacters]);
+        availableCharacters = newList.where((c) => c.id != selectedCharacter?.id).toList();
+
         psychologyResultIds = [selectedCharacter!.id];
       });
-      _savePsychologyResult(psychologyResultIds);
+
+      // 선택된 캐릭터 ID 리스트를 저장
+      final saveIds = [selectedCharacter!.id, ...availableCharacters.map((c) => c.id)];
+      await _saveAvailableCharacterIds(saveIds);
     }
   }
-  // 닉네임 편집
+
+  // 닉네임 편집 시작
   void _startNicknameEdit() {
     setState(() {
       _isEditingNickname = true;
     });
   }
 
-  // 닉네임 저장
+  // 닉네임 저장 및 UI 해제
   void _saveNickname() {
     final trimmed = _nicknameController.text.trim();
     if (trimmed.isNotEmpty) {
@@ -475,7 +449,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     }
   }
 
-  // 한줄 소개 편집 모달
+  // 한줄 소개 편집 모달 창 열기
   void _showEditIntroModal() {
     final controller = TextEditingController(text: introText);
 
@@ -506,6 +480,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   counterText: '',
                 ),
                 onChanged: (text) {
+                  // 3줄 이상 입력 방지
                   final lines = text.split('\n');
                   if (lines.length > 3) {
                     controller.text = lines.take(3).join('\n');
@@ -537,48 +512,33 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
+  // 한줄 소개 줄마다 밑줄 긋기 위젯 함수
   Widget _introWithUnderline(String intro, TextStyle style) {
     final lines = intro.isEmpty ? [' '] : intro.split('\n');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: lines
-          .map(
-            (line) => Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 1, color: Colors.grey.shade400))),
-          child: Text(
-            line,
-            style: style,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      )
+          .map((line) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        decoration: BoxDecoration(border: Border(bottom: BorderSide(width: 1, color: Colors.grey.shade400))),
+        child: Text(line, style: style, overflow: TextOverflow.ellipsis, maxLines: 1),
+      ))
           .toList(),
     );
   }
 
-  // 이미지 선택 메뉴 출력
+  // 이미지 선택 메뉴를 띄우는 함수 (터치 위치 인자 있지만 메뉴는 화면 중앙에 띄움)
   void _showImagePickerCustomMenu(Offset position) {
-    final screenWidth = MediaQuery
-        .of(context)
-        .size
-        .width;
-    final screenHeight = MediaQuery
-        .of(context)
-        .size
-        .height;
-    final menuWidth = screenWidth * 0.45;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     showDialog(
       context: context,
       barrierColor: Colors.black54,
       barrierDismissible: true,
       builder: (contextDialog) {
-        final menuWidth = MediaQuery
-            .of(context)
-            .size
-            .width * 0.65;
+        final menuWidth = screenWidth * 0.65;
         return Center(
           child: SizedBox(
             width: menuWidth,
@@ -588,10 +548,11 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 onSelect: (index) {
                   Navigator.of(contextDialog).pop();
                   WidgetsBinding.instance.addPostFrameCallback((_) {
+                    // 메뉴 선택에 따른 동작 분기
                     if (index == 0) {
-                      _pickImageFromGallery();
+                      _pickImageFromGallery(); // 갤러리 이미지 선택
                     } else if (index == 1) {
-                      _showCharacterSelectSheet();
+                      _showCharacterSelectSheet(); // 캐릭터 선택 시트 띄우기
                     }
                   });
                 },
@@ -602,7 +563,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       },
     );
   }
-  // 심리테스트 화면 이동 및 결과 처리
+
+  // 심리테스트 화면으로 이동 후 캐릭터 결과 처리
   Future<void> _goToPsychologyTest() async {
     final result = await Navigator.of(context).push<List<int>>(
       MaterialPageRoute(builder: (context) => const PsychologyQuestion()),
@@ -617,7 +579,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     }
   }
 
-  // 프로필 변경 및 한줄 소개 UI 빌드
+  // 심리테스트 결과 ID 리스트 SharedPreferences에 저장
+  Future<void> _savePsychologyResult(List<int> ids) async {
+    final prefs = await SharedPreferences.getInstance();
+    final strList = ids.map((e) => e.toString()).toList();
+    await prefs.setStringList(psychologyResultKey, strList);
+  }
+
+  // 전체 UI 빌드 함수
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -642,6 +611,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // 프로필 이미지와 편집 버튼
             Stack(
               alignment: Alignment.bottomRight,
               children: [
@@ -659,8 +629,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     child: _profileImage != null
                         ? Image.file(_profileImage!, fit: BoxFit.cover)
                         : (selectedCharacter != null
-                        ? Image.asset(selectedCharacter!.imagePath,
-                        fit: BoxFit.cover, alignment: Alignment.topCenter)
+                        ? Image.asset(selectedCharacter!.imagePath, fit: BoxFit.cover, alignment: Alignment.topCenter)
                         : Image.asset('assets/images/profile.png', fit: BoxFit.cover)),
                   ),
                 ),
@@ -687,7 +656,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ],
             ),
+
             SizedBox(height: screenHeight * 0.029),
+
+            // 닉네임 편집 박스
             Container(
               width: boxWidth,
               height: screenHeight * 0.055,
@@ -699,32 +671,31 @@ class _ProfileEditPageState extends State<ProfileEdit> {
               child: Row(
                 children: [
                   Expanded(
-                    child: _isEditingNickname
-                        ? TextField(
-                      controller: _nicknameController,
-                      autofocus: true,
-                      maxLength: 10,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: screenWidth * 0.038),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        counterText: '',
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 4),
-                      ),
-                      onSubmitted: (_) => _saveNickname(),
-                    )
-                        : GestureDetector(
-                      onTap: _startNicknameEdit,
-                      child: Center(
-                        child: Text(
-                          nickname,
-                          style: TextStyle(fontSize: screenWidth * 0.038),
-                          textAlign: TextAlign.center,
+                      child: _isEditingNickname
+                          ? TextField(
+                        controller: _nicknameController,
+                        autofocus: true,
+                        maxLength: 10,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: screenWidth * 0.038),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          counterText: '',
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 4),
                         ),
-                      ),
-                    ),
-                  ),
+                        onSubmitted: (_) => _saveNickname(),
+                      )
+                          : GestureDetector(
+                        onTap: _startNicknameEdit,
+                        child: Center(
+                          child: Text(
+                            nickname,
+                            style: TextStyle(fontSize: screenWidth * 0.038),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )),
                   IconButton(
                     iconSize: screenWidth * 0.035,
                     icon: Icon(_isEditingNickname ? Icons.check : Icons.edit),
@@ -733,7 +704,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ],
               ),
             ),
+
             SizedBox(height: screenHeight * 0.018),
+
+            // 한줄 소개 영역
             Container(
               width: boxWidth,
               padding: EdgeInsets.symmetric(horizontal: boxWidth * 0.05, vertical: 24),
@@ -747,24 +721,15 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        '한줄 소개 (50자 이내, 최대 3줄)',
-                        style: TextStyle(
-                          fontSize: screenWidth * 0.035,
-                          color: const Color(0xFF807E7E),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      Text('한줄 소개 (50자 이내, 최대 3줄)',
+                          style: TextStyle(fontSize: screenWidth * 0.035, color: const Color(0xFF807E7E), fontWeight: FontWeight.w500)),
                       InkWell(
                         onTap: _showEditIntroModal,
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(color: Colors.black, borderRadius: BorderRadius.circular(20)),
-                          child: Text(
-                            '수정',
-                            style: TextStyle(fontSize: screenWidth * 0.035, color: Colors.white, fontWeight: FontWeight.w500),
-                          ),
+                          child: Text('수정', style: TextStyle(fontSize: screenWidth * 0.035, color: Colors.white, fontWeight: FontWeight.w500)),
                         ),
                       ),
                     ],
@@ -778,14 +743,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           ],
         ),
       ),
+
       bottomNavigationBar: Container(
         color: Colors.white,
-        padding: EdgeInsets.only(
-          left: screenWidth * 0.06,
-          right: screenWidth * 0.06,
-          top: screenHeight * 0.15,
-          bottom: screenHeight * 0.03,
-        ),
+        padding: EdgeInsets.only(left: screenWidth * 0.06, right: screenWidth * 0.06, top: screenHeight * 0.15, bottom: screenHeight * 0.03),
         child: SizedBox(
           width: double.infinity,
           height: screenHeight * 0.07,
@@ -798,10 +759,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
               foregroundColor: Colors.black,
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
             ),
-            child: Text(
-              '내 캐릭터 다시 찾기',
-              style: TextStyle(fontSize: screenWidth * 0.038, fontWeight: FontWeight.w600, color: Colors.white),
-            ),
+            child: Text('내 캐릭터 다시 찾기', style: TextStyle(fontSize: screenWidth * 0.038, fontWeight: FontWeight.w600, color: Colors.white)),
           ),
         ),
       ),

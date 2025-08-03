@@ -97,7 +97,7 @@ class Character {
       color: Color(0xFF7887AD),
     ),
   };
-
+  
   // ID로 캐릭터 정보를 찾아주는 함수
   static Character getCharacterById(int id) {
     return _characterData[id] ?? _characterData[6]!;
