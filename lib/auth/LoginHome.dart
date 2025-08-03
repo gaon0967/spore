@@ -334,33 +334,54 @@ class _BottomSection extends StatelessWidget {
             }
           },
         ),
+
+        // 원래는 계정이 없다면? 심리 테스트 바로 가기 자리인데 여기 부터 삭제. _ 심리 테스트 고치는 동안 만 사용하기.
+
+
+
+        
         const SizedBox(height: 20),
+
         // 계정이 없는 사람들을 위한 텍스트 버튼
         InkWell(
           onTap: () {
             // 심리 테스트 화면으로 이동
+
             Navigator.push(
               context,
+
               MaterialPageRoute(builder: (context) => const PsychologyStart()),
             );
           },
 
           splashColor: Colors.grey.withOpacity(0.2),
+
           borderRadius: BorderRadius.circular(8),
+
           child: const Padding(
             padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+
             child: Text(
               "계정이 없다면? 심리테스트 바로가기 →",
+
               style: TextStyle(
                 fontFamily: 'Golos Text',
+
                 fontSize: 12,
+
                 fontWeight: FontWeight.w500,
+
                 color: Color(0xFF7B7B7B),
               ),
             ),
           ),
         ),
+
+
+        
       ],
     );
+    
   }
+  
 }

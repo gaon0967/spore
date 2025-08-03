@@ -31,7 +31,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch1_3.png',
       description: '따뜻한 마음으로 주변을 챙기는 당신. 모두에게 힘이 되어주는 존재.',
       keywords: ['# 다정한', '#친절한'],
-      color: Color(0xB3A6A6),
+      color: Color(0xFFB3A6A6),
     ),
     2: const Character(
       id: 2,
@@ -40,7 +40,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch2_4.png',
       description: '세상만사 귀찮지만, 가끔은 누구보다 깊은 생각에 빠지는 반전 매력의 소유자.',
       keywords: ['# 느긋한', '# 여유로운'],
-      color: Color(0xCDDEE3),
+      color: Color(0xFFCDDEE3),
     ),
     3: const Character(
       id: 3,
@@ -49,7 +49,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch2_1.png',
       description: '주변에 휘둘리지 않고 자신만의 길을 가는 독립적인 스타일. 때로는 고집쟁이.',
       keywords: ['# 독립적인', '# 자유로운'],
-      color: Color(0xB3A6A6),
+      color: Color(0xFFB3A6A6),
     ),
     4: const Character(
       id: 4,
@@ -58,7 +58,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch1_2.png',
       description: '언제나 긍정적이고 유쾌한 에너지로 주변 사람들을 즐겁게 만드는 분위기 메이커.',
       keywords: ['# 창의적인', '# 재미있는'],
-      color: Color(0xF4ECD2),
+      color: Color(0xFFF4ECD2),
     ),
     5: const Character(
       id: 5,
@@ -67,7 +67,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch2_3.png',
       description: '한 번 빠지면 끝을 보는 엄청난 집중력과 열정의 소유자.',
       keywords: ['# 열정적인', '# 도전적인'],
-      color: Color(0xCA9E9E),
+      color: Color(0xFFCA9E9E),
     ),
     6: const Character(
       id: 6,
@@ -76,7 +76,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch2_2.png',
       description: '타인의 감정을 섬세하게 살피고 공감 능력이 뛰어납니다. 상처도 잘 받는 여린 마음.',
       keywords: ['# 공감능력', '# 섬세함'],
-      color: Color(0xDDD2DA),
+      color: Color(0xFFDDD2DA),
     ),
     7: const Character(
       id: 7,
@@ -85,7 +85,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch1_1.png',
       description: '불의를 보면 참지 못하고, 체계적이고 계획적으로 문제를 해결하는 리더 타입.',
       keywords: ['# 든든한', '# 안정적인'],
-      color: Color(0xE6E6E6),
+      color: Color(0xFFE6E6E6),
     ),
     8: const Character(
       id: 8,
@@ -94,7 +94,7 @@ class Character {
       imagePath: 'assets/images/PsychologyTest/Character/ch1_4.png',
       description: '현상의 이면을 꿰뚫어 보고 논리적으로 분석하는 것을 즐깁니다. 신중하고 조용한 편.',
       keywords: ['# 감성적인', '#섬세한'],
-      color: Color(0x7887AD),
+      color: Color(0xFF7887AD),
     ),
   };
 
@@ -205,55 +205,77 @@ class _SpeechBubble extends StatelessWidget {
   }
 }
 
-// 하단 정보 컨테이너 위젯
+
+
+
+
+// 하단 정보 컨테이너 위젯 // 하단 정보 컨테이너 위젯 (레이아웃이 수정된 버전)
 class _InfoContainer extends StatelessWidget {
   final Character character;
-  const _InfoContainer({required this.character});
+  const _InfoContainer({super.key, required this.character});
 
   @override
   Widget build(BuildContext context) {
+    // 화면 너비를 기준으로 반응형 UI를 구성합니다.
     final screenWidth = MediaQuery.of(context).size.width;
+
     return Container(
+      // 캐릭터별 고유 색상이 적용된 전체 배경
       padding: EdgeInsets.all(screenWidth * 0.05),
       decoration: BoxDecoration(
-        color: const Color(0xFFF2F0F4),
+        color: character.color,
         borderRadius: BorderRadius.circular(24),
       ),
       child: Column(
         children: [
-          // 캐릭터 이름과 완료 버튼
+          // --- 제목 카드와 완료 버튼을 포함하는 새로운 Row ---
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                character.name,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
+              // 1. 제목을 담는 카드 (남는 공간을 모두 차지)
+              Expanded(
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: screenWidth * 0.038),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(50), // 둥근 모서리
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.03),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      character.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
+
+              // 2. 카드와 버튼 사이의 간격
+              SizedBox(width: screenWidth * 0.03),
+
+              // 3. 완료 버튼
               ElevatedButton(
                 onPressed: () async {
                   final authService = AuthService();
                   try {
-                    // AuthService에 캐릭터 ID를 전달하며 로그인 및 저장 프로세스 실행
-                    final userData = await authService.signInWithNaver(
-                      character.id,
-                    );
-
-                    if (!context.mounted) return; // 위젯이 화면에 없으면 중단
-
-                    // 화면 전환
+                    final userData =
+                        await authService.signInWithNaver(character.id);
+                    if (!context.mounted) return;
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
                         builder: (context) => const MainScreen(),
-                        
                       ),
                     );
                   } catch (e) {
-                    // 로그인 실패 또는 사용자가 취소했을 때의 처리
                     print(" 로그인 실패: $e");
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,11 +290,11 @@ class _InfoContainer extends StatelessWidget {
                   backgroundColor: const Color(0xFF555555),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(30),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.06,
+                    vertical: screenWidth * 0.03,
                   ),
                 ),
                 child: const Text(
@@ -282,8 +304,11 @@ class _InfoContainer extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: screenWidth * 0.05),
-          // 캐릭터 소개 & 키워드 카드
+
+          // 카드들 사이의 간격
+          SizedBox(height: screenWidth * 0.04),
+
+          // 캐릭터 소개 & 키워드 카드 (기존 구조 유지)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -302,18 +327,17 @@ class _InfoContainer extends StatelessWidget {
                   title: 'Keyword',
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children:
-                        character.keywords
-                            .map(
-                              (keyword) => Text(
-                                keyword,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  height: 1.6,
-                                ),
-                              ),
-                            )
-                            .toList(),
+                    children: character.keywords
+                        .map(
+                          (keyword) => Text(
+                            keyword,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              height: 1.6,
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
                 ),
               ),
@@ -325,7 +349,7 @@ class _InfoContainer extends StatelessWidget {
   }
 }
 
-// 소개 & 키워드 카드 위젯
+// 소개 & 키워드 카드 위젯 (이 위젯은 수정할 필요가 없습니다)
 class _InfoCard extends StatelessWidget {
   final String title;
   final Widget content;
@@ -336,10 +360,21 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     return Container(
-      padding: EdgeInsets.all(screenWidth * 0.04),
+      width: double.infinity, // Expanded 위젯 안에서 너비를 꽉 채우도록 설정
+      padding: EdgeInsets.symmetric(
+        horizontal: screenWidth * 0.045,
+        vertical: screenWidth * 0.05,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

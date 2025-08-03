@@ -205,7 +205,11 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
     child: Stack(
       children: [
         Row(
+
           crossAxisAlignment: CrossAxisAlignment.center,
+
+          crossAxisAlignment: CrossAxisAlignment.start,
+
           children: [
 
             // 아이콘
