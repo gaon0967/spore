@@ -30,6 +30,7 @@ class SettingsScreen extends StatelessWidget {
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
+
           /// ------------------------------
           /// 함수명: onPressed
           /// 목적: 뒤로가기 버튼 클릭 시 이전 화면으로 이동
@@ -70,8 +71,7 @@ class SettingsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder:
-                              (context) => const ProfileEdit(),
+                          builder: (context) => const ProfileEdit(),
                           // 프로필 변경 버튼 클릭 시 ProfileEdit 화면으로 이동
                         ),
                       );
@@ -138,8 +138,7 @@ class SettingsScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder:
-                              (context) => const FriendManagementScreen(),
+                          builder: (context) => const FriendManagementScreen(),
                           // 친구 관리 버튼 클릭 시 friend_management 화면으로 이동
                         ),
                       );
@@ -324,7 +323,9 @@ class SettingsScreen extends StatelessWidget {
                             /// 사용 위치: SettingsScreen 내 로그아웃 기능
                             /// ==============================
                             return Dialog(
-                              backgroundColor: const Color(0xFFFCFCF7), // 다이얼로그 배경색
+                              backgroundColor: const Color(
+                                0xFFFCFCF7,
+                              ), // 다이얼로그 배경색
                               insetPadding: const EdgeInsets.symmetric(
                                 horizontal: 40,
                               ),
@@ -364,6 +365,7 @@ class SettingsScreen extends StatelessWidget {
                                                     16,
                                                   ),
                                                 ),
+
                                             /// ------------------------------
                                             /// 함수명: onTap
                                             /// 목적: 로그아웃 확인 다이얼로그에서 '아니오' 클릭 시 다이얼로그 닫기
@@ -403,6 +405,7 @@ class SettingsScreen extends StatelessWidget {
                                                     16,
                                                   ),
                                                 ),
+
                                             /// ------------------------------
                                             /// 함수명: onTap
                                             /// 목적: 로그아웃 확인 다이얼로그에서 '네' 클릭 시 다이얼로그 닫고 로그아웃 처리
@@ -581,6 +584,7 @@ class SettingsScreen extends StatelessWidget {
                                       borderRadius: const BorderRadius.only(
                                         bottomLeft: Radius.circular(16),
                                       ),
+
                                       /// ------------------------------
                                       /// 함수명: onTap
                                       /// 목적: 회원 탈퇴 확인 다이얼로그에서 '아니오' 클릭 시 다이얼로그 닫기
@@ -613,6 +617,7 @@ class SettingsScreen extends StatelessWidget {
                                       borderRadius: const BorderRadius.only(
                                         bottomRight: Radius.circular(16),
                                       ),
+
                                       /// ------------------------------
                                       /// 함수명: onTap
                                       /// 목적: 회원 탈퇴 확인 다이얼로그에서 '네' 클릭 시 다이얼로그 닫고 회원 탈퇴 처리
