@@ -346,11 +346,11 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         _profileImageUrl = url;
       });
       _showCenteredMessageDialog('프로필 변경이 완료되었습니다.');
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('사진 업로드 실패: $e')));
-      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('사진 업로드 실패: $e')));
     }
+  }
 
   // 갤러리 권한 요청 후 이미지 선택
   Future<void> _pickImageFromGallery() async {
@@ -623,34 +623,34 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: StreamBuilder<DocumentSnapshot>(
-                      stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(child: CircularProgressIndicator());
-                        }
-                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+                        stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(child: CircularProgressIndicator());
+                          }
+                          final data = snapshot.data!.data() as Map<String, dynamic>?;
 
-                        final charId = data?['characterId'] as int? ?? 0; // 안전하게 접근
+                          final charId = data?['characterId'] as int? ?? 0; // 안전하게 접근
 
-                        final character = Character.getCharacterById(charId);
+                          final character = Character.getCharacterById(charId);
 
-                        if (character == null) {
+                          if (character == null) {
+                            return Image.asset(
+                              'assets/images/profile.png',
+                              width: profileImageSize,
+                              height: profileImageSize,
+                              fit: BoxFit.cover,
+                            );
+                          }
+
                           return Image.asset(
-                            'assets/images/profile.png',
+                            getImagePathByCharacterId(character.id),
                             width: profileImageSize,
                             height: profileImageSize,
                             fit: BoxFit.cover,
                           );
                         }
-
-                        return Image.asset(
-                          getImagePathByCharacterId(character.id),
-                          width: profileImageSize,
-                          height: profileImageSize,
-                          fit: BoxFit.cover,
-                        );
-                      }
-                        ),
+                    ),
                   ),
                 ),
                 Positioned(
