@@ -206,7 +206,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
-
   Future<void> _loadSavedPsychologyResult() async {
     final prefs = await SharedPreferences.getInstance();
     final storedList = prefs.getStringList(psychologyResultKey) ?? [];
