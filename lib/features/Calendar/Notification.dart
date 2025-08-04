@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 // 스타일 정의
@@ -205,11 +203,7 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
     child: Stack(
       children: [
         Row(
-
-          crossAxisAlignment: CrossAxisAlignment.center,
-
           crossAxisAlignment: CrossAxisAlignment.start,
-
           children: [
 
             // 아이콘
