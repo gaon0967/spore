@@ -85,6 +85,10 @@ flutter:
     
 
     - assets/images/Setting/
+    - assets/images/Setting/Exclude.png
+    - assets/images/Setting/Subtract.png
+    - assets/images/Setting/gallery.png
+    - assets/images/Setting/Union.png
     - assets/images/Setting/chac1.png
     - assets/images/Setting/chac2.png
     - assets/images/Setting/chac3.png
@@ -93,10 +97,6 @@ flutter:
     - assets/images/Setting/chac6.png
     - assets/images/Setting/chac7.png
     - assets/images/Setting/chac8.png
-    - assets/images/Setting/Exclude.png
-    - assets/images/Setting/Subtract.png
-    - assets/images/Setting/gallery.png
-    - assets/images/Setting/Union.png
 
   fonts:
     - family: League Spartan

@@ -49,11 +49,8 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
-		<key>NSPhotoLibraryUsageDescription</key>
-<<<<<<< HEAD
-                <string>갤러리 접근 권한이 필요합니다.</string>
-=======
+		<key>NSPhotoLibraryUsageDescription
         <string>갤러리 접근 권한이 필요합니다.</string>
->>>>>>> 78f3894ab5f05e352c924c7cdc50719efcb9772d
+
 	</dict>
 </plist>
