@@ -7,8 +7,38 @@ import 'package:new_project_1/features/Psychology/PsychologyQuestion.dart';
 import 'package:new_project_1/features/Psychology/PsychologyResult.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
-// 이미지 선택 메뉴 (갤러리, 캐릭터 선택)
+// Firestore에서 유저의 캐릭터 ID 리스트 가져오기
+Future<List<int>> fetchUserCharacterIds(String userId) async {
+  final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  if (doc.exists) {
+    final List<dynamic>? ids = doc.data()?['characterIds'];
+    if (ids != null) {
+      return ids.map((e) => e as int).toList();
+    }
+  }
+  return [];
+}
+String getImagePathByCharacterId(int id) {
+  switch (id) {
+    case 1: return 'assets/images/Setting/chac1.png';
+    case 2: return 'assets/images/Setting/chac2.png';
+    case 3: return 'assets/images/Setting/chac3.png';
+    case 4: return 'assets/images/Setting/chac4.png';
+    case 5: return 'assets/images/Setting/chac5.png';
+    case 6: return 'assets/images/Setting/chac6.png';
+    case 7: return 'assets/images/Setting/chac7.png';
+    case 8: return 'assets/images/Setting/chac8.png';
+    default:
+      return 'assets/images/profile.png';
+  }
+}
+
+/// 클래스: ImagePickerMenu
+/// 목적: 프로필 이미지 선택 메뉴를 제공하여 사용자가 갤러리에서 사진을 선택하거나 내 캐릭터로 프로필 이미지를 변경할 수 있도록 하는 UI 위젯
+/// 반환: StatefulWidget 인스턴스 반환
+/// 예외: 없음
 class ImagePickerMenu extends StatefulWidget {
   final Function(int) onSelect;
   const ImagePickerMenu({super.key, required this.onSelect});
@@ -17,13 +47,16 @@ class ImagePickerMenu extends StatefulWidget {
   State<ImagePickerMenu> createState() => _ImagePickerMenuState();
 }
 
+/// 클래스: _ImagePickerMenuState
+/// 목적: ImagePickerMenu의 상태 관리 및 UI 빌드
+/// 반환: State<ImagePickerMenu> 인스턴스 반환
+/// 예외: 없음
 class _ImagePickerMenuState extends State<ImagePickerMenu> {
   int? selectedIndex;
 
   @override
   Widget build(BuildContext context) {
     final menuWidth = MediaQuery.of(context).size.width * 0.65;
-
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -63,8 +96,7 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('갤러리에서 선택',
-                        style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500)),
+                    const Text('갤러리에서 선택', style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500)),
                     Image.asset('assets/images/Setting/gallery.png', width: 22, height: 22),
                   ],
                 ),
@@ -89,8 +121,7 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('내 캐릭터에서 선택',
-                        style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500)),
+                    const Text('내 캐릭터 선택', style: TextStyle(color: Color(0xFF837C7C), fontSize: 15, fontWeight: FontWeight.w500)),
                     Image.asset('assets/images/Setting/Union.png', width: 22, height: 22),
                   ],
                 ),
@@ -103,43 +134,28 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
   }
 }
 
-// 캐릭터 중복 제거
-List<Character> removeDuplicateCharacters(List<Character> characters) {
-  final seen = <int>{};
-  final distinctCharacters = <Character>[];
-
-  for (var character in characters) {
-    if (!seen.contains(character.id)) {
-      seen.add(character.id);
-      distinctCharacters.add(character);
-    }
-  }
-  return distinctCharacters;
-}
-
-// Firestore에서 유저 캐릭터 ID 리스트 불러오기
-Future<List<int>> fetchUserCharacterIds(String userId) async {
-  final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
-  if (doc.exists) {
-    final List<dynamic>? ids = doc.data()?['characterIds'];
-    if (ids != null) {
-      return ids.map((e) => e as int).toList();
-    }
-  }
-  return [];
-}
-
-// 프로필 편집 화면
+/// 클래스: ProfileEdit
+/// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
+/// 반환: StatefulWidget 인스턴스 반환
+/// 예외: 없음
 class ProfileEdit extends StatefulWidget {
   const ProfileEdit({super.key});
+
   @override
   State<ProfileEdit> createState() => _ProfileEditPageState();
 }
+String? _bottomMessage;
+bool _showBottomMessage = false;
 
+/// 클래스: _ProfileEditPageState
+/// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 이미지 업로드, 닉네임 및 한줄 소개 편집 기능을 제공
+/// 반환: State<ProfileEdit> 인스턴스 반환
+/// 예외: Firestore 접근 실패, 이미지 업로드 실패 등의 예외 처리 필요
 class _ProfileEditPageState extends State<ProfileEdit> {
   String nickname = "닉네임을 입력하세요";
   String introText = "";
   File? _profileImage;
+  String? _profileImageUrl;
   final ImagePicker picker = ImagePicker();
 
   bool _isEditingNickname = false;
@@ -148,32 +164,64 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   List<int> psychologyResultIds = [];
   List<Character> availableCharacters = [];
   Character? selectedCharacter;
-
-  // userId 변수를 빈 문자열로 초기화, 실제 UID가 할당될 예정
   String userId = '';
 
   static const String psychologyResultKey = 'psychology_result_ids';
+  void _showCenteredMessageDialog(String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          content: SizedBox(
+            width: 280,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: const Text(
+                      '완료',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                )
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
     super.initState();
     _nicknameController = TextEditingController(text: nickname);
 
-    // 현재 로그인된 사용자 UID를 가져와 userId에 저장
-    final User? user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       userId = user.uid;
-    } else {
-      // 로그인되지 않은 상태라면 필요에 따라 처리
-      userId = '';
+      _loadProfileFromFirestore();
+      _loadCharactersFromFirestore().then((_) {
+        _loadSelectedIdAndApply();
+      });
     }
-
     _loadSavedPsychologyResult();
-
-    // userId가 빈 값이 아닐 때만 Firestore에서 캐릭터 리스트 로드
-    if (userId.isNotEmpty) {
-      _loadCharactersFromFirestore();
-    }
   }
 
   @override
@@ -182,35 +230,70 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     super.dispose();
   }
 
-  Future<void> _loadCharactersFromFirestore() async {
-    if (userId.isEmpty) {
-      debugPrint('사용자 ID가 없어서 캐릭터를 불러올 수 없습니다.');
-      return;
-    }
-
-    // Firestore에서 ID 리스트 불러오기
-    final ids = await fetchUserCharacterIds(userId);
-
-    // ID 리스트를 캐릭터 객체 리스트로 변환
-    final chars = ids
-        .map((id) => Character.getCharacterById(id))
-        .whereType<Character>()
-        .toList();
-
-    // 상태 업데이트
-    setState(() {
-      availableCharacters = chars;
-      if (chars.isNotEmpty && selectedCharacter == null) {
-        selectedCharacter = chars.first;
+  Future<void> _loadSelectedIdAndApply() async {
+    if (userId.isEmpty || availableCharacters.isEmpty) return;
+    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    if (doc.exists) {
+      final id = doc.data()?['characterId'];
+      if (id != null) {
+        final char = availableCharacters.firstWhere(
+                (c) => c.id == id, orElse: () => availableCharacters.first);
+        setState(() {
+          selectedCharacter = char;
+          _profileImage = null;
+        });
       }
-    });
+    }
+  }
+
+  Future<void> _loadProfileFromFirestore() async {
+    if (userId.isEmpty) return;
+    try {
+      final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
+      if (doc.exists) {
+        final data = doc.data();
+        if (data != null) {
+          setState(() {
+            nickname = data['nickname'] ?? nickname;
+            introText = data['intro'] ?? introText;
+            _nicknameController.text = nickname;
+            _profileImageUrl = data['profileImageUrl'];
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('프로필 로딩 실패: $e');
+    }
+  }
+
+  Future<void> _loadCharactersFromFirestore() async {
+    if (userId.isEmpty) return;
+    try {
+      final ids = await fetchUserCharacterIds(userId);
+      final chars = ids.map((id) => Character.getCharacterById(id)).whereType<Character>().toList();
+      setState(() {
+        availableCharacters = chars;
+      });
+    } catch (e) {
+      debugPrint('캐릭터 리스트 불러오기 실패: $e');
+    }
+  }
+
+  Future<void> _saveSelectedCharacterId() async {
+    if (userId.isEmpty || selectedCharacter == null) return;
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(userId).set(
+          {'characterId': selectedCharacter!.id},
+          SetOptions(merge: true));
+    } catch (e) {
+      debugPrint('캐릭터 저장 실패: $e');
+    }
   }
 
   Future<void> _loadSavedPsychologyResult() async {
     final prefs = await SharedPreferences.getInstance();
     final storedList = prefs.getStringList(psychologyResultKey) ?? [];
     final ids = storedList.map((e) => int.tryParse(e) ?? 0).where((e) => e != 0).toList();
-
     if (ids.isNotEmpty) {
       _applyPsychologyResult(ids);
     }
@@ -224,14 +307,11 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
   void _applyPsychologyResult(List<int> resultIds) {
     if (resultIds.isEmpty) return;
-
     psychologyResultIds = resultIds;
-
     final firstCharacter = Character.getCharacterById(resultIds.first);
     final others = resultIds.length > 1
         ? resultIds.sublist(1).map((id) => Character.getCharacterById(id)).whereType<Character>().toList()
         : <Character>[];
-
     setState(() {
       selectedCharacter = firstCharacter;
       availableCharacters = others;
@@ -239,21 +319,48 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
+  // 이미지 선택 및 업로드
+  Future<void> _pickAndUploadProfileImage() async {
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile == null) return;
+
+    final file = File(pickedFile.path);
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('로그인이 필요합니다.')));
+      return;
+    }
+
+    try {
+      final ref = FirebaseStorage.instance.ref().child('userImages/${user.uid}/profile.jpg');
+      await ref.putFile(file);
+      final url = await ref.getDownloadURL();
+
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'profileImageUrl': url,
+      }, SetOptions(merge: true));
+
+      setState(() {
+        _profileImage = file;
+        _profileImageUrl = url;
+      });
+      _showCenteredMessageDialog('프로필 변경이 완료되었습니다.');
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('사진 업로드 실패: $e')));
+      }
+    }
+
+  // 갤러리 권한 요청 후 이미지 선택
   Future<void> _pickImageFromGallery() async {
     final status = await Permission.photos.status;
-
     if (status.isGranted) {
-      final pickedFile = await picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        setState(() {
-          _profileImage = File(pickedFile.path);
-          selectedCharacter = null;
-        });
-      }
+      await _pickAndUploadProfileImage();
     } else if (status.isDenied) {
       final result = await Permission.photos.request();
       if (result.isGranted) {
-        _pickImageFromGallery();
+        await _pickAndUploadProfileImage();
       } else if (result.isPermanentlyDenied) {
         _showPermissionDeniedDialog();
       }
@@ -267,9 +374,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('권한 필요'),
-        content: const Text('갤러리 권한이 영구적으로 거부되었습니다. 앱 설정에서 권한을 허용해 주세요.'),
+        content:
+        const Text('갤러리 권한이 거부되었습니다. 앱 설정에서 권한을 허용해 주세요.'),
         actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('취소')),
+          TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소')),
           TextButton(
             onPressed: () {
               openAppSettings();
@@ -282,163 +392,47 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
-  Future<void> _showCharacterSelectSheet() async {
-    Character? tempSelectedCharacter = selectedCharacter;
+  void _showImagePickerCustomMenu(Offset position) {
+    final screenWidth = MediaQuery.of(context).size.width;
 
-    // Firestore에서 최신 불러오는 코드도 필요하면 추가 가능
-    final allCharacters = removeDuplicateCharacters([
-      if (selectedCharacter != null) selectedCharacter!,
-      ...availableCharacters
-    ]);
-
-    final result = await showModalBottomSheet<Character>(
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(30))),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => FractionallySizedBox(
-          heightFactor: 0.65,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Stack(
-                  children: [
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                            alignment: Alignment.center,
-                            child: Container(
-                              width: 90,
-                              height: 90,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFF5F5F5),
-                                border: Border.all(
-                                  color: tempSelectedCharacter != null ? const Color(0xFF6075B8) : Colors.grey.shade300,
-                                  width: tempSelectedCharacter != null ? 3.2 : 1.5,
-                                ),
-                              ),
-                              child: ClipOval(
-                                child: tempSelectedCharacter != null
-                                    ? Image.asset(tempSelectedCharacter!.imagePath, fit: BoxFit.cover)
-                                    : const SizedBox(),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 15),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      top: 4,
-                      right: 0,
-                      child: TextButton(
-                        onPressed: tempSelectedCharacter != null ? () => Navigator.pop(context, tempSelectedCharacter) : null,
-                        child: Text(
-                          '완료',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: tempSelectedCharacter != null ? const Color(0xFF6075B8) : Colors.grey,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                const Divider(thickness: 1, color: Colors.grey, height: 24),
-                const SizedBox(height: 10),
-                Expanded(
-                  child: GridView.builder(
-                    itemCount: allCharacters.length,
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 8,
-                      childAspectRatio: 0.95,
-                    ),
-                    itemBuilder: (context, index) {
-                      final character = allCharacters[index];
-                      final isSelected = tempSelectedCharacter?.id == character.id;
-                      return GestureDetector(
-                        onTap: () => setModalState(() => tempSelectedCharacter = character),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 95,
-                              height: 95,
-                              decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
-                              alignment: Alignment.center,
-                              child: Container(
-                                width: 90,
-                                height: 90,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: const Color(0xFFF5F5F5),
-                                  border: Border.all(
-                                      color: isSelected ? const Color(0xFF6075B8) : Colors.grey.shade300,
-                                      width: isSelected ? 3.2 : 1.5),
-                                ),
-                                child: ClipOval(
-                                  child: Image.asset(character.imagePath, width: 74, height: 74, fit: BoxFit.cover),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              width: 130,
-                              height: 34,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(color: const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(17)),
-                              child: Text(
-                                character.name,
-                                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF6A6A6A)),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                const SizedBox(height: 10),
-              ],
+      barrierColor: Colors.black54,
+      barrierDismissible: true,
+      builder: (contextDialog) {
+        final menuWidth = screenWidth * 0.65;
+        return Center(
+          child: SizedBox(
+            width: menuWidth,
+            child: Material(
+              borderRadius: BorderRadius.circular(18),
+              child: ImagePickerMenu(
+                onSelect: (index) {
+                  Navigator.of(contextDialog).pop();
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (index == 0) {
+                      _pickImageFromGallery();
+                    } else if (index == 1) {
+                      if (availableCharacters.isNotEmpty) {
+                        setState(() {
+                          selectedCharacter = availableCharacters.first;
+                          _profileImage = null;
+                        });
+                        _saveSelectedCharacterId();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("이미 변경되었습니다.")),
+                        );
+                      }
+                    }
+                  });
+                },
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
-
-    if (result != null) {
-      setState(() {
-        selectedCharacter = result;
-        _profileImage = null;
-        availableCharacters = removeDuplicateCharacters([selectedCharacter!, ...availableCharacters])
-            .where((character) => character.id != selectedCharacter?.id)
-            .toList();
-        psychologyResultIds = [selectedCharacter!.id];
-      });
-
-      // 심리 테스트 결과 저장
-      _savePsychologyResult(psychologyResultIds);
-    }
   }
 
   void _startNicknameEdit() {
@@ -454,15 +448,29 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         nickname = trimmed.length > 10 ? trimmed.substring(0, 10) : trimmed;
         _nicknameController.text = nickname;
         _isEditingNickname = false;
+        _showCenteredMessageDialog('닉네임 수정이 완료되었습니다.');
+        _showBottomMessage = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('닉네임 수정이 완료되었습니다.')));
+
+      _saveProfileToFirestore();
       FocusScope.of(context).unfocus();
+      _hideBottomMessageAfterDelay();
     }
+  }
+
+  void _finishIntroEdit(TextEditingController controller) {
+    setState(() {
+      introText = controller.text.trim();
+      _showCenteredMessageDialog('한줄 소개 수정이 완료되었습니다');
+      _showBottomMessage = true;
+    });
+    _saveProfileToFirestore();
+    Navigator.pop(context);
+    _hideBottomMessageAfterDelay();
   }
 
   void _showEditIntroModal() {
     final controller = TextEditingController(text: introText);
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -496,21 +504,11 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
                   }
                 },
-                onSubmitted: (_) {
-                  setState(() {
-                    introText = controller.text.trim();
-                  });
-                  Navigator.pop(context);
-                },
+                onSubmitted: (_) => _finishIntroEdit(controller),
               ),
               const SizedBox(height: 14),
               ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    introText = controller.text.trim();
-                  });
-                  Navigator.pop(context);
-                },
+                onPressed: () => _finishIntroEdit(controller),
                 child: const Text('완료'),
               ),
               const SizedBox(height: 16),
@@ -519,6 +517,17 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         );
       },
     );
+  }
+
+  void _hideBottomMessageAfterDelay() {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        setState(() {
+          _showBottomMessage = false;
+          _bottomMessage = null;
+        });
+      }
+    });
   }
 
   Widget _introWithUnderline(String intro, TextStyle style) {
@@ -543,37 +552,21 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
-  void _showImagePickerCustomMenu(Offset position) {
-    final screenWidth = MediaQuery.of(context).size.width;
-
-    showDialog(
-      context: context,
-      barrierColor: Colors.black54,
-      barrierDismissible: true,
-      builder: (contextDialog) {
-        final menuWidth = screenWidth * 0.65;
-        return Center(
-          child: SizedBox(
-            width: menuWidth,
-            child: Material(
-              borderRadius: BorderRadius.circular(18),
-              child: ImagePickerMenu(
-                onSelect: (index) {
-                  Navigator.of(contextDialog).pop();
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (index == 0) {
-                      _pickImageFromGallery();
-                    } else if (index == 1) {
-                      _showCharacterSelectSheet();
-                    }
-                  });
-                },
-              ),
-            ),
-          ),
-        );
-      },
-    );
+  Future<void> _saveProfileToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다.')));
+      return;
+    }
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'nickname': nickname,
+        'intro': introText,
+      }, SetOptions(merge: true));
+      _showCenteredMessageDialog('닉네임 변경이 완료되었습니다.');
+    } catch (e) {
+      _showCenteredMessageDialog('닉네임 저장 실패');
+    }
   }
 
   Future<void> _goToPsychologyTest() async {
@@ -620,20 +613,44 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 Container(
                   width: profileImageSize,
                   height: profileImageSize,
-                  padding: EdgeInsets.all(profileImageSize * 0.035),
                   decoration: BoxDecoration(
-                    color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade400, width: 2),
+                    border: Border.all(
+                      color: Colors.grey.shade400,
+                      width: 2,
+                    ),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: _profileImage != null
-                        ? Image.file(_profileImage!, fit: BoxFit.cover)
-                        : (selectedCharacter != null
-                        ? Image.asset(selectedCharacter!.imagePath,
-                        fit: BoxFit.cover, alignment: Alignment.topCenter)
-                        : Image.asset('assets/images/profile.png', fit: BoxFit.cover)),
+                    child: StreamBuilder<DocumentSnapshot>(
+                      stream: FirebaseFirestore.instance.collection('users').doc(userId).snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        final data = snapshot.data!.data() as Map<String, dynamic>?;
+
+                        final charId = data?['characterId'] as int? ?? 0; // 안전하게 접근
+
+                        final character = Character.getCharacterById(charId);
+
+                        if (character == null) {
+                          return Image.asset(
+                            'assets/images/profile.png',
+                            width: profileImageSize,
+                            height: profileImageSize,
+                            fit: BoxFit.cover,
+                          );
+                        }
+
+                        return Image.asset(
+                          getImagePathByCharacterId(character.id),
+                          width: profileImageSize,
+                          height: profileImageSize,
+                          fit: BoxFit.cover,
+                        );
+                      }
+                        ),
                   ),
                 ),
                 Positioned(
@@ -659,7 +676,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ],
             ),
-            SizedBox(height: screenHeight * 0.029),
+            const SizedBox(height: 30),
             Container(
               width: boxWidth,
               height: screenHeight * 0.055,
@@ -705,7 +722,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ],
               ),
             ),
-            SizedBox(height: screenHeight * 0.018),
+            const SizedBox(height: 20),
             Container(
               width: boxWidth,
               padding: EdgeInsets.symmetric(horizontal: boxWidth * 0.05, vertical: 24),
@@ -742,9 +759,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       ),
                     ],
                   ),
-                  SizedBox(height: screenHeight * 0.015),
+                  const SizedBox(height: 15),
                   _introWithUnderline(introText, TextStyle(fontSize: screenWidth * 0.038, color: Colors.black87)),
-                  SizedBox(height: screenHeight * 0.025),
                 ],
               ),
             ),

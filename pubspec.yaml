@@ -13,6 +13,7 @@ dependencies:
   cloud_functions: ^5.5.0  # firebase functions 이용을 위함
   firebase_auth: ^5.7.0    # 인증을 위함
   firebase_core: ^3.13.0   # firebase 이용을 위함
+  firebase_storage: ^12.4.10 # 갤러리에서 사진선택 했을 때 DB에 자장할 때 사용. _민서
   flutter:
     sdk: flutter
   flutter_localizations:
