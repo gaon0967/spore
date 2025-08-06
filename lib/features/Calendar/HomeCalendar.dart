@@ -139,7 +139,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
     docRef.set({ // // 최종적으로 변환된 eventMap 데이터를 Firestore에 저장
-      'userId': _currentUser!.uid, // 사용자 ID도 함께 저장
+      'uid': _currentUser!.uid, // 사용자 ID도 함께 저장
       'date': {
         dayKey: {event.id: eventMap},
       },
