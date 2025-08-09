@@ -139,7 +139,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
     docRef.set({ // // 최종적으로 변환된 eventMap 데이터를 Firestore에 저장
-      'userId': _currentUser!.uid, // 사용자 ID도 함께 저장
+      'uid': _currentUser!.uid, // 사용자 ID도 함께 저장
       'date': {
         dayKey: {event.id: eventMap},
       },
@@ -551,7 +551,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                 ),
                 child: Column(
                   children: [
-                    SizedBox(height: verticalPadding),
+                    SizedBox(height: verticalPadding+screenHeight*0.025),
                     Padding(
                       padding: EdgeInsets.symmetric(
                         horizontal: screenWidth * 0.07,
@@ -797,7 +797,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           defaultBuilder: (context, day, focusedDay) {
                             final isSaturday = day.weekday == DateTime.saturday;
                             final isSunday = day.weekday == DateTime.sunday;
-                            Color dateColor = const Color(0xFF555555);
+                            Color dateColor = const Color.fromARGB(255, 119, 119, 119);
                             if (isSaturday) dateColor = const Color(0xFF616192);
                             if (isSunday) dateColor = const Color(0xFF8D2F2F);
                             return Center(
@@ -805,7 +805,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                 '${day.day}',
                                 style: TextStyle(
                                   color: dateColor,
-                                  fontWeight: FontWeight.w400,
+                                  fontWeight: FontWeight.w500,
                                   fontSize: screenWidth * 0.035,
                                 ),
                               ),
@@ -913,7 +913,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                   child: Text(
                                     '+',
                                     style: TextStyle(
-                                      fontSize: screenWidth * 0.05,
+                                      fontSize: screenWidth * 0.06,
                                       color: Colors.white,
                                     ),
                                   ),
@@ -923,10 +923,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           ],
                         ),
                         Divider(
-                          height: screenHeight * 0.032,
+                          height: screenWidth * 0.04,
                           color: const Color(0xFFD9D9D9),
                           thickness: 0.8,
                         ),
+                        SizedBox(height: screenWidth * 0.025),
                         Expanded(
                           child: (_isInitialLoad)
                           ? const Center(child: CupertinoActivityIndicator()) // 초기 로딩 중일 때 로딩 아이콘 표시
@@ -934,6 +935,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                               ? Container() // 날짜 변경 중일 때 빈 화면 표시
                               : AnimatedList(
                                   key: _listKey,
+                                  padding : EdgeInsets.zero,
                                   initialItemCount: eventsForSelectedDay.length,
                                   itemBuilder: (context, index, animation) {
                                     if (index >= eventsForSelectedDay.length) {
@@ -978,6 +980,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
   TimeOfDay? _endTime;
   bool _isStartTimeSelected = false;
   bool _isEndTimeSelected = false;
+  bool _isTimeValid = true; //시간이 유효한지 저장하는 상태 변수
 
   // CSS 기반 색상 목록
   final List<Color> _colorOptions = [
@@ -1009,6 +1012,21 @@ class _AddEventDialogState extends State<AddEventDialog> {
       _startTime = now;
       _endTime = now.replacing(hour: (now.hour + 1) % 24);
     }
+    _validateTimes();
+  }
+
+  void _validateTimes() {
+    if (_startTime == null || _endTime == null) {
+      setState(() => _isTimeValid = true);
+      return;
+    }
+    final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
+    final endMinutes = _endTime!.hour * 60 + _endTime!.minute;
+    
+    // 종료 시간이 시작 시간보다 크거나 같으면 유효
+    setState(() {
+      _isTimeValid = endMinutes >= startMinutes;
+    });
   }
 
   Future<void> _pickTime(
@@ -1053,6 +1071,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
                           _endTime = newTime;
                           _isEndTimeSelected = true;
                         }
+                        _validateTimes();
                       });
                       Navigator.of(context).pop();
                     },
@@ -1081,7 +1100,6 @@ class _AddEventDialogState extends State<AddEventDialog> {
     if (_titleController.text.isEmpty ||
         _startTime == null ||
         _endTime == null) {
-      // TODO: 사용자에게 오류 메시지 표시 (예: SnackBar)
       return;
     }
     final newEvent = Event(
@@ -1226,14 +1244,15 @@ class _AddEventDialogState extends State<AddEventDialog> {
               Align(
                 alignment: Alignment.centerRight,
                 child: ElevatedButton(
-                  onPressed: _saveEvent,
+                  onPressed: _isTimeValid ? _saveEvent : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF504A4A),
                     foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade300,
                     shape: const StadiumBorder(),
                     padding: EdgeInsets.symmetric(
-                      vertical: screenHeight * 0.011,
-                      horizontal: screenWidth * 0.05,
+                      vertical: MediaQuery.of(context).size.height * 0.011,
+                      horizontal: MediaQuery.of(context).size.width * 0.05,
                     ),
                   ),
                   child: Text(
