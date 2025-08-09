@@ -114,7 +114,7 @@ class _MainScreenState extends State<MainScreen> {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    '시긴표',
+                    '시간표',
                     style: TextStyle(
                       fontSize: screenWidth * 0.024,
                       color: const Color(0xFF515151),

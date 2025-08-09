@@ -1,32 +1,24 @@
 import 'package:flutter/material.dart';
-import 'ClassAdd.dart';
-import 'course_model.dart';
-
+import 'course_model.dart'; 
 
 class FriendTimetable extends StatelessWidget {
   final String friendName;
 
   FriendTimetable({super.key, required this.friendName});
 
-
-
-
-  // 실제 앱에서는 친구 ID를 통해 서버에서 받아와야 함
-final List<Course> friendCourses = [
-  Course(title: '리눅스눅스', professor: '함부기', room: '제2호관-401', day: 0, startTime: 9, endTime: 11, color: Color(0xFFCDDEE3)),
-  Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 1, startTime: 11, endTime: 13, color: Color(0xFF8E9CBF)),
-  Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 2, startTime: 9, endTime: 11, color: Color(0xFF97B4C7)),
-  Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 2, startTime: 12, endTime: 14, color: Color(0xFFBBCDC0)),
-  Course(title: '밥 얻어먹는 기술', professor: '각설이', room: '제10호관-101', day: 3, startTime: 12, endTime: 14, color: Color(0xFFE5EAEF)),
-  Course(title: '인간과 모기', professor: '전기파리채', room: '제9호관-105', day: 4, startTime: 9, endTime: 11, color: Color(0xFFE8EBDF)),
-  Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 0, startTime: 14, endTime: 16, color: Color(0xFF97B4C7)),
-  Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 2, startTime: 14, endTime: 16, color: Color(0xFF8E9CBF)),
-  Course(title: '오펜세의 법칙', professor: '오씨부인', room: '제3호관-301', day: 0, startTime: 15, endTime: 17, color: Color(0xFFCDDEE3)),
-  Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 4, startTime: 14, endTime: 16, color: Color(0xFFBBCDC0)),
-];
+  // ### ⭐️ 수정된 부분: Course 생성자에서 id 파라미터 제거 ⭐️ ###
+  final List<Course> friendCourses = [
+    Course(title: '리눅스눅스', professor: '함부기', room: '제2호관-401', day: 0, startTime: 9, endTime: 11, color: Color(0xFFCDDEE3)),
+    Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 1, startTime: 11, endTime: 13, color: Color(0xFF8E9CBF)),
+    Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 2, startTime: 9, endTime: 11, color: Color(0xFF97B4C7)),
+    Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 2, startTime: 12, endTime: 14, color: Color(0xFFBBCDC0)),
+    Course(title: '밥 얻어먹는 기술', professor: '각설이', room: '제10호관-101', day: 3, startTime: 12, endTime: 14, color: Color(0xFFE5EAEF)),
+  ];
 
   @override
   Widget build(BuildContext context) {
+    final scale = MediaQuery.of(context).size.width / 411.0;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
@@ -38,58 +30,54 @@ final List<Course> friendCourses = [
         ),
         title: Text(
           friendName,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
-            fontSize: 22,
+            fontSize: 22 * scale,
           ),
         ),
         centerTitle: true,
       ),
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 23, vertical: 8),
-              child: Text(
-                '2025년 여름학기',
-                style: TextStyle(
-                  color: const Color(0xFF556283).withOpacity(0.8),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
+      body: SingleChildScrollView(
+        child: SafeArea(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: 23 * scale, vertical: 8 * scale),
+                child: Text(
+                  '2025년 여름학기',
+                  style: TextStyle(
+                    color: const Color(0xFF556283).withOpacity(0.8),
+                    fontSize: 12 * scale,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: _buildTimetable(context),
+              Padding(
+                padding: EdgeInsets.all(14 * scale),
+                child: _buildTimetable(context, scale),
               ),
-            ),
-          ],
+              _buildCourseListDetails(context, scale),
+            ],
+          ),
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(context),
     );
   }
 
-  Widget _buildTimetable(BuildContext context) {
+  Widget _buildTimetable(BuildContext context, double scale) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final scale = constraints.maxWidth / 411.0;
         final screenWidth = constraints.maxWidth;
-        final horizontalPadding = 14.0;
-        final containerWidth = screenWidth - (horizontalPadding * 2);
         final timeColumnWidth = 30.0 * scale;
-        final dayColumnWidth = (containerWidth - timeColumnWidth) / 5;
+        final dayColumnWidth = (screenWidth - timeColumnWidth) / 5;
         final rowHeight = 55.0 * scale;
-        const int totalHours = 10;
-        final double headerHeight = 22 * scale;
-        final double containerHeight = rowHeight * totalHours + headerHeight;
+        final headerHeight = 22 * scale;
+        final containerHeight = rowHeight * 10 + headerHeight;
 
         return Container(
-          width: containerWidth,
+          width: screenWidth,
           height: containerHeight,
           decoration: BoxDecoration(
             border: Border.all(color: const Color(0xFFB3A6A6), width: 0.5),
@@ -98,8 +86,8 @@ final List<Course> friendCourses = [
           ),
           child: Stack(
             children: [
-              _buildGrid(context, containerWidth, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight),
-              ...friendCourses.map((course) => _buildCourseItem(context, course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight)),
+              _buildGrid(headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale),
+              ...friendCourses.map((course) => _buildCourseItem(course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale)),
             ],
           ),
         );
@@ -107,8 +95,7 @@ final List<Course> friendCourses = [
     );
   }
 
-  Widget _buildGrid(BuildContext context, double width, double headerHeight, double timeColWidth, double dayColWidth, double rowHeight) {
-    final scale = MediaQuery.of(context).size.width / 411.0;
+  Widget _buildGrid(double headerHeight, double timeColWidth, double dayColWidth, double rowHeight, double scale) {
     const List<String> days = ['월', '화', '수', '목', '금'];
     const List<String> times = ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18'];
 
@@ -123,28 +110,37 @@ final List<Course> friendCourses = [
           child: Container(width: 0.5, color: const Color(0xFFB3A6A6)),
         )),
         ...List.generate(5, (i) => Positioned(
-          top: 5 * scale, left: timeColWidth + (i * dayColWidth) + (dayColWidth / 2) - (5 * scale),
-          child: Text(days[i], style: TextStyle(fontSize: 11 * scale, color: const Color(0xFF504A4A))),
+          top: 0,
+          left: timeColWidth + (i * dayColWidth),
+          width: dayColWidth,
+          height: headerHeight,
+          child: Center(
+            child: Text(
+              days[i],
+              style: TextStyle(fontSize: 11 * scale, color: const Color(0xFF504A4A))
+            ),
+          ),
         )),
         ...List.generate(times.length, (i) => Positioned(
-          top: headerHeight + (i * rowHeight) + (5 * scale), left: 10 * scale,
-          child: Text(times[i], style: TextStyle(fontSize: 11 * scale, color: const Color(0xFF504A4A))),
+          top: headerHeight + (i * rowHeight),
+          left: 0,
+          width: timeColWidth,
+          height: rowHeight,
+          child: Center(
+            child: Text(
+              times[i],
+              style: TextStyle(fontSize: 11 * scale, color: const Color(0xFF504A4A))
+            ),
+          ),
         )),
       ],
     );
   }
 
-  Widget _buildCourseItem(BuildContext context, Course course, double headerHeight, double timeColWidth, double dayColWidth, double rowHeight) {
-    final scale = MediaQuery.of(context).size.width / 411.0;
-    
-    final top = headerHeight + (course.startTime - 9) * rowHeight + (course.startTime / 60.0) * rowHeight;
+  Widget _buildCourseItem(Course course, double headerHeight, double timeColWidth, double dayColWidth, double rowHeight, double scale) {
+    final top = headerHeight + (course.startTime - 9) * rowHeight;
     final left = timeColWidth + (course.day * dayColWidth);
-
-    final startMinutes = course.startTime * 60 + course.startTime;
-    final endMinutes = course.endTime * 60 + course.endTime;
-    final durationMinutes = endMinutes - startMinutes;
-    final height = (durationMinutes / 60.0) * rowHeight;
-
+    final height = (course.endTime - course.startTime) * rowHeight;
     final width = dayColWidth;
 
     return Positioned(
@@ -154,7 +150,10 @@ final List<Course> friendCourses = [
         width: width - 0.5,
         height: height - 0.5,
         padding: EdgeInsets.all(4 * scale),
-        decoration: BoxDecoration(color: course.color),
+        decoration: BoxDecoration(
+          color: course.color,
+          borderRadius: BorderRadius.circular(4 * scale)
+        ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.topLeft,
@@ -162,11 +161,11 @@ final List<Course> friendCourses = [
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text(course.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF504A4A))),
+              Text(course.title, style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w500, color: const Color(0xFF504A4A))),
               const SizedBox(height: 2),
-              Text(course.professor, style: const TextStyle(fontSize: 10, color: Color(0xFF625B5B))),
+              Text(course.professor, style: TextStyle(fontSize: 10 * scale, color: const Color(0xFF625B5B))),
               const SizedBox(height: 2),
-              Text(course.room, style: const TextStyle(fontSize: 10, color: Color(0xFF625B5B))),
+              Text(course.room, style: TextStyle(fontSize: 10 * scale, color: const Color(0xFF625B5B))),
             ],
           ),
         ),
@@ -174,42 +173,66 @@ final List<Course> friendCourses = [
     );
   }
 
-  Widget _buildBottomNavBar(BuildContext context) {
-    return Container(
-      height: 90,
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 10),
-      color: Colors.transparent,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildCourseListDetails(BuildContext context, double scale) {
+    final List<String> dayNames = ['월', '화', '수', '목', '금'];
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16 * scale, 10 * scale, 16 * scale, 16 * scale),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildNavItem(context, Icons.people_outline, '친구', false),
-          _buildNavItem(context, Icons.home_outlined, '홈', false),
-          _buildNavItem(context, Icons.calendar_today_outlined, '시간표', true),
+          Text(
+            '강의 목록',
+            style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.bold, color: Colors.black87),
+          ),
+          SizedBox(height: 12 * scale),
+          ListView.builder(
+            itemCount: friendCourses.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemBuilder: (context, index) {
+              final course = friendCourses[index];
+              return Card(
+                elevation: 1.5,
+                margin: EdgeInsets.only(bottom: 12 * scale),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10 * scale)),
+                child: Padding(
+                  padding: EdgeInsets.all(16.0 * scale),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        course.title,
+                        style: TextStyle(fontSize: 17 * scale, fontWeight: FontWeight.bold),
+                      ),
+                      SizedBox(height: 10 * scale),
+                      _buildDetailRow(icon: Icons.person_outline, text: course.professor, scale: scale),
+                      SizedBox(height: 5 * scale),
+                      _buildDetailRow(icon: Icons.location_on, text: course.room, scale: scale),
+                      SizedBox(height: 5 * scale),
+                      _buildDetailRow(
+                        icon: Icons.access_time_outlined,
+                        text: '${dayNames[course.day]}요일 ${course.startTime}:00 - ${course.endTime}:00',
+                        scale: scale
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNavItem(BuildContext context, IconData icon, String label, bool isSelected) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
+  Widget _buildDetailRow({required IconData icon, required String text, required double scale}) {
+    return Row(
       children: [
-        Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFE0E0E0) : Colors.transparent,
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: const Color(0xFF4D4D4D), size: 28),
-        ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF515151)))
+        Icon(icon, size: 16 * scale, color: Colors.grey[700]),
+        SizedBox(width: 8 * scale),
+        Text(text, style: TextStyle(fontSize: 14 * scale, color: Colors.grey[800])),
       ],
     );
   }
 }
-
-
-
-
