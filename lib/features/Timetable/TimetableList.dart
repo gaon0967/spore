@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'TimetableScreen.dart';
 import 'course_model.dart';
 import 'ClassAdd.dart';
-//시간표 리스트 구성과 리스트를 추가하기 위한 코드 입니다.
 
 // 시간표 데이터를 표현하기 위한 간단한 모델 클래스
 class SemesterTimetable {
@@ -37,10 +36,20 @@ class _TimetableListState extends State<TimetableList> {
     _loadTimetables();
   }
 
+  // 이 메소드는 위젯이 업데이트될 때마다 호출되어야 하므로 didUpdateWidget에서도 호출합니다.
+  @override
+  void didUpdateWidget(covariant TimetableList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.allTimetableCourses.keys.length !=
+        oldWidget.allTimetableCourses.keys.length) {
+      _loadTimetables();
+    }
+  }
+
   void _loadTimetables() {
-    // _allTimetableCourses 맵의 키를 기반으로 _timetables 리스트를 생성합니다.
+    final List<String> keys = widget.allTimetableCourses.keys.toList();
     _timetables =
-        widget.allTimetableCourses.keys.map((key) {
+        keys.map((key) {
           final parts = key.split('-');
           final year = parts[0];
           final semester = parts[1];
@@ -48,20 +57,16 @@ class _TimetableListState extends State<TimetableList> {
             year: year,
             semester: semester,
             color:
-                Colors.primaries[widget.allTimetableCourses.keys
-                        .toList()
-                        .indexOf(key) %
-                    Colors.primaries.length],
+                Colors.primaries[keys.indexOf(key) % Colors.primaries.length],
           );
         }).toList();
   }
 
   // [수정] 시간표 추가 버튼을 눌렀을 때 실행될 함수
   void _showAddTimetableDialog() async {
-    // showDialog가 반환하는 값을 받음 (추가된 시간표 정보)
     final newTimetable = await showDialog<SemesterTimetable>(
       context: context,
-      barrierDismissible: false, // 바깥 영역을 탭해도 닫히지 않음
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return const AddTimetableModal();
       },
@@ -70,7 +75,55 @@ class _TimetableListState extends State<TimetableList> {
     // 반환된 값이 있으면 (null이 아니면) 리스트에 추가
     if (newTimetable != null) {
       final newKey = '${newTimetable.year}-${newTimetable.semester}';
-      setState(() {});
+      // 새로운 시간표를 allTimetableCourses 맵에 추가
+      widget.allTimetableCourses[newKey] = [];
+      setState(() {
+        _loadTimetables();
+        _selectedIndex = 0; // 새로 추가된 시간표가 선택되도록 인덱스 설정
+      });
+    }
+  }
+
+  // [추가] 삭제 확인 다이얼로그
+  Future<void> _showDeleteConfirmationDialog(int index) async {
+    final timetableToDelete = _timetables[index];
+    final keyToDelete =
+        '${timetableToDelete.year}-${timetableToDelete.semester}';
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('시간표 삭제'),
+            content: Text(
+              "'${timetableToDelete.year} ${timetableToDelete.semester}' 시간표를 삭제하시겠습니까?",
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('취소'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text('삭제'),
+              ),
+            ],
+          ),
+    );
+
+    if (result == true) {
+      setState(() {
+        // allTimetableCourses 맵에서 항목 삭제
+        widget.allTimetableCourses.remove(keyToDelete);
+        _loadTimetables(); // 리스트 다시 불러오기
+
+        // 삭제 후 선택된 항목이 없거나 인덱스가 범위를 벗어나면 조정
+        if (_timetables.isEmpty) {
+          _selectedIndex = -1; // 선택된 항목 없음
+        } else if (_selectedIndex >= _timetables.length) {
+          _selectedIndex = _timetables.length - 1; // 마지막 항목 선택
+        }
+      });
     }
   }
 
@@ -83,7 +136,13 @@ class _TimetableListState extends State<TimetableList> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black),
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () {
+            final selectedKey =
+                _selectedIndex != -1
+                    ? '${_timetables[_selectedIndex].year}-${_timetables[_selectedIndex].semester}'
+                    : null;
+            Navigator.of(context).pop(selectedKey);
+          },
         ),
         title: const Text(
           '시간표 목록',
@@ -93,7 +152,6 @@ class _TimetableListState extends State<TimetableList> {
           Padding(
             padding: const EdgeInsets.only(right: 16.0),
             child: ElevatedButton(
-              // [수정] onPressed에 _showAddTimetableDialog 함수 연결
               onPressed: _showAddTimetableDialog,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFFF0F0F0),
@@ -112,7 +170,6 @@ class _TimetableListState extends State<TimetableList> {
         padding: const EdgeInsets.all(16.0),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            // 화면 너비에 따라 열 개수 동적 결정
             int crossAxisCount;
             if (constraints.maxWidth > 1200) {
               crossAxisCount = 5;
@@ -138,8 +195,13 @@ class _TimetableListState extends State<TimetableList> {
 
                 return GestureDetector(
                   onTap: () {
+                    // 한 번 탭하면 시간표로 이동하는 기능
                     final key = '${timetable.year}-${timetable.semester}';
                     Navigator.of(context).pop(key);
+                  },
+                  onLongPress: () {
+                    // 길게 눌러서 삭제 알림창 띄우기
+                    _showDeleteConfirmationDialog(index);
                   },
                   child: Container(
                     padding: const EdgeInsets.all(16.0),
@@ -181,7 +243,7 @@ class _TimetableListState extends State<TimetableList> {
   }
 }
 
-// ## [추가] 새로운 시간표를 추가하기 위한 모달 다이얼로그 위젯 ##
+// ## 새로운 시간표를 추가하기 위한 모달 다이얼로그 위젯 ##
 class AddTimetableModal extends StatefulWidget {
   const AddTimetableModal({super.key});
 
@@ -191,11 +253,9 @@ class AddTimetableModal extends StatefulWidget {
 
 class _AddTimetableModalState extends State<AddTimetableModal> {
   final _yearController = TextEditingController();
-  final _semesterController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  String? _selectedSemester; // 선언 추가
-  // 선택 가능한 색상 목록
+  String? _selectedSemester;
   final List<Color> _colorOptions = const [
     Color(0xFFDDEBF1),
     Color(0xFFD4DAF5),
@@ -209,28 +269,23 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
   @override
   void initState() {
     super.initState();
-    // 현재 년도를 기본값으로 설정
     _yearController.text = DateTime.now().year.toString();
-    // 첫 번째 색상을 기본 선택 색상으로 설정
     _selectedColor = _colorOptions.first;
   }
 
   @override
   void dispose() {
     _yearController.dispose();
-    _semesterController.dispose();
     super.dispose();
   }
 
   void _addTimetable() {
-    // Form의 유효성 검사를 통과하면 시간표를 생성하고 모달을 닫음
     if (_formKey.currentState!.validate()) {
       final newTimetable = SemesterTimetable(
         year: _yearController.text,
         semester: _selectedSemester!,
         color: _selectedColor,
       );
-      // Navigator.pop을 통해 이전 화면에 newTimetable 객체를 전달
       Navigator.of(context).pop(newTimetable);
     }
   }
@@ -244,7 +299,7 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
         child: Form(
           key: _formKey,
           child: Column(
-            mainAxisSize: MainAxisSize.min, // 컨텐츠 크기에 맞게 조절
+            mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Text(
@@ -253,7 +308,6 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 24),
-              // 년도 입력 필드
               TextFormField(
                 controller: _yearController,
                 keyboardType: TextInputType.number,
@@ -269,7 +323,6 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
                 },
               ),
               const SizedBox(height: 16),
-              // 학기 입력 필드
               DropdownButtonFormField<String>(
                 value: _selectedSemester,
                 items:
@@ -296,7 +349,6 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
                 },
               ),
               const SizedBox(height: 24),
-              // 색상 선택 - 한 줄(가로 스크롤)
               SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -323,13 +375,11 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
                 ),
               ),
               const SizedBox(height: 24),
-
-              // 버튼 영역
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   TextButton(
-                    onPressed: () => Navigator.of(context).pop(), // 그냥 닫기
+                    onPressed: () => Navigator.of(context).pop(),
                     child: const Text('취소'),
                   ),
                   const SizedBox(width: 8),
