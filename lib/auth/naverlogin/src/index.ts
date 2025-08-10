@@ -1,6 +1,7 @@
-import * as functions from 'firebase-functions';
-import * as admin from 'firebase-admin';
+
+import admin from 'firebase-admin';
 import axios from 'axios';
+import * as functions from 'firebase-functions';
 
 // 네이버 API 응답 타입 정의
 // id, email, name, phoneNumber 를 flutter로 넘긴다.
@@ -54,7 +55,7 @@ admin.initializeApp();
 export const createCustomToken = functions.https.onCall(
   async (data: unknown): Promise<CustomTokenOutput> => {
     // 디버깅: 수신된 데이터 로그
-    console.log('Received data:', safeStringify(data));
+    //console.log('Received data:', safeStringify(data));
 
     // 입력 데이터 추출 (Callable Functions 또는 HTTP POST 처리)
     let inputData: unknown = data;
@@ -125,6 +126,65 @@ export const createCustomToken = functions.https.onCall(
         error.response ? safeStringify(error.response.data) : error.message
       );
       throw new functions.https.HttpsError('internal', `Failed to verify Naver token: ${error.message}`);
+    }
+  }
+);
+// ✅ Firestore 문서와 모든 하위 컬렉션 포함 삭제
+
+
+/**
+ * 하위 컬렉션 포함 전체 삭제 (bulkWriter 사용)
+ */
+async function deleteDocumentAndSubcollections(docRef: FirebaseFirestore.DocumentReference) {
+  const bulkWriter = admin.firestore().bulkWriter();
+
+  async function recursiveDelete(ref: FirebaseFirestore.DocumentReference) {
+    // 하위 컬렉션 목록
+    const subcollections = await ref.listCollections();
+
+    for (const sub of subcollections) {
+      const docs = await sub.listDocuments();
+      for (const doc of docs) {
+        await recursiveDelete(doc); // 하위 문서 먼저 처리
+        bulkWriter.delete(doc);     // 삭제 예약
+      }
+    }
+  }
+
+  await recursiveDelete(docRef);
+  bulkWriter.delete(docRef); // 부모 문서 삭제 예약
+
+  await bulkWriter.close(); // 모든 삭제 실행
+}
+
+export const deleteUserAllData = functions.https.onCall(
+  async (request: functions.https.CallableRequest) => {
+    try {
+      const auth = request.auth;
+      if (!auth) {
+        throw new functions.https.HttpsError(
+          'invalid-argument',
+          'Context or authentication information is missing.'
+        );
+      }
+
+      const uid = auth.uid;
+      if (!uid) {
+        throw new functions.https.HttpsError('invalid-argument', 'UID is required.');
+      }
+
+      const db = admin.firestore();
+      const collections = ['users', 'timetables', 'plans'];
+
+      for (const col of collections) {
+        const docRef = db.collection(col).doc(uid);
+        await deleteDocumentAndSubcollections(docRef);
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('Error in deleteUserAllData:', error);
+      throw new functions.https.HttpsError('internal', error.message);
     }
   }
 );
