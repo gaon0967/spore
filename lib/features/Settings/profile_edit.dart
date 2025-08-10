@@ -152,19 +152,79 @@ bool _showBottomMessage = false;
 /// 반환: State<ProfileEdit> 인스턴스 반환
 /// 예외: Firestore 접근 실패, 이미지 업로드 실패 등의 예외 처리 필요
 class _ProfileEditPageState extends State<ProfileEdit> {
-  String nickname = "닉네임을 입력하세요";
+  String name = "";
   String introText = "";
   File? _profileImage;
   String? _profileImageUrl;
   final ImagePicker picker = ImagePicker();
 
-  bool _isEditingNickname = false;
-  late TextEditingController _nicknameController;
-
   List<int> psychologyResultIds = [];
   List<Character> availableCharacters = [];
   Character? selectedCharacter;
   String userId = '';
+
+  void _showCompleteMessageDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black54,
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: screenWidth * 0.65,
+              padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade400),
+              ),
+              child: Builder(
+                builder: (dialogContext) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF535353),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(thickness: 1, height: 1, color: Color(0xFFDDDDDD)),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(0),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text(
+                            '확인',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   static const String psychologyResultKey = 'psychology_result_ids';
   void _showCenteredMessageDialog(String message) {
@@ -211,7 +271,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   @override
   void initState() {
     super.initState();
-    _nicknameController = TextEditingController(text: nickname);
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -226,7 +285,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
   @override
   void dispose() {
-    _nicknameController.dispose();
     super.dispose();
   }
 
@@ -254,9 +312,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         final data = doc.data();
         if (data != null) {
           setState(() {
-            nickname = data['nickname'] ?? nickname;
+            name = data['name'] ?? "";
             introText = data['intro'] ?? introText;
-            _nicknameController.text = nickname;
             _profileImageUrl = data['profileImageUrl'];
           });
         }
@@ -345,10 +402,25 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         _profileImage = file;
         _profileImageUrl = url;
       });
-      _showCenteredMessageDialog('프로필 변경이 완료되었습니다.');
+      _showCompleteMessageDialog(context, '프로필 변경이 완료되었습니다.');
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('사진 업로드 실패: $e')));
+    }
+  }
+
+  Future<void> _saveProfileToFirestore() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다.')));
+      return;
+    }
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'intro': introText,
+      }, SetOptions(merge: true));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('프로필 저장에 실패했습니다.')));
     }
   }
 
@@ -420,9 +492,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         });
                         _saveSelectedCharacterId();
                       } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("이미 변경되었습니다.")),
-                        );
+                        _showCompleteMessageDialog(context, '이미 변경되었습니다.');
                       }
                     }
                   });
@@ -435,88 +505,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
-  void _startNicknameEdit() {
-    setState(() {
-      _isEditingNickname = true;
-    });
-  }
-
-  void _saveNickname() {
-    final trimmed = _nicknameController.text.trim();
-    if (trimmed.isNotEmpty) {
-      setState(() {
-        nickname = trimmed.length > 10 ? trimmed.substring(0, 10) : trimmed;
-        _nicknameController.text = nickname;
-        _isEditingNickname = false;
-        _showCenteredMessageDialog('닉네임 수정이 완료되었습니다.');
-        _showBottomMessage = true;
-      });
-
-      _saveProfileToFirestore();
-      FocusScope.of(context).unfocus();
-      _hideBottomMessageAfterDelay();
-    }
-  }
-
-  void _finishIntroEdit(TextEditingController controller) {
+  _finishIntroEdit(TextEditingController controller, BuildContext context) {
     setState(() {
       introText = controller.text.trim();
-      _showCenteredMessageDialog('한줄 소개 수정이 완료되었습니다');
-      _showBottomMessage = true;
     });
     _saveProfileToFirestore();
+    _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
     Navigator.pop(context);
-    _hideBottomMessageAfterDelay();
-  }
-
-  void _showEditIntroModal() {
-    final controller = TextEditingController(text: introText);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-            top: 30,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: controller,
-                maxLength: 50,
-                autofocus: true,
-                maxLines: 3,
-                textInputAction: TextInputAction.done,
-                decoration: const InputDecoration(
-                  hintText: '한줄 소개를 입력하세요',
-                  border: OutlineInputBorder(),
-                  counterText: '',
-                ),
-                onChanged: (text) {
-                  final lines = text.split('\n');
-                  if (lines.length > 3) {
-                    controller.text = lines.take(3).join('\n');
-                    controller.selection = TextSelection.fromPosition(TextPosition(offset: controller.text.length));
-                  }
-                },
-                onSubmitted: (_) => _finishIntroEdit(controller),
-              ),
-              const SizedBox(height: 14),
-              ElevatedButton(
-                onPressed: () => _finishIntroEdit(controller),
-                child: const Text('완료'),
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   void _hideBottomMessageAfterDelay() {
@@ -552,23 +547,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
-  Future<void> _saveProfileToFirestore() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('로그인이 필요합니다.')));
-      return;
-    }
-    try {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'nickname': nickname,
-        'intro': introText,
-      }, SetOptions(merge: true));
-      _showCenteredMessageDialog('닉네임 변경이 완료되었습니다.');
-    } catch (e) {
-      _showCenteredMessageDialog('닉네임 저장 실패');
-    }
-  }
-
   Future<void> _goToPsychologyTest() async {
     final result = await Navigator.of(context).push<List<int>>(
       MaterialPageRoute(builder: (context) => const PsychologyQuestion()),
@@ -581,6 +559,69 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       _applyPsychologyResult(result);
       _savePsychologyResult(result);
     }
+  }
+
+  void _showEditIntroModal() {
+    final controller = TextEditingController(text: introText);
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (modalContext) {
+        final bottomInset = MediaQuery.of(modalContext).viewInsets.bottom;
+
+        void finishIntroEdit() {
+          final trimmed = controller.text.trim();
+          if (trimmed.isNotEmpty) {
+            setState(() {
+              introText = trimmed;
+            });
+            _saveProfileToFirestore();
+            Navigator.of(modalContext).pop();
+            _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
+          }
+        }
+
+        return Padding(
+          padding: EdgeInsets.only(left: 16, right: 16, bottom: bottomInset + 16, top: 30),
+          child: Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  maxLength: 50,
+                  autofocus: true,
+                  maxLines: 1,
+                  textInputAction: TextInputAction.done,
+                  decoration: InputDecoration(
+                    hintText: '한줄 소개를 입력하세요',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(30), borderSide: BorderSide.none),
+                    filled: true,
+                    fillColor: const Color(0xFFF3F4F8),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    counterText: '',
+                  ),
+                  onSubmitted: (_) => finishIntroEdit(),
+                ),
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton(
+                onPressed: finishIntroEdit,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 22),
+                ),
+                child: const Text(
+                  '완료',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -685,41 +726,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 color: const Color(0xFFF3F3F8),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _isEditingNickname
-                        ? TextField(
-                      controller: _nicknameController,
-                      autofocus: true,
-                      maxLength: 10,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: screenWidth * 0.038),
-                      decoration: const InputDecoration(
-                        border: InputBorder.none,
-                        counterText: '',
-                        isDense: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 4),
-                      ),
-                      onSubmitted: (_) => _saveNickname(),
-                    )
-                        : GestureDetector(
-                      onTap: _startNicknameEdit,
-                      child: Center(
-                        child: Text(
-                          nickname,
-                          style: TextStyle(fontSize: screenWidth * 0.038),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    iconSize: screenWidth * 0.035,
-                    icon: Icon(_isEditingNickname ? Icons.check : Icons.edit),
-                    onPressed: _isEditingNickname ? _saveNickname : _startNicknameEdit,
-                  ),
-                ],
+              child: Center(
+                child: Text(
+                  name,
+                  style: TextStyle(fontSize: screenWidth * 0.038),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
             const SizedBox(height: 20),
