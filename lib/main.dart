@@ -14,7 +14,6 @@ const clientId = 'eW2zZw8AjJC4iudM9OzD'; // naver api id
 const clientSecret = 'y9F8XUjPS_'; // naver api pw
 const clientName = "My App"; //  appName
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -48,10 +47,7 @@ class MyApp extends StatelessWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: [
-        Locale('ko', 'KR'),
-        Locale('en', 'US'),
-      ],
+      supportedLocales: [Locale('ko', 'KR'), Locale('en', 'US')],
       // home  첫 화면 만듬.
       home: LoginScreen(),
       //home: HomeCalendar(),

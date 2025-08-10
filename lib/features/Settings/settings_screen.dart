@@ -1,6 +1,11 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:new_project_1/auth/LoginHome.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 프로필 변경 화면
+import 'package:naver_login_sdk/naver_login_sdk.dart'; // Naver 로그인 SDK
 
 /// ==============================
 /// 클래스명: SettingsScreen
@@ -414,8 +419,16 @@ class SettingsScreen extends StatelessWidget {
                                             /// 예외: 없음
                                             /// ------------------------------
                                             onTap: () {
-                                              Navigator.of(context).pop();
                                               // 로그아웃 처리 함수 호출
+                                              NaverLoginSDK.logout();
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (context) =>
+                                                          const LoginScreen(),
+                                                ),
+                                              );
                                             },
                                             child: Container(
                                               height: 48,
@@ -626,8 +639,22 @@ class SettingsScreen extends StatelessWidget {
                                       /// 예외: 없음
                                       /// ------------------------------
                                       onTap: () {
-                                        Navigator.of(context).pop();
-                                        // TODO: 회원탈퇴 동작 처리 필요
+                                        final user =
+                                            FirebaseAuth.instance.currentUser;
+                                        if (user == null) {
+                                          return;
+                                        }
+                                        print('회원 탈퇴: ${user.uid}');
+                                        callDeleteUserAllData(user.uid);
+
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) =>
+                                                    const LoginScreen(),
+                                          ),
+                                        );
                                       },
                                       child: Container(
                                         height: 48,
@@ -667,5 +694,21 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+Future<void> callDeleteUserAllData(String uid) async {
+  try {
+    final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+      'deleteUserAllData',
+    );
+    print("deleteUserAllData called with uid: $uid");
+    final response = await callable.call({'uid': uid});
+
+    print('Function result: ${response.data}');
+  } on FirebaseFunctionsException catch (e) {
+    print('Firebase Functions exception: ${e.code} - ${e.message}');
+  } catch (e) {
+    print('Generic exception: $e');
   }
 }
