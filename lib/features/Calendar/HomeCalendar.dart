@@ -244,7 +244,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
       },
       child: Container(
         margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-        height: screenWidth * 0.175,
+        height: screenWidth * 0.19,
         decoration: BoxDecoration(
           color: event.color,
           borderRadius: BorderRadius.circular(12),
@@ -300,45 +300,29 @@ class _HomeCalendarState extends State<HomeCalendar> {
     );
   }
 
-  Widget _buildRemovingAnimatedItem(Event event, Animation<double> animation) {
-    final screenWidth = MediaQuery.of(context).size.width;
+  Route _createSlidingRoute() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const NotificationPage(),
+      transitionDuration: const Duration(milliseconds: 700),
+      
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = const Offset(1.0, 0.0);
+        var end = Offset.zero;
+        var curve = Curves.ease;
 
-    // SizeTransition이 애니메이션의 주체가 되도록 수정
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(
+          position: animation.drive(tween),
+          child: child,
+        );
+      },
+    );
+  }
+   Widget _buildRemovingAnimatedItem(Event event, Animation<double> animation) {
     return SizeTransition(
       sizeFactor: animation,
-      child: Row(
-        children: [
-          // 원래 Slidable의 비율(extentRatio: 0.7)에 맞춰 확장
-          Expanded(
-            flex: 7,
-            child: _buildEventContent(event), // index를 null로 전달
-          ),
-          // 삭제 버튼 부분 (비율 0.3)
-          Expanded(
-            flex: 3,
-            child: Container(
-              margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-              height: screenWidth * 0.175,
-              child: CustomSlidableAction(
-                onPressed: (context) {}, // 애니메이션 중에는 동작 안 함
-                backgroundColor: const Color(0xFFFFFEF9),
-                foregroundColor: const Color(0xFFDA6464),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Image.asset(
-                      'assets/images/mainpage/delete.png',
-                      width: screenWidth * 0.043,
-                      height: screenWidth * 0.043,
-                    ),
-                    SizedBox(height: screenWidth * 0.03),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: _buildEventContent(event),
     );
   }
 
@@ -351,11 +335,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
     final screenWidth = MediaQuery.of(context).size.width;
     return SizeTransition(
       sizeFactor: animation,
-      // Slidable을 가장 바깥으로 이동
       child: Slidable(
         key: ValueKey(event.id),
         endActionPane: ActionPane(
-          motion: const DrawerMotion(),
+          // motion을 ScrollMotion으로 변경하여, 스와이프 시 여백이 생기지 않게 합니다.
+          motion: const ScrollMotion(),
           extentRatio: 0.3,
           children: [
             CustomSlidableAction(
@@ -376,7 +360,6 @@ class _HomeCalendarState extends State<HomeCalendar> {
             ),
           ],
         ),
-        // Listener와 GestureDetector를 Slidable의 자식으로 이동
         child: Listener(
           onPointerDown: (_) => setState(() => _pressedIndex = index),
           onPointerUp: (_) => setState(() => _pressedIndex = null),
@@ -389,7 +372,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
               type: MaterialType.transparency,
               child: Container(
                 margin: EdgeInsets.only(bottom: screenWidth * 0.025),
-                height: screenWidth * 0.175,
+                height: screenWidth * 0.19,
                 child: Material(
                   borderRadius: BorderRadius.circular(12),
                   clipBehavior: Clip.antiAlias,
@@ -397,64 +380,62 @@ class _HomeCalendarState extends State<HomeCalendar> {
                   child: Stack(
                     children: [
                       Container(
+                        height: screenWidth * 0.19,
                         decoration: BoxDecoration(
                           color: event.color,
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: ListTile(
-                          title: Text(
-                            event.title,
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.032,
-                              color:
-                                  event.isCompleted
-                                      ? const Color(0xFF626262)
-                                      : const Color(0xFF4C4747),
-                              decoration:
-                                  event.isCompleted
-                                      ? TextDecoration.lineThrough
-                                      : TextDecoration.none,
+                        child: Center(
+                          child: ListTile(
+                            title: Text(
+                              event.title,
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.033,
+                                color: event.isCompleted
+                                    ? const Color(0xFF626262)
+                                    : const Color(0xFF4C4747),
+                                decoration: event.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : TextDecoration.none,
+                              ),
                             ),
-                          ),
-                          subtitle: Text(
-                            '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.024,
-                              color: const Color(0xFF626262),
+                            subtitle: Text(
+                              '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.0255,
+                                color: const Color(0xFF626262),
+                              ),
                             ),
-                          ),
-                          trailing: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                event.isCompleted = !event.isCompleted;
-                              });
-                              // isDone 상태만 Firestore에 업데이트
-                              _addOrUpdateEvent(event, isUpdating: true);
-                            },
-                            child: Container(
-                              color: Colors.transparent,
-                              padding: const EdgeInsets.all(8.0),
-                              child:
-                                  event.isCompleted
-                                      ? Text(
+                            trailing: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  event.isCompleted = !event.isCompleted;
+                                });
+                                _addOrUpdateEvent(event, isUpdating: true);
+                              },
+                              child: Container(
+                                color: Colors.transparent,
+                                padding: const EdgeInsets.all(8.0),
+                                child: event.isCompleted
+                                    ? Text(
                                         '✓',
                                         style: TextStyle(
                                           fontSize: screenWidth * 0.04,
                                           color: const Color(0xFF6B6060),
                                         ),
                                       )
-                                      : Container(
+                                    : Container(
                                         width: screenWidth * 0.035,
                                         height: screenWidth * 0.035,
                                         decoration: BoxDecoration(
                                           border: Border.all(
                                             color: const Color(0xFF6B6060),
                                           ),
-                                          borderRadius: BorderRadius.circular(
-                                            2,
-                                          ),
+                                          borderRadius:
+                                              BorderRadius.circular(2),
                                         ),
                                       ),
+                              ),
                             ),
                           ),
                         ),
@@ -466,10 +447,9 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           curve: Curves.easeOut,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(12),
-                            color:
-                                _pressedIndex == index
-                                    ? Colors.black.withAlpha(38)
-                                    : Colors.transparent,
+                            color: _pressedIndex == index
+                                ? Colors.black.withAlpha(38)
+                                : Colors.transparent,
                           ),
                         ),
                       ),
@@ -585,15 +565,23 @@ class _HomeCalendarState extends State<HomeCalendar> {
                           Row(
                             children: [
                               GestureDetector(
-                                onTap: () {
+                                onTap: () async { // 1. async 키워드 추가
                                   print('알림 아이콘 클릭됨!');
-                                  Navigator.push(
+                                  
+                                  // 2. Navigator.push가 결과를 반환할 때까지 기다림 (await)
+                                  final selectedDateFromNoti = await Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => const NotificationPage(),
-                                    ),
+                                    _createSlidingRoute(), // NotificationPage를 여는 함수
                                   );
+
+                                  // 3. 만약 NotificationPage에서 날짜(DateTime)를 반환했다면
+                                  if (selectedDateFromNoti is DateTime) {
+                                    // 4. 달력의 선택된 날짜와 포커스를 그 날짜로 변경
+                                    setState(() {
+                                      _selectedDay = selectedDateFromNoti;
+                                      _focusedDay = selectedDateFromNoti;
+                                    });
+                                  }
                                 },
                                 // --- 투명도 효과를 위한 부분 ---
                                 onTapDown: (details) {
@@ -854,7 +842,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                   top: false,
                   child: Padding(
                     padding: EdgeInsets.symmetric(
-                      horizontal: screenWidth * 0.078,
+                      horizontal: screenWidth * 0.05,
                       vertical: verticalPadding * 0.4,
                     ),
                     child: Column(
