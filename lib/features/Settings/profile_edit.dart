@@ -572,14 +572,28 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
         void finishIntroEdit() {
           final trimmed = controller.text.trim();
-          if (trimmed.isNotEmpty) {
-            setState(() {
-              introText = trimmed;
-            });
-            _saveProfileToFirestore();
-            Navigator.of(modalContext).pop();
-            _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
+          if (trimmed.isEmpty) {
+            showDialog(
+              context: modalContext,
+              builder: (_) => AlertDialog(
+                title: const Text('입력 필요'),
+                content: const Text('최소 1자 이상 입력해주세요.'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(modalContext).pop(),
+                    child: const Text('확인'),
+                  ),
+                ],
+              ),
+            );
+            return;
           }
+          setState(() {
+            introText = trimmed;
+          });
+          _saveProfileToFirestore();
+          Navigator.of(modalContext).pop();
+          _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
         }
 
         return Padding(
