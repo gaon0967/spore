@@ -6,7 +6,7 @@ import 'package:new_project_1/auth/LoginHome.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 프로필 변경 화면
 import 'package:naver_login_sdk/naver_login_sdk.dart'; // Naver 로그인 SDK
-
+import 'dart:math' as math;
 /// ==============================
 /// 클래스명: SettingsScreen
 /// 역할: 앱의 설정 화면을 구성
@@ -16,36 +16,72 @@ import 'package:naver_login_sdk/naver_login_sdk.dart'; // Naver 로그인 SDK
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 
+  Route _createSlideUpRoute() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const ProfileEdit(),
+      transitionDuration: const Duration(milliseconds: 400), // 애니메이션 속도 조절
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0); // 화면 하단에서 시작
+        const end = Offset.zero;      // 화면 중앙으로 이동
+        final curve = Curves.easeOut; // 부드럽게 감속하는 효과
+
+        final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        final offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
+  Route _createFriendSlideUpRoute() {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => const FriendManagementScreen(),
+      transitionDuration: const Duration(milliseconds: 400), // 애니메이션 속도 조절
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        const begin = Offset(0.0, 1.0); // 화면 하단에서 시작
+        const end = Offset.zero;      // 화면 중앙으로 이동
+        final curve = Curves.easeOut; // 부드럽게 감속하는 효과
+
+        final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        final offsetAnimation = animation.drive(tween);
+
+        return SlideTransition(
+          position: offsetAnimation,
+          child: child,
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     bool alarmEnabled = true; // 알림 스위치 현재 상태 (샘플 데이터)
-
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFFEF9),
-        title: const Text(
+        title: Text(
           '설정',
           style: TextStyle(
             fontFamily: 'Golos Text',
-            fontWeight: FontWeight.w600,
-            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            fontSize: screenWidth * 0.047,
             color: Color(0xFF504A4A),
           ),
         ),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-
-          /// ------------------------------
-          /// 함수명: onPressed
-          /// 목적: 뒤로가기 버튼 클릭 시 이전 화면으로 이동
-          /// 입력: 없음
-          /// 반환: 없음
-          /// 예외: 없음
-          /// ------------------------------
+          icon: Image.asset(
+            'assets/images/Setting/go.png',
+            width: screenWidth * 0.045,
+            height: screenWidth * 0.045,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        leadingWidth: 56, // 뒤로가기 화살표 아이콘의 위치 조정
+        leadingWidth: screenWidth*0.1315, // 뒤로가기 화살표 아이콘의 위치 조정
         titleSpacing: 0, // 앱바 타이틀의 글자 위치 조정
       ),
 
@@ -73,15 +109,11 @@ class SettingsScreen extends StatelessWidget {
                     /// 예외: 없음
                     /// ------------------------------
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ProfileEdit(),
-                          // 프로필 변경 버튼 클릭 시 ProfileEdit 화면으로 이동
-                        ),
-                      );
+                        Navigator.push(context, _createSlideUpRoute());
                     },
                     style: ElevatedButton.styleFrom(
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
                       backgroundColor: Color(0xFFCDDEE3),
                       // 버튼 배경색
                       foregroundColor: Color(0xFF504A4A),
@@ -89,12 +121,12 @@ class SettingsScreen extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      minimumSize: const Size(168, 66),
+                      minimumSize: Size(screenWidth*0.3945, screenWidth*0.1526),
                       // 버튼의 최소 가로, 세로 크기
                       padding: EdgeInsets.zero,
                     ),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth*0.0475),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -104,26 +136,32 @@ class SettingsScreen extends StatelessWidget {
                               '프로필 변경',
                               style: TextStyle(
                                 fontFamily: 'Golos Text',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                fontSize: screenWidth*0.038,
                                 color: Color(0xFF504A4A),
                               ),
                             ),
                           ),
                           Align(
-                            alignment: Alignment.centerRight,
-                            child: Image.asset(
-                              'assets/images/Setting/chevron.png',
-                              width: 16,
-                              height: 16,
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: EdgeInsets.only(right: screenWidth*0.0095), // 이 값을 조절해서 원하는 만큼 내릴 수 있어요.
+                                child: Transform.rotate(
+                                  angle: 270 * math.pi / 180,
+                                  child: Image.asset(
+                                    'assets/images/Setting/chevron.png',
+                                    width: screenWidth*0.038,
+                                    height: screenWidth*0.038,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 26),
+                SizedBox(width: screenWidth*0.06175),
                 Expanded(
                   /// ==============================
                   /// 위젯명: ElevatedButton (친구 관리 버튼)
@@ -140,15 +178,11 @@ class SettingsScreen extends StatelessWidget {
                     /// 예외: 없음
                     /// ------------------------------
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const FriendManagementScreen(),
-                          // 친구 관리 버튼 클릭 시 friend_management 화면으로 이동
-                        ),
-                      );
+                        Navigator.push(context, _createFriendSlideUpRoute());
                     },
                     style: ElevatedButton.styleFrom(
+                      shadowColor: Colors.transparent,
+                      elevation: 0,
                       backgroundColor: Color(0xFFCDDEE3),
                       // 버튼 배경색
                       foregroundColor: Color(0xFF504A4A),
@@ -156,12 +190,12 @@ class SettingsScreen extends StatelessWidget {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      minimumSize: const Size(168, 66),
+                      minimumSize: Size(screenWidth*0.3945, screenWidth*0.1526),
                       // 버튼의 최소 가로, 세로 크기
                       padding: EdgeInsets.zero,
                     ),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth*0.0475),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
@@ -171,20 +205,26 @@ class SettingsScreen extends StatelessWidget {
                               '친구 관리',
                               style: TextStyle(
                                 fontFamily: 'Golos Text',
-                                fontWeight: FontWeight.w500,
-                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                fontSize: screenWidth*0.038,
                                 color: Color(0xFF504A4A),
                               ),
                             ),
                           ),
                           Align(
-                            alignment: Alignment.centerRight,
-                            child: Image.asset(
-                              'assets/images/Setting/chevron.png',
-                              width: 16,
-                              height: 16,
+                              alignment: Alignment.centerRight,
+                              child: Padding(
+                                padding: EdgeInsets.only(right: screenWidth*0.0095), // 이 값을 조절해서 원하는 만큼 내릴 수 있어요.
+                                child: Transform.rotate(
+                                  angle: 270 * math.pi / 180,
+                                  child: Image.asset(
+                                    'assets/images/Setting/chevron.png',
+                                    width: screenWidth*0.038,
+                                    height: screenWidth*0.038,
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -192,19 +232,19 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 25),
+            SizedBox(height: screenWidth*0.059375),
 
-            const Divider(
+            Divider(
               color: Color(0xFF847E7E), // 구분선 색깔
               thickness: 1, // 구분선 굵기
-              indent: 5, // 구분선 왼쪽 여백
-              endIndent: 5, // 구분선 오른쪽 여백
+              indent: screenWidth*0.011875, // 구분선 왼쪽 여백
+              endIndent: screenWidth*0.011875, // 구분선 오른쪽 여백
             ),
 
-            const SizedBox(height: 25),
+            SizedBox(height: screenWidth*0.059375),
             // 알림 설정
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              padding: EdgeInsets.symmetric(vertical: screenWidth*0.038, horizontal: screenWidth*0.038),
               decoration: BoxDecoration(
                 color: Color(0xFFF8F8F8),
                 borderRadius: BorderRadius.circular(25),
@@ -213,29 +253,30 @@ class SettingsScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(left: 8),
-                    child: const Text(
+                    padding: EdgeInsets.only(left: screenWidth*0.019),
+                    child: Text(
                       '알림', // 작은 "알림"
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: screenWidth*0.030875,
                         color: Color(0xFF9F9C9C),
                         fontFamily: 'Golos Text',
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  SizedBox(height: screenWidth*0.038),
 
                   // 큰 알림 텍스트랑 스위치 Row로 묶음
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: const Text(
+                        padding: EdgeInsets.only(left: screenWidth*0.019),
+                        child: Text(
                           '알림', // 큰 "알림"
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: screenWidth*0.038,
                             color: Color(0xFF504A4A),
                             fontFamily: 'Golos Text',
                             fontWeight: FontWeight.w500,
@@ -269,20 +310,20 @@ class SettingsScreen extends StatelessWidget {
               ),
             ),
 
-            const SizedBox(height: 25),
+            SizedBox(height: screenWidth*0.059375),
 
-            const Divider(
+            Divider(
               color: Color(0xFF847E7E), // 구분선 색깔
               thickness: 1, // 구분선 굵기
-              indent: 5, // 구분선 왼쪽 여백
-              endIndent: 5, // 구분선 오른쪽 여백
+              indent: screenWidth*0.011875, // 구분선 왼쪽 여백
+              endIndent: screenWidth*0.011875, // 구분선 오른쪽 여백
             ),
 
-            const SizedBox(height: 25),
+            SizedBox(height: screenWidth*0.059375),
 
             // 고객 지원, 로그아웃, 버전정보
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(screenWidth*0.038),
               decoration: BoxDecoration(
                 color: Color(0xFFF8F8F8),
                 borderRadius: BorderRadius.circular(25),
@@ -290,24 +331,25 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 5),
+                  SizedBox(height: screenWidth*0.011875),
                   // 고객지원 제목
-                  const Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                  Padding(
+                    padding: EdgeInsets.only(left: screenWidth*0.019),
                     child: Text(
                       '고객지원',
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: screenWidth*0.030875,
                         color: Color(0xFF9F9C9C),
                         fontFamily: 'Golos Text',
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 25),
+                  SizedBox(height: screenWidth*0.059375),
 
                   Padding(
-                    padding: const EdgeInsets.only(left: 8),
+                    padding: EdgeInsets.only(left: screenWidth*0.019),
                     child: GestureDetector(
                       /// ------------------------------
                       /// 함수명: onTap
@@ -331,29 +373,29 @@ class SettingsScreen extends StatelessWidget {
                               backgroundColor: const Color(
                                 0xFFFCFCF7,
                               ), // 다이얼로그 배경색
-                              insetPadding: const EdgeInsets.symmetric(
-                                horizontal: 40,
+                              insetPadding: EdgeInsets.symmetric(
+                                horizontal: screenWidth*0.095,
                               ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: SizedBox(
-                                width: 300,
+                                width: screenWidth*0.7125,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const SizedBox(height: 60),
-                                    const Center(
+                                    SizedBox(height: screenWidth*.1425),
+                                    Center(
                                       child: Text(
                                         '로그아웃 하시겠습니까?',
                                         style: TextStyle(
-                                          fontSize: 18,
+                                          fontSize: screenWidth*0.035625,
                                           color: Color(0xFF716969),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 48),
+                                    SizedBox(height: screenWidth*0.114),
                                     const Divider(
                                       height: 1,
                                       thickness: 1,
@@ -382,14 +424,14 @@ class SettingsScreen extends StatelessWidget {
                                                 () =>
                                                     Navigator.of(context).pop(),
                                             child: Container(
-                                              height: 48,
+                                              height: screenWidth*0.114,
                                               alignment: Alignment.center,
-                                              child: const Text(
+                                              child: Text(
                                                 '아니오',
                                                 style: TextStyle(
-                                                  fontSize: 16,
+                                                  fontSize: screenWidth*0.035625,
                                                   color: Color(0xFF635E5E),
-                                                  fontWeight: FontWeight.w400,
+                                                  fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             ),
@@ -398,7 +440,7 @@ class SettingsScreen extends StatelessWidget {
                                         // 세로 구분선
                                         Container(
                                           width: 1.5,
-                                          height: 48,
+                                          height: screenWidth*0.114,
                                           color: const Color(0xFFE5E5E5),
                                         ),
                                         // 네 버튼
@@ -431,12 +473,12 @@ class SettingsScreen extends StatelessWidget {
                                               );
                                             },
                                             child: Container(
-                                              height: 48,
+                                              height: screenWidth*0.114,
                                               alignment: Alignment.center,
-                                              child: const Text(
+                                              child: Text(
                                                 '네',
                                                 style: TextStyle(
-                                                  fontSize: 16,
+                                                  fontSize: screenWidth*0.035625,
                                                   color: Color(0xFF2F3BDC),
                                                   // 파랑
                                                   fontWeight: FontWeight.w500,
@@ -455,27 +497,27 @@ class SettingsScreen extends StatelessWidget {
                         );
                       },
 
-                      child: const Text(
+                      child: Text(
                         '로그아웃',
                         style: TextStyle(
                           fontFamily: 'Golos Text',
                           fontWeight: FontWeight.w500,
-                          fontSize: 16,
+                          fontSize: screenWidth*0.038,
                           color: Color(0xFF506497),
                         ),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: screenWidth*0.0285),
 
                   const Divider(color: Color(0xFFE4E4E4), thickness: 1),
 
-                  const SizedBox(height: 12),
+                  SizedBox(height: screenWidth*0.0285),
 
                   // 버전 정보 텍스트
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: screenWidth*0.019),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -484,7 +526,7 @@ class SettingsScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Golos Text',
                             fontWeight: FontWeight.w500,
-                            fontSize: 16,
+                            fontSize: screenWidth*0.038,
                             color: Color(0xFF504A4A),
                           ),
                         ),
@@ -493,14 +535,14 @@ class SettingsScreen extends StatelessWidget {
                           style: TextStyle(
                             fontFamily: 'Golos Text',
                             fontWeight: FontWeight.w500,
-                            fontSize: 16,
+                            fontSize: screenWidth*0.038,
                             color: Color(0xFF506497),
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: screenWidth*0.02375),
                 ],
               ),
             ),
@@ -530,27 +572,27 @@ class SettingsScreen extends StatelessWidget {
                       /// ==============================
                       return Dialog(
                         backgroundColor: const Color(0xFFFCFCF7),
-                        insetPadding: const EdgeInsets.symmetric(
-                          horizontal: 40,
+                        insetPadding: EdgeInsets.symmetric(
+                          horizontal: screenWidth*0.095,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: SizedBox(
-                          width: 300,
+                          width: screenWidth*0.7125,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const SizedBox(height: 60),
+                              SizedBox(height: screenWidth*0.1425),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 20),
+                                padding: EdgeInsets.symmetric(horizontal: screenWidth*0.0475),
                                 child: RichText(
                                   textAlign: TextAlign.center,
                                   text: TextSpan(
                                     style: TextStyle(
-                                      fontSize: 15,
+                                      fontSize: screenWidth*0.035625,
                                       color: Color(0xFF716969),
-                                      fontWeight: FontWeight.w400,
+                                      fontWeight: FontWeight.w500,
                                       height: 1.5,
                                     ),
                                     children: [
@@ -584,7 +626,7 @@ class SettingsScreen extends StatelessWidget {
                                 ),
                               ),
 
-                              const SizedBox(height: 48),
+                              SizedBox(height: screenWidth*0.114),
                               const Divider(
                                 height: 1,
                                 thickness: 1,
@@ -607,14 +649,14 @@ class SettingsScreen extends StatelessWidget {
                                       /// ------------------------------
                                       onTap: () => Navigator.of(context).pop(),
                                       child: Container(
-                                        height: 48,
+                                        height: screenWidth*0.114,
                                         alignment: Alignment.center,
-                                        child: const Text(
+                                        child: Text(
                                           '아니오',
                                           style: TextStyle(
-                                            fontSize: 16,
+                                            fontSize: screenWidth*0.035625,
                                             color: Color(0xFF635E5E),
-                                            fontWeight: FontWeight.w400,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ),
@@ -622,7 +664,7 @@ class SettingsScreen extends StatelessWidget {
                                   ),
                                   Container(
                                     width: 1.5,
-                                    height: 48,
+                                    height: screenWidth*0.114,
                                     color: const Color(0xFFE5E5E5),
                                   ),
                                   Expanded(
@@ -657,12 +699,12 @@ class SettingsScreen extends StatelessWidget {
                                         );
                                       },
                                       child: Container(
-                                        height: 48,
+                                        height: screenWidth*0.114,
                                         alignment: Alignment.center,
-                                        child: const Text(
+                                        child: Text(
                                           '네',
                                           style: TextStyle(
-                                            fontSize: 16,
+                                            fontSize: screenWidth*0.035625,
                                             color: Color(0xFF2F3BDC),
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -679,13 +721,13 @@ class SettingsScreen extends StatelessWidget {
                     },
                   );
                 },
-                child: const Text(
+                child: Text(
                   '회원 탈퇴',
                   style: TextStyle(
                     color: Color(0xFFDA6464),
-                    fontSize: 16,
+                    fontSize: screenWidth*0.038,
                     fontFamily: 'Golos Text',
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),

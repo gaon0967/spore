@@ -75,7 +75,11 @@ List<TextSpan> _buildStyledTextSpans(AppNotification noti, String userName) {
   }
 }
 
-Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
+Widget _buildStyledNotiBox(
+  AppNotification noti,
+  BuildContext context,
+  Function(DateTime) onGoToCalendar,
+) {
   Color bgColor = Color(0xF4F4F4F4);
   String? label;
   String? badgeText;
@@ -84,30 +88,42 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
 
   final nameMatch = RegExp(r'(\S+)\s님').firstMatch(noti.content);
   final userName = nameMatch != null ? nameMatch.group(1)! : '';
-  
+
   final screenWidth = MediaQuery.of(context).size.width;
 
   if (noti.title.contains("D-Day")) {
     label = '일정';
-    iconWidget = Image.asset('assets/images/Notification/calendar.png', width: screenWidth*0.06, height: screenWidth*0.06);
+    iconWidget = Image.asset(
+      'assets/images/Notification/calendar.png',
+      width: screenWidth * 0.06,
+      height: screenWidth * 0.06,
+    );
     rightText = '바로 가기';
   } else if (noti.title.contains('친구')) {
     label = '친구';
-    iconWidget = Image.asset('assets/images/Notification/friend.png', width: screenWidth*0.09, height: screenWidth*0.09);
-    if(noti.content.contains('메세지를 보냈습니다')) {
+    iconWidget = Image.asset(
+      'assets/images/Notification/friend.png',
+      width: screenWidth * 0.09,
+      height: screenWidth * 0.09,
+    );
+    if (noti.content.contains('메세지를 보냈습니다')) {
       rightText = '메세지 보내기';
     } else {
       rightText = '바로 가기';
     }
   } else if (noti.title.contains('타이틀')) {
     label = '타이틀';
-    iconWidget = Image.asset('assets/images/Notification/title.png', width: screenWidth*0.06, height: screenWidth*0.06);
+    iconWidget = Image.asset(
+      'assets/images/Notification/title.png',
+      width: screenWidth * 0.06,
+      height: screenWidth * 0.06,
+    );
     badgeText = '언제든 놀자!';
     rightText = '바로 가기';
   }
 
   return Container(
-    padding: EdgeInsets.all(screenWidth*0.031),
+    padding: EdgeInsets.all(screenWidth * 0.031),
     decoration: BoxDecoration(
       color: bgColor,
       borderRadius: BorderRadius.circular(25),
@@ -129,8 +145,16 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
                 children: [
                   if (label != null)
                     Padding(
-                      padding: EdgeInsets.only(bottom: screenWidth*0.0005),
-                      child: Text(label, style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth*0.029, color: Color(0xFFA5A5A5))),
+                      padding: EdgeInsets.only(bottom: screenWidth * 0.0005),
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontFamily: 'Golos Text',
+                          fontWeight: FontWeight.w500,
+                          fontSize: screenWidth * 0.029,
+                          color: Color(0xFFA5A5A5),
+                        ),
+                      ),
                     ),
                   Wrap(
                     crossAxisAlignment: WrapCrossAlignment.center,
@@ -142,14 +166,25 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
                       ),
                       if (badgeText != null)
                         Container(
-                          margin: EdgeInsets.only(left: screenWidth*0.025),
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 1),
+                          margin: EdgeInsets.only(left: screenWidth * 0.025),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 1,
+                          ),
                           decoration: BoxDecoration(
                             color: Color(0xFFF4ECD2),
                             border: Border.all(color: Color(0xFF6A6A6A)),
                             borderRadius: BorderRadius.circular(47),
                           ),
-                          child: Text(badgeText, style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth*0.03, color: Color(0xFF413B3B))),
+                          child: Text(
+                            badgeText,
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontWeight: FontWeight.w500,
+                              fontSize: screenWidth * 0.03,
+                              color: Color(0xFF413B3B),
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -163,20 +198,31 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
             bottom: 0,
             right: 0,
             child: GestureDetector(
+              // 2. 전달받은 onGoToCalendar 함수를 여기서 호출합니다.
               onTap: () {
-                // D-Day 알림이고, dueDate 정보가 있을 때만 동작
                 if (noti.title.contains("D-Day") && noti.dueDate != null) {
-                  // 현재 알림 페이지를 닫고, HomeCalendar로 날짜 데이터를 반환
-                  Navigator.of(context).pop(noti.dueDate);
+                  onGoToCalendar(noti.dueDate!);
                 }
-                // (친구, 타이틀 알림의 '바로 가기' 동작은 여기에 추가)
               },
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(rightText, style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth*0.028, color: Color(0xFF635E5E))),
-                  SizedBox(width: screenWidth*0.02),
-                  Image.asset('assets/images/Setting/chevron.png', width: screenWidth*0.015, height: screenWidth*0.029, fit: BoxFit.contain),
+                  Text(
+                    rightText,
+                    style: TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontWeight: FontWeight.w500,
+                      fontSize: screenWidth * 0.028,
+                      color: Color(0xFF635E5E),
+                    ),
+                  ),
+                  SizedBox(width: screenWidth * 0.02),
+                  Image.asset(
+                    'assets/images/Setting/chevron.png',
+                    width: screenWidth * 0.015,
+                    height: screenWidth * 0.029,
+                    fit: BoxFit.contain,
+                  ),
                 ],
               ),
             ),
@@ -186,7 +232,6 @@ Widget _buildStyledNotiBox(AppNotification noti, BuildContext context) {
   );
 }
 // ---------------------------------
-
 
 class NotificationPage extends StatefulWidget {
   const NotificationPage({super.key});
@@ -198,7 +243,7 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends State<NotificationPage> {
   List<AppNotification> notiList = [];
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
-
+  int? _pressedIndex;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
@@ -211,30 +256,65 @@ class _NotificationPageState extends State<NotificationPage> {
   Future<void> _loadNotifications() async {
     if (_currentUser == null) return;
 
-    final (List<String> dismissedIds, List<ScheduledEvent> scheduledEvents) = await (
-      _fetchDismissedNotificationIds(),
-      _fetchScheduledEvents(),
-    ).wait;
+    final (List<String> dismissedIds, List<ScheduledEvent> scheduledEvents) =
+        await (_fetchDismissedNotificationIds(), _fetchScheduledEvents()).wait;
 
     await _cleanupDismissedIds(dismissedIds, scheduledEvents);
 
-    final dDayNotifications = _generateDDayNotifications(scheduledEvents, dismissedIds);
+    List<AppNotification> allPotentialNotifications = [];
 
+    //  D-Day 알림 추가 (아직 도착 안 한 알림 포함)
+    allPotentialNotifications.addAll(
+      _generateDDayNotifications(scheduledEvents, dismissedIds),
+    );
+
+    // 친구/타이틀 알림 추가 (아직 도착 안 한 알림 포함)
     final otherNotifications = [
-      AppNotification(id: "noti_002", title: "타이틀 알림", content: "타이틀을 획득했습니다!", timestamp: DateTime.now().subtract(const Duration(days: 1))),
-      AppNotification(id: "noti_003", title: "친구 알림", content: "김세모 님과 친구가 되었습니다.", timestamp: DateTime.now().subtract(const Duration(days: 2))),
-      AppNotification(id: "noti_004", title: "친구 알림", content: "김세모 님이 메세지를 보냈습니다.", timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 1))),
-      AppNotification(id: "noti_005", title: "친구 알림", content: "김네모 님이 친구신청을 보냈습니다.", timestamp: DateTime.now().subtract(const Duration(days: 3))),
+      AppNotification(
+        id: "noti_002",
+        title: "타이틀 알림",
+        content: "타이틀을 획득했습니다!",
+        timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      AppNotification(
+        id: "noti_003",
+        title: "친구 알림",
+        content: "김세모 님과 친구가 되었습니다.",
+        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+      AppNotification(
+        id: "noti_004",
+        title: "친구 알림",
+        content: "김세모 님이 메세지를 보냈습니다.",
+        timestamp: DateTime.now().subtract(const Duration(days: 2, hours: 1)),
+      ),
+      AppNotification(
+        id: "noti_005",
+        title: "친구 알림",
+        content: "김네모 님이 친구신청을 보냈습니다.",
+        timestamp: DateTime.now().subtract(const Duration(days: 3)),
+      ),
     ];
-    
-    final filteredOtherNotifications = otherNotifications.where((noti) => !dismissedIds.contains(noti.id)).toList();
-    filteredOtherNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-    
-    final allNotifications = [...dDayNotifications, ...filteredOtherNotifications];
-    
+    allPotentialNotifications.addAll(otherNotifications);
+
+    // 2. 현재 시간을 기준으로 최종적으로 화면에 보여줄 알림만 필터링합니다.
+    final now = DateTime.now();
+    final visibleNotifications =
+        allPotentialNotifications.where((noti) {
+          // 조건 1: 알림의 '도착 예정 시간(timestamp)'이 '현재 시간'보다 이전이어야 함 (즉, 이미 도착했어야 함)
+          final hasArrived = noti.timestamp.isBefore(now);
+          // 조건 2: 사용자가 '삭제'한 기록이 없어야 함
+          final notDismissed = !dismissedIds.contains(noti.id);
+
+          return hasArrived && notDismissed;
+        }).toList();
+
+    // 3. 화면에 보여줄 알림들을 최신순으로 정렬합니다.
+    visibleNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
     if (mounted) {
       setState(() {
-        notiList = allNotifications;
+        notiList = visibleNotifications;
       });
     }
   }
@@ -242,8 +322,10 @@ class _NotificationPageState extends State<NotificationPage> {
   Future<List<String>> _fetchDismissedNotificationIds() async {
     if (_currentUser == null) return [];
     try {
-      final userDoc = await _firestore.collection('users').doc(_currentUser!.uid).get();
-      if (userDoc.exists && userDoc.data()!.containsKey('dismissedNotificationIds')) {
+      final userDoc =
+          await _firestore.collection('users').doc(_currentUser!.uid).get();
+      if (userDoc.exists &&
+          userDoc.data()!.containsKey('dismissedNotificationIds')) {
         return List<String>.from(userDoc.data()!['dismissedNotificationIds']);
       }
     } catch (e) {
@@ -252,16 +334,19 @@ class _NotificationPageState extends State<NotificationPage> {
     return [];
   }
 
-  Future<void> _cleanupDismissedIds(List<String> dismissedIds, List<ScheduledEvent> allEvents) async {
+  Future<void> _cleanupDismissedIds(
+    List<String> dismissedIds,
+    List<ScheduledEvent> allEvents,
+  ) async {
     if (_currentUser == null || dismissedIds.isEmpty) return;
 
     final eventsMap = {for (var e in allEvents) e.eventId: e};
-    
+
     final idsToRemove = <String>[];
 
     for (final dismissedId in dismissedIds) {
       if (!dismissedId.startsWith('dday_')) continue;
-  
+
       final eventId = dismissedId.replaceFirst('dday_', '');
       final correspondingEvent = eventsMap[eventId];
 
@@ -303,11 +388,14 @@ class _NotificationPageState extends State<NotificationPage> {
           final dateMap = data['date'] as Map<String, dynamic>;
           dateMap.forEach((dateString, dailyEventsMap) {
             final eventDate = DateTime.parse(dateString);
-            (dailyEventsMap as Map<String, dynamic>).forEach((eventId, eventData) {
+            (dailyEventsMap as Map<String, dynamic>).forEach((
+              eventId,
+              eventData,
+            ) {
               final title = eventData['title'] as String?;
               // isDone 필드를 읽어오고, 만약 필드가 없으면 기본값 false를 사용합니다.
               final isDone = eventData['isDone'] as bool? ?? false;
-              
+
               if (title != null) {
                 events.add(
                   ScheduledEvent(
@@ -328,11 +416,14 @@ class _NotificationPageState extends State<NotificationPage> {
     return events;
   }
 
-  List<AppNotification> _generateDDayNotifications(List<ScheduledEvent> events, List<String> dismissedIds) {
+  List<AppNotification> _generateDDayNotifications(
+    List<ScheduledEvent> events,
+    List<String> dismissedIds,
+  ) {
     final List<AppNotification> todayNotifications = [];
     final List<AppNotification> tomorrowNotifications = [];
     final List<AppNotification> sevenDaysLaterNotifications = [];
-    
+
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
 
@@ -342,22 +433,46 @@ class _NotificationPageState extends State<NotificationPage> {
         continue;
       }
 
-      final eventDate = DateTime(event.dueDate.year, event.dueDate.month, event.dueDate.day);
+      final eventDate = DateTime(
+        event.dueDate.year,
+        event.dueDate.month,
+        event.dueDate.day,
+      );
       String? contentTemplate;
       DateTime? notificationTimestamp; // 알림 시간을 저장할 변수
 
       // 1. 조건에 따라 알림 내용과 시간을 각각 설정합니다.
       if (eventDate.isAtSameMomentAs(today)) {
         contentTemplate = "오늘은 %이(가) 있는 날입니다.";
-        notificationTimestamp = DateTime(today.year, today.month, today.day, 7, 0); // 오늘 알림: 오전 7시
-      } 
-      else if (eventDate.isAtSameMomentAs(today.add(const Duration(days: 1)))) {
+        notificationTimestamp = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          7,
+          0,
+        ); // 오늘 알림: 오전 7시
+      } else if (eventDate.isAtSameMomentAs(
+        today.add(const Duration(days: 1)),
+      )) {
         contentTemplate = "까지 1일 남았습니다.";
-        notificationTimestamp = DateTime(today.year, today.month, today.day, 19, 0); // 내일 알림: 오후 7시
-      } 
-      else if (eventDate.isAtSameMomentAs(today.add(const Duration(days: 7)))) {
+        notificationTimestamp = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          19,
+          0,
+        ); // 내일 알림: 오후 7시
+      } else if (eventDate.isAtSameMomentAs(
+        today.add(const Duration(days: 7)),
+      )) {
         contentTemplate = "까지 7일 남았습니다.";
-        notificationTimestamp = DateTime(today.year, today.month, today.day, 21, 0); // 7일 뒤 알림: 오후 9시
+        notificationTimestamp = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          21,
+          0,
+        ); // 7일 뒤 알림: 오후 9시
       }
 
       // 2. 내용과 시간이 설정된 경우에만 알림 객체를 생성합니다.
@@ -374,14 +489,16 @@ class _NotificationPageState extends State<NotificationPage> {
         // 3. 날짜에 따라 맞는 리스트에 추가합니다.
         if (eventDate.isAtSameMomentAs(today)) {
           todayNotifications.add(notification);
-        } else if (eventDate.isAtSameMomentAs(today.add(const Duration(days: 1)))) {
+        } else if (eventDate.isAtSameMomentAs(
+          today.add(const Duration(days: 1)),
+        )) {
           tomorrowNotifications.add(notification);
         } else {
           sevenDaysLaterNotifications.add(notification);
         }
       }
     }
-    
+
     return [
       ...todayNotifications,
       ...tomorrowNotifications,
@@ -394,19 +511,21 @@ class _NotificationPageState extends State<NotificationPage> {
     final userDocRef = _firestore.collection('users').doc(_currentUser!.uid);
     try {
       await userDocRef.set({
-        'dismissedNotificationIds': FieldValue.arrayUnion([notificationId])
+        'dismissedNotificationIds': FieldValue.arrayUnion([notificationId]),
       }, SetOptions(merge: true));
     } catch (e) {
       print("알림 삭제 기록 저장 오류: $e");
     }
   }
 
-  Future<void> _dismissAllNotificationsInFirestore(List<String> notificationIds) async {
+  Future<void> _dismissAllNotificationsInFirestore(
+    List<String> notificationIds,
+  ) async {
     if (_currentUser == null || notificationIds.isEmpty) return;
     final userDocRef = _firestore.collection('users').doc(_currentUser!.uid);
     try {
       await userDocRef.set({
-        'dismissedNotificationIds': FieldValue.arrayUnion(notificationIds)
+        'dismissedNotificationIds': FieldValue.arrayUnion(notificationIds),
       }, SetOptions(merge: true));
     } catch (e) {
       print("전체 알림 삭제 기록 저장 오류: $e");
@@ -421,7 +540,9 @@ class _NotificationPageState extends State<NotificationPage> {
       builder: (BuildContext context) {
         return Dialog(
           backgroundColor: Color(0xFFFFFEF9),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
           child: Container(
             width: screenWidth * 0.7,
             height: screenWidth * 0.43,
@@ -456,23 +577,44 @@ class _NotificationPageState extends State<NotificationPage> {
                         onPressed: () => Navigator.of(context).pop(),
                         style: TextButton.styleFrom(
                           backgroundColor: Color(0xFFFFFEF9),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10))),
-                          padding: EdgeInsets.symmetric(vertical: screenWidth * 0.035),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(10),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenWidth * 0.035,
+                          ),
                         ),
-                        child: Text('아니오', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth * 0.035, color: Color(0xFF635E5E))),
+                        child: Text(
+                          '아니오',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: screenWidth * 0.035,
+                            color: Color(0xFF635E5E),
+                          ),
+                        ),
                       ),
                     ),
-                    Container(width: 1, height: screenWidth * 0.1, color: Color(0xFFE5E5E5)),
+                    Container(
+                      width: 1,
+                      height: screenWidth * 0.1,
+                      color: Color(0xFFE5E5E5),
+                    ),
                     Expanded(
                       child: TextButton(
                         onPressed: () async {
-                          final dDayIdsToDismiss = notiList
-                              .where((noti) => noti.id.startsWith('dday_'))
-                              .map((noti) => noti.id)
-                              .toList();
+                          final dDayIdsToDismiss =
+                              notiList
+                                  .where((noti) => noti.id.startsWith('dday_'))
+                                  .map((noti) => noti.id)
+                                  .toList();
 
                           if (dDayIdsToDismiss.isNotEmpty) {
-                            await _dismissAllNotificationsInFirestore(dDayIdsToDismiss);
+                            await _dismissAllNotificationsInFirestore(
+                              dDayIdsToDismiss,
+                            );
                           }
 
                           if (mounted) Navigator.of(context).pop();
@@ -483,10 +625,24 @@ class _NotificationPageState extends State<NotificationPage> {
                         },
                         style: TextButton.styleFrom(
                           backgroundColor: Color(0xFFFFFEF9),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.only(bottomRight: Radius.circular(10))),
-                          padding: EdgeInsets.symmetric(vertical: screenWidth * 0.035),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(10),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenWidth * 0.035,
+                          ),
                         ),
-                        child: Text('네', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth * 0.035, color: Color(0xFF2F3BDC))),
+                        child: Text(
+                          '네',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: screenWidth * 0.035,
+                            color: Color(0xFF2F3BDC),
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -507,7 +663,7 @@ class _NotificationPageState extends State<NotificationPage> {
       (context, animation) => _buildRemovingItem(removedItem, animation),
       duration: const Duration(milliseconds: 180),
     );
-    _dismissNotificationInFirestore(removedItem.id); 
+    _dismissNotificationInFirestore(removedItem.id);
     setState(() {});
   }
 
@@ -525,43 +681,74 @@ class _NotificationPageState extends State<NotificationPage> {
         ),
         titleSpacing: 0,
         leading: IconButton(
-          icon: Image.asset('assets/images/Setting/go.png', width: screenWidth * 0.045, height: screenWidth * 0.045),
+          icon: Image.asset(
+            'assets/images/Setting/go.png',
+            width: screenWidth * 0.045,
+            height: screenWidth * 0.045,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
         iconTheme: IconThemeData(color: Color(0xFF504A4A)),
-        title: Text('알림', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w700, fontSize: screenWidth * 0.047, color: Color(0xFF504A4A))),
+        title: Text(
+          '알림',
+          style: TextStyle(
+            fontFamily: 'Golos Text',
+            fontWeight: FontWeight.w700,
+            fontSize: screenWidth * 0.047,
+            color: Color(0xFF504A4A),
+          ),
+        ),
         actions: [
           Center(
             child: Padding(
-              padding: EdgeInsets.only(right: screenWidth * 0.07, bottom: screenWidth * 0.0005),
+              padding: EdgeInsets.only(
+                right: screenWidth * 0.07,
+                bottom: screenWidth * 0.0005,
+              ),
               child: GestureDetector(
                 onTap: notiList.isEmpty ? null : _clearNotis,
-                child: Text('전체 삭제', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w600, fontSize: screenWidth * 0.034, color: notiList.isEmpty ? Colors.grey : Color(0xFFDA6464))),
+                child: Text(
+                  '전체 삭제',
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontWeight: FontWeight.w600,
+                    fontSize: screenWidth * 0.034,
+                    color: notiList.isEmpty ? Colors.grey : Color(0xFFDA6464),
+                  ),
+                ),
               ),
             ),
           ),
         ],
       ),
-      body: notiList.isEmpty
-          ? Center(child: Text('알림이 없습니다.'))
-          : AnimatedList(
-              key: _listKey,
-              initialItemCount: notiList.length,
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              itemBuilder: (context, index, animation) {
-                final noti = notiList[index];
-                return _buildAnimatedItem(noti, index, animation);
-              },
-            ),
+      body:
+          notiList.isEmpty
+              ? Center(child: Text('알림이 없습니다.'))
+              : AnimatedList(
+                key: _listKey,
+                initialItemCount: notiList.length,
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                itemBuilder: (context, index, animation) {
+                  final noti = notiList[index];
+                  return _buildAnimatedItem(noti, index, animation);
+                },
+              ),
     );
   }
 
-  Widget _buildAnimatedItem(AppNotification noti, int idx, Animation<double> animation) {
+  Widget _buildAnimatedItem(
+    AppNotification noti,
+    int idx,
+    Animation<double> animation,
+  ) {
     final screenWidth = MediaQuery.of(context).size.width;
     return SizeTransition(
       sizeFactor: animation,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: 6),
+        margin: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.05,
+          vertical: 6,
+        ),
         child: Slidable(
           key: ValueKey(noti.id),
           endActionPane: ActionPane(
@@ -576,7 +763,36 @@ class _NotificationPageState extends State<NotificationPage> {
               ),
             ],
           ),
-          child: _buildStyledNotiBox(noti, context),
+          // Slidable의 자식 부분을 수정하여 터치 효과를 추가합니다.
+         child: Listener(
+            onPointerDown: (_) => setState(() => _pressedIndex = idx),
+            onPointerUp: (_) => setState(() => _pressedIndex = null),
+            onPointerCancel: (_) => setState(() => _pressedIndex = null),
+            child: Stack(
+              children: [
+                // 1. 배경 (실제 버튼이 있는 위젯)
+                _buildStyledNotiBox(noti, context, (date) {
+                  Navigator.of(context).pop(date);
+                }),
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: true, 
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOut,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(25),
+                        color:
+                            _pressedIndex == idx
+                                ? Colors.black.withAlpha(32)
+                                : Colors.transparent,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -590,23 +806,33 @@ class _NotificationPageState extends State<NotificationPage> {
     return SizeTransition(
       sizeFactor: animation,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: screenWidth * 0.05, vertical: 6),
+        margin: EdgeInsets.symmetric(
+          horizontal: screenWidth * 0.05,
+          vertical: 6,
+        ),
+        color: const Color(0xFFFFFEF9),
         child: Stack(
-          clipBehavior: Clip.none,
           children: [
             Positioned(
-              right: 0, top: 0, bottom: 0,
+              right: 0,
+              top: 0,
+              bottom: 0,
               width: actionPaneWidth,
               child: Container(
+                color: const Color(0xFFFFFEF9),
                 alignment: Alignment.center,
-                child: const Text('삭제', style: TextStyle(color: Color(0xFF979797))),
+                child: const Text(
+                  '삭제',
+                  style: TextStyle(color: Color(0xFF979797)),
+                ),
               ),
             ),
             Transform.translate(
               offset: Offset(-actionPaneWidth, 0),
               child: SizedBox(
                 width: totalWidth,
-                child: _buildStyledNotiBox(noti, context),
+                // ▼▼▼ 이 부분에 세 번째 인수를 추가했습니다 ▼▼▼
+                child: _buildStyledNotiBox(noti, context, (_) {}),
               ),
             ),
           ],
