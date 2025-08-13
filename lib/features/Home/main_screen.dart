@@ -155,7 +155,7 @@ class _MainScreenState extends State<MainScreen> {
                       : 'assets/images/mainpage/timetable_off.png',
                     width: screenWidth * 0.058,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: screenWidth*0.0095),
                   Text(
                     '시간표',
                     style: TextStyle(
