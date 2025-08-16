@@ -19,6 +19,7 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     bool alarmEnabled = true; // 알림 스위치 현재 상태 (샘플 데이터)
+    bool _isProfileEditOpen = false;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
@@ -45,7 +46,8 @@ class SettingsScreen extends StatelessWidget {
           /// ------------------------------
           onPressed: () => Navigator.of(context).pop(),
         ),
-        leadingWidth: 56, // 뒤로가기 화살표 아이콘의 위치 조정
+        leadingWidth: 56,
+        // 뒤로가기 화살표 아이콘의 위치 조정
         titleSpacing: 0, // 앱바 타이틀의 글자 위치 조정
       ),
 
@@ -73,13 +75,18 @@ class SettingsScreen extends StatelessWidget {
                     /// 예외: 없음
                     /// ------------------------------
                     onPressed: () {
+                      if (_isProfileEditOpen) return; // 이미 열려있으면 무시
+                      _isProfileEditOpen = true;
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
                           builder: (context) => const ProfileEdit(),
                           // 프로필 변경 버튼 클릭 시 ProfileEdit 화면으로 이동
                         ),
-                      );
+                      ).then((_) {
+                        _isProfileEditOpen = false;
+                      });
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Color(0xFFCDDEE3),

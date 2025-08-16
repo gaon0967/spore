@@ -6,6 +6,7 @@ import '../Psychology/PsychologyResult.dart'; // Character 모델
 import 'ChatScreen.dart';                     // ChatScreen 위젯
 import '../Calendar/Notification.dart' as CalendarNotification; // 별칭 import
 import '../Settings/settings_screen.dart';
+import 'package:new_project_1/features/Settings/TitleHandler.dart';
 
 class Friend {
   final String name;
@@ -144,6 +145,11 @@ class _FriendScreenState extends State<FriendScreen> {
           isFavorite: isFavorite,
           onFavoriteToggle: () => setState(() {
             isFavorite ? _favorites.remove(idx) : _favorites.add(idx);
+
+            // 즐겨찾기 타이틀 지급
+            handleFavoriteFriendTitle(_favorites.length, onUpdate: () {
+              setState(() {});
+            });
           }),
           onTap: () {
             final character = Character.getCharacterById(friend.characterId);
@@ -160,11 +166,24 @@ class _FriendScreenState extends State<FriendScreen> {
           },
           trailingButtons: [
             TextButton(
-              onPressed: () => _showConfirm('차단', () => setState(() => _friends.removeAt(idx))),
+              onPressed: () => _showConfirm(
+                  '차단',
+                      () => setState(() {
+                        _friends.removeAt(idx);
+                        // 친구맺기 타이틀 지급
+                        handleFriendCountChange(_friends.length);
+                      }),
+              ),
               child: const Text('차단', style: TextStyle(color: Colors.blue)),
             ),
             TextButton(
-              onPressed: () => _showConfirm('삭제', () => setState(() => _friends.removeAt(idx))),
+              onPressed: () => _showConfirm(
+                  '삭제',
+                      () => setState(()  {_friends.removeAt(idx);
+                        // 친구맺기 타이틀 지급
+                        handleFriendCountChange(_friends.length);
+                      })
+              ),
               child: const Text('삭제', style: TextStyle(color: Colors.red)),
             ),
           ],
@@ -249,6 +268,8 @@ class _FriendScreenState extends State<FriendScreen> {
                             _friends.add(Friend(name: request.name, tags: request.tags, characterId: request.characterId));
                             _incoming.remove(request);
                           });
+                          // 타이틀 지급
+                          handleFriendCountChange(_friends.length);
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${request.name}님과 친구가 되었습니다!')));
                         }
                       },

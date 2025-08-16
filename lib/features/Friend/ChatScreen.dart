@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../Psychology/PsychologyResult.dart'; // Character 모델
+import 'package:new_project_1/features/Settings/TitleHandler.dart';
 
 /// 채팅 메시지 데이터 클래스
 class _ChatMessage {
@@ -30,11 +31,20 @@ class _ChatScreenState extends State<ChatScreen> {
     ]);
   }
 
-  void _send() {
+  void _send() async {
     final text = _ctrl.text.trim();
     if (text.isEmpty) return;
     setState(() => _messages.add(_ChatMessage(text, true)));
     _ctrl.clear();
+
+    // 메시지 타이틀 지급
+    final myMessageCount = _messages.where((m)=> m.isMine).length;
+
+    final earnedTitles = await handleMessageSentTitle(myMessageCount);
+
+    if (earnedTitles.isNotEmpty) {
+      await addTitles(earnedTitles, onUpdate: () =>setState(() {}));
+    }
   }
 
   @override
