@@ -108,3 +108,5 @@ flutter:
       fonts:
         - asset: assets/fonts/GolosText-VariableFont_wght.ttf
           weight: 500
+        - asset: assets/fonts/GolosText-Bold.ttf
+          weight: 800
