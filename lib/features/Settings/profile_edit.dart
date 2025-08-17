@@ -388,6 +388,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           const SnackBar(content: Text('로그인이 필요합니다.')));
       return;
     }
+    final ref = FirebaseStorage.instance.ref().child('userImages/${user.uid}/profile.jpg');
+    TaskSnapshot snapshot = await ref.putFile(file);
+    final url = await snapshot.ref.getDownloadURL();
 
     try {
       final ref = FirebaseStorage.instance.ref().child('userImages/${user.uid}/profile.jpg');
