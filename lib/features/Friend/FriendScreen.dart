@@ -254,6 +254,7 @@ class _FriendScreenState extends State<FriendScreen> {
                       },
                       child: const Text('수락', style: TextStyle(color: Colors.green)),
                     ),
+
                     TextButton(
                       onPressed: () => _showConfirm('거절', () => setState(() => _incoming.remove(request))),
                       child: const Text('거절', style: TextStyle(color: Colors.red)),
