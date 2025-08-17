@@ -28,7 +28,50 @@ class _MainScreenState extends State<MainScreen> {
       _selectedIndex = index;
     });
   }
+  BottomNavigationBarItem _buildNavItem({
+    required int index,
+    required String label,
+    required String activeIconPath,
+    required String inactiveIconPath,
+    required BuildContext context, // context를 전달받도록 추가
+  }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSelected = _selectedIndex == index;
 
+    return BottomNavigationBarItem(
+      label: '', // label은 비워둡니다.
+      icon: AnimatedContainer(
+        duration: const Duration(milliseconds: 250), // 애니메이션 효과
+        curve: Curves.easeOut,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          // isSelected 상태에 따라 배경색과 모양 결정
+          color: isSelected ? Colors.grey.shade200 : Colors.transparent,
+          borderRadius: BorderRadius.circular(30), // 타원 모양
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Image.asset(
+              isSelected ? activeIconPath : inactiveIconPath,
+              width: screenWidth * 0.058,
+              height: screenWidth * 0.058, // 높이도 지정하여 아이콘 크기 고정
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: screenWidth * 0.024,
+                color: const Color(0xFF515151),
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -112,7 +155,7 @@ class _MainScreenState extends State<MainScreen> {
                       : 'assets/images/mainpage/timetable_off.png',
                     width: screenWidth * 0.058,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: screenWidth*0.0095),
                   Text(
                     '시간표',
                     style: TextStyle(
