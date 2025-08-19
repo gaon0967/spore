@@ -1,44 +1,103 @@
-// lib/features/Friend/friend_screen.dart
-
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:new_project_1/features/Friend/friend_management.dart';
-import '../Psychology/PsychologyResult.dart'; // Character 모델
-import 'ChatScreen.dart';                     // ChatScreen 위젯
-import '../Calendar/Notification.dart' as CalendarNotification; // 별칭 import
+import '../Psychology/PsychologyResult.dart';
+import 'ChatScreen.dart';
+import '../Calendar/Notification.dart' as CalendarNotification;
 import '../Settings/settings_screen.dart';
+import 'dart:math';
+
+// --- 데이터 모델 ---
 
 class Friend {
+  final String friendId;
   final String name;
+  final String nickName;
   final List<String> tags;
-  final int characterId;
+  final String profileImage;
+  final bool favorite;
+  final bool blockStatus;
+
   const Friend({
+    required this.friendId,
     required this.name,
+    required this.nickName,
     this.tags = const [],
-    required this.characterId,
+    this.profileImage = '',
+    this.favorite = false,
+    this.blockStatus = false,
   });
 }
 
 class FriendRequest {
-  final String name;
-  final List<String> tags;
-  final int characterId;
+  final String senderId;
+  final String receiverId;
+  final String senderName;
+  final String senderNickName;
+  final List<String> senderTags;
+  final String senderProfileImage;
+  final Timestamp timestamp;
+
   const FriendRequest({
-    required this.name,
-    this.tags = const [],
-    required this.characterId,
+    required this.senderId,
+    required this.receiverId,
+    required this.senderName,
+    required this.senderNickName,
+    this.senderTags = const [],
+    this.senderProfileImage = '',
+    required this.timestamp,
   });
+
+  factory FriendRequest.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return FriendRequest(
+      senderId: data['senderId'] ?? '',
+      receiverId: data['receiverId'] ?? '',
+      senderName: data['senderName'] ?? '',
+      senderNickName: data['senderNickName'] ?? '',
+      senderTags: List<String>.from(data['senderTags'] ?? []),
+      senderProfileImage: data['senderProfileImage'] ?? '',
+      timestamp: data['timestamp'] ?? Timestamp.now(),
+    );
+  }
 }
 
-class FriendRecommendation {
+class RecommendedUser {
+  final String uid;
   final String name;
+  final String nickName;
+  final String email;
   final List<String> tags;
-  final int characterId;
-  const FriendRecommendation({
+  final String profileImage;
+  final String bio;
+
+  const RecommendedUser({
+    required this.uid,
     required this.name,
+    required this.nickName,
+    required this.email,
     this.tags = const [],
-    required this.characterId,
+    this.profileImage = '',
+    this.bio = '',
   });
+
+  factory RecommendedUser.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return RecommendedUser(
+      uid: doc.id,
+      name: data['name'] ?? '',
+      nickName: data['nickName'] ?? '',
+      email: data['email'] ?? '',
+      tags: List<String>.from(data['title'] ?? []),
+      profileImage: data['profileImage'] ?? '',
+      bio: data['bio'] ?? '',
+    );
+  }
 }
+
+// --- 위젯 ---
 
 class FriendScreen extends StatefulWidget {
   final Function(Character)? onShowProfile;
@@ -47,37 +106,369 @@ class FriendScreen extends StatefulWidget {
   @override
   State<FriendScreen> createState() => _FriendScreenState();
 }
-//
-class _FriendScreenState extends State<FriendScreen> {
-  final List<Friend> _friends = [
-    const Friend(name: '가부기', tags: ['유일무이', '집순이'], characterId: 4),
-    const Friend(name: '햄부기', tags: ['유일무이', '소심이'], characterId: 6),
-    const Friend(name: '돼콩이', tags: ['맛잘알', '소포어의 식구'], characterId: 5),
-    const Friend(name: '오덴세', tags: ['인싸', '스포어의 비기너'], characterId: 2),
-  ];
-  final Set<int> _favorites = {};
-  final List<FriendRequest> _incoming = [
-    const FriendRequest(name: '리바이', tags: ['소심마', '집들이'], characterId: 3),
-    const FriendRequest(name: '김고양', tags: ['신비주의', '집순이'], characterId: 8),
-  ];
-  final List<FriendRequest> _outgoing = [
-    const FriendRequest(name: '김고양', tags: ['신비주의', '집순이'], characterId: 8),
-  ];
-  List<int> _virtualIds = [4, 2, 6];
-  final TextEditingController _codeCtrl = TextEditingController();
 
-  String _getProfileImagePath(int characterId) {
-    return 'assets/images/Setting/chac$characterId.png';
-  }
+class _FriendScreenState extends State<FriendScreen> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFunctions _functions = FirebaseFunctions.instanceFor(region: 'asia-northeast3');
+  final TextEditingController _emailCtrl = TextEditingController();
+  final Random _random = Random();
+  final CalendarNotification.NotificationService _notificationService = CalendarNotification.NotificationService();
+
+  String? get currentUserId => _auth.currentUser?.uid;
 
   @override
   void dispose() {
-    _codeCtrl.dispose();
+    _emailCtrl.dispose();
     super.dispose();
+  }
+
+  // 친구 목록 가져오기
+  Stream<List<Friend>> get friendsStream {
+    if (currentUserId == null) return Stream.value([]);
+    return _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('friends')
+        .where('blockStatus', isEqualTo: false)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<Friend> friends = [];
+      for (var doc in snapshot.docs) {
+        final friendData = doc.data();
+        final friendId = friendData['friendId'];
+        try {
+          final userDoc = await _firestore.collection('users').doc(friendId).get();
+          if (userDoc.exists) {
+            final userData = userDoc.data()!;
+            friends.add(Friend(
+              friendId: friendId,
+              name: userData['name'] ?? '',
+              nickName: userData['nickName'] ?? '',
+              tags: List<String>.from(userData['title'] ?? []),
+              profileImage: userData['profileImage'] ?? '',
+              favorite: friendData['favorite'] ?? false,
+              blockStatus: friendData['blockStatus'] ?? false,
+            ));
+          }
+        } catch (e) {
+          print('친구 정보 로딩 오류: $e');
+        }
+      }
+      return friends;
+    });
+  }
+
+  // 추천 친구 가져오기
+  Stream<List<RecommendedUser>> get recommendedUsersStream {
+    if (currentUserId == null) return Stream.value([]);
+
+    return _firestore
+        .collection('users')
+        .where('recommend', isEqualTo: true)
+        .limit(20)
+        .snapshots()
+        .asyncMap((snapshot) async {
+      List<RecommendedUser> recommended = [];
+      Set<String> friendIds = {};
+      try {
+        final friendsSnapshot = await _firestore
+            .collection('users')
+            .doc(currentUserId)
+            .collection('friends')
+            .get();
+        friendIds = friendsSnapshot.docs.map((doc) => doc.data()['friendId'] as String).toSet();
+      } catch (e) {
+        print('친구 목록 조회 오류: $e');
+      }
+
+      for (var doc in snapshot.docs) {
+        if (doc.id != currentUserId && !friendIds.contains(doc.id)) {
+          recommended.add(RecommendedUser.fromFirestore(doc));
+        }
+      }
+
+      recommended.shuffle(_random);
+      return recommended.take(10).toList();
+    });
+  }
+
+  // 받은 친구 신청 스트림
+  Stream<List<FriendRequest>> get incomingRequestsStream {
+    if (currentUserId == null) return Stream.value([]);
+    return _firestore
+        .collection('friendRequests')
+        .where('receiverId', isEqualTo: currentUserId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList());
+  }
+
+  // 보낸 친구 신청 스트림
+  Stream<List<FriendRequest>> get outgoingRequestsStream {
+    if (currentUserId == null) return Stream.value([]);
+    return _firestore
+        .collection('friendRequests')
+        .where('senderId', isEqualTo: currentUserId)
+        .orderBy('timestamp', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList());
+  }
+
+  void _refreshRecommendations() {
+    setState(() {});
+  }
+
+  // 친구 신청 보내기
+  Future<void> sendFriendRequestByEmail(String receiverEmail) async {
+    if (currentUserId == null) return;
+    if (receiverEmail == _auth.currentUser?.email) {
+      _showAlert('자신에게는 친구 신청을 할 수 없습니다.');
+      return;
+    }
+
+    try {
+      final userQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: receiverEmail)
+          .limit(1)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        _showAlert('해당 이메일의 사용자를 찾을 수 없습니다.');
+        return;
+      }
+
+      final targetUserDoc = userQuery.docs.first;
+      final receiverId = targetUserDoc.id;
+      final receiverData = targetUserDoc.data();
+
+      final friendDoc = await _firestore.collection('users').doc(currentUserId).collection('friends').doc(receiverId).get();
+      if (friendDoc.exists) {
+        _showAlert('이미 친구입니다.');
+        return;
+      }
+
+      final existingRequest = await _firestore
+          .collection('friendRequests')
+          .where('senderId', isEqualTo: currentUserId)
+          .where('receiverId', isEqualTo: receiverId)
+          .get();
+
+      if (existingRequest.docs.isNotEmpty) {
+        _showAlert('이미 친구 신청을 보냈습니다.');
+        return;
+      }
+
+      final currentUserDoc = await _firestore.collection('users').doc(currentUserId!).get();
+      final currentUserData = currentUserDoc.data()!;
+
+      await _firestore.collection('friendRequests').add({
+        'senderId': currentUserId,
+        'receiverId': receiverId,
+        'senderName': currentUserData['name'] ?? '',
+        'senderNickName': currentUserData['nickName'] ?? '',
+        'senderTags': currentUserData['title'] ?? [],
+        'senderProfileImage': currentUserData['profileImage'] ?? '',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+
+      await _notificationService.createFriendRequestNotification(
+          receiverId,
+          currentUserData['nickName'] ?? currentUserData['name'] ?? 'Unknown'
+      );
+
+      if (mounted) {
+        _emailCtrl.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${receiverData['nickName'] ?? receiverData['name']}님께 친구 신청을 보냈습니다.')),
+        );
+      }
+    } catch (e) {
+      _showAlert('친구 신청 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 친구 신청 수락
+  Future<void> acceptFriendRequest(FriendRequest request) async {
+    if (currentUserId == null) return;
+    try {
+      final batch = _firestore.batch();
+
+      final myFriendsRef = _firestore.collection('users').doc(currentUserId).collection('friends').doc(request.senderId);
+      final theirFriendsRef = _firestore.collection('users').doc(request.senderId).collection('friends').doc(currentUserId);
+      batch.set(myFriendsRef, {'friendId': request.senderId, 'favorite': false, 'blockStatus': false, 'createdAt': FieldValue.serverTimestamp()});
+      batch.set(theirFriendsRef, {'friendId': currentUserId, 'favorite': false, 'blockStatus': false, 'createdAt': FieldValue.serverTimestamp()});
+
+      final requestQuery = await _firestore
+          .collection('friendRequests')
+          .where('senderId', isEqualTo: request.senderId)
+          .where('receiverId', isEqualTo: currentUserId)
+          .get();
+
+      for (var doc in requestQuery.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+
+      final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
+      final myName = currentUserDoc.data()?['nickName'] ?? 'Unknown';
+      await _notificationService.createFriendAcceptedNotification(request.senderId, myName);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${request.senderNickName}님과 친구가 되었습니다!')),
+        );
+      }
+    } catch (e) {
+      _showAlert('친구 수락 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 친구 신청 거절
+  Future<void> rejectFriendRequest(FriendRequest request) async {
+    try {
+      final requestQuery = await _firestore
+          .collection('friendRequests')
+          .where('senderId', isEqualTo: request.senderId)
+          .where('receiverId', isEqualTo: currentUserId)
+          .get();
+
+      for (var doc in requestQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${request.senderNickName}님의 친구 신청을 거절했습니다.')),
+        );
+      }
+    } catch (e) {
+      _showAlert('친구 신청 거절 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 친구 차단
+  Future<void> blockFriend(Friend friend) async {
+    if (currentUserId == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .doc(friend.friendId)
+          .update({
+        'blockStatus': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${friend.nickName}님을 차단했습니다.')),
+        );
+      }
+    } catch (e) {
+      _showAlert('친구 차단 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 친구 삭제
+  Future<void> deleteFriend(Friend friend) async {
+    if (currentUserId == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .doc(friend.friendId)
+          .delete();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${friend.nickName}님을 친구 목록에서 삭제했습니다.')),
+        );
+      }
+    } catch (e) {
+      _showAlert('친구 삭제 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 즐겨찾기 토글
+  Future<void> toggleFavorite(Friend friend) async {
+    if (currentUserId == null) return;
+    try {
+      await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .doc(friend.friendId)
+          .update({
+        'favorite': !friend.favorite,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+    } catch (e) {
+      _showAlert('즐겨찾기 설정 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  // 친구 신청 취소
+  Future<void> cancelFriendRequest(FriendRequest request) async {
+    try {
+      final requestQuery = await _firestore
+          .collection('friendRequests')
+          .where('senderId', isEqualTo: currentUserId)
+          .where('receiverId', isEqualTo: request.receiverId)
+          .get();
+
+      for (var doc in requestQuery.docs) {
+        await doc.reference.delete();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('친구 신청을 취소했습니다.')),
+        );
+      }
+    } catch (e) {
+      _showAlert('친구 신청 취소 중 오류가 발생했습니다: $e');
+    }
+  }
+
+  Future<String> getReceiverNickName(String receiverId) async {
+    if (receiverId.isEmpty) return '알 수 없음';
+
+    try {
+      final userDoc = await _firestore.collection('users').doc(receiverId).get();
+
+      if (userDoc.exists) {
+        final data = userDoc.data() as Map<String, dynamic>;
+
+        // ✅ 'nickName' 대신 'name' 필드를 사용하도록 수정합니다.
+        if (data.containsKey('name') && data['name'] != null) {
+          return data['name'];
+        } else {
+          // 혹시 모를 예외 상황에 대비해, 'name'이 없으면 'nickname'을 대신 보여줍니다.
+          return data['nickname'] ?? '이름 없음';
+        }
+      } else {
+        return '탈퇴한 사용자';
+      }
+    } catch (e) {
+      print('닉네임 가져오기 오류: $e');
+      return '오류 발생';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (currentUserId == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text('로그인이 필요합니다.'),
+        ),
+      );
+    }
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -91,7 +482,7 @@ class _FriendScreenState extends State<FriendScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const CalendarNotification.NotificationPage()
+                    builder: (context) => const CalendarNotification.NotificationPage()
                 ),
               );
             },
@@ -107,11 +498,16 @@ class _FriendScreenState extends State<FriendScreen> {
               },
             ),
           ],
-          bottom: const TabBar(
+          bottom: TabBar(
             indicatorColor: Colors.black,
             labelColor: Colors.black,
             unselectedLabelColor: Colors.grey,
-            tabs: [
+            onTap: (index) {
+              if (index == 2) {
+                _refreshRecommendations();
+              }
+            },
+            tabs: const [
               Tab(text: '친구 목록'),
               Tab(text: '신청 목록'),
               Tab(text: '추천 친구'),
@@ -130,44 +526,58 @@ class _FriendScreenState extends State<FriendScreen> {
   }
 
   Widget _buildFriendList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _friends.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, idx) {
-        final friend = _friends[idx];
-        final isFavorite = _favorites.contains(idx);
-        return _FriendTile(
-          name: friend.name,
-          tags: friend.tags,
-          tileColor: Colors.grey.shade50,
-          isFavorite: isFavorite,
-          onFavoriteToggle: () => setState(() {
-            isFavorite ? _favorites.remove(idx) : _favorites.add(idx);
-          }),
-          onTap: () {
-            final character = Character.getCharacterById(friend.characterId);
-            if (widget.onShowProfile != null) {
-              widget.onShowProfile!(character);
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FriendProfileScreen(character: character),
-                ),
-              );
-            }
+    return StreamBuilder<List<Friend>>(
+      stream: friendsStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('오류: ${snapshot.error}'));
+        }
+        final friends = snapshot.data ?? [];
+        if (friends.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('아직 친구가 없습니다', style: TextStyle(fontSize: 18, color: Colors.grey)),
+              ],
+            ),
+          );
+        }
+        return RefreshIndicator(
+          onRefresh: () async {
+            setState(() {});
           },
-          trailingButtons: [
-            TextButton(
-              onPressed: () => _showConfirm('차단', () => setState(() => _friends.removeAt(idx))),
-              child: const Text('차단', style: TextStyle(color: Colors.blue)),
-            ),
-            TextButton(
-              onPressed: () => _showConfirm('삭제', () => setState(() => _friends.removeAt(idx))),
-              child: const Text('삭제', style: TextStyle(color: Colors.red)),
-            ),
-          ],
+          child: ListView.separated(
+            padding: const EdgeInsets.all(16),
+            itemCount: friends.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, idx) {
+              final friend = friends[idx];
+              return _FriendTile(
+                name: friend.nickName,
+                tags: friend.tags,
+                tileColor: Colors.grey.shade50,
+                isFavorite: friend.favorite,
+                onFavoriteToggle: () => toggleFavorite(friend),
+                onTap: () {},
+                trailingButtons: [
+                  TextButton(
+                    onPressed: () => _showConfirm('차단', () => blockFriend(friend)),
+                    child: const Text('차단', style: TextStyle(color: Colors.blue)),
+                  ),
+                  TextButton(
+                    onPressed: () => _showConfirm('삭제', () => deleteFriend(friend)),
+                    child: const Text('삭제', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
+              );
+            },
+          ),
         );
       },
     );
@@ -182,12 +592,16 @@ class _FriendScreenState extends State<FriendScreen> {
             children: [
               Expanded(
                 child: TextField(
-                  controller: _codeCtrl,
+                  controller: _emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
-                    hintText: '친구 코드로 추가',
+                    hintText: '이메일로 친구 추가',
                     filled: true,
                     fillColor: Colors.grey.shade200,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
                 ),
@@ -195,13 +609,9 @@ class _FriendScreenState extends State<FriendScreen> {
               const SizedBox(width: 8),
               ElevatedButton(
                 onPressed: () {
-                  final code = _codeCtrl.text.trim();
-                  if (code.isNotEmpty) {
-                    setState(() {
-                      _outgoing.add(FriendRequest(name: code, tags: const [], characterId: 1));
-                    });
-                    _codeCtrl.clear();
-                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('[$code]님께 요청을 보냈습니다.')));
+                  final email = _emailCtrl.text.trim();
+                  if (email.isNotEmpty) {
+                    sendFriendRequestByEmail(email);
                   }
                 },
                 style: ElevatedButton.styleFrom(
@@ -214,82 +624,109 @@ class _FriendScreenState extends State<FriendScreen> {
             ],
           ),
           const SizedBox(height: 24),
+          // 받은 친구 신청
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
               title: const Text('나랑 친구해줘!', style: TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: Colors.white,
-              children: _incoming.map((request) {
-                return _FriendTile(
-                  name: request.name,
-                  tags: request.tags,
-                  tileColor: const Color(0xFFE8F0FE),
-                  isFavorite: false,
-                  onFavoriteToggle: null,
-                  onTap: () {
-                    final character = Character.getCharacterById(request.characterId);
-                    if (widget.onShowProfile != null) {
-                      widget.onShowProfile!(character);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => FriendProfileScreen(character: character)),
+              children: [
+                StreamBuilder<List<FriendRequest>>(
+                  stream: incomingRequestsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final requests = snapshot.data ?? [];
+                    if (requests.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('받은 친구 신청이 없습니다.'),
                       );
                     }
+                    return Column(
+                      children: requests.map((request) {
+                        return _FriendTile(
+                          name: request.senderNickName,
+                          tags: request.senderTags,
+                          tileColor: const Color(0xFFE8F0FE),
+                          isFavorite: false,
+                          onFavoriteToggle: null,
+                          onTap: () {},
+                          tagBgColor: const Color(0xFFD0E4FF),
+                          tagTextColor: const Color(0xFF0066CC),
+                          trailingButtons: [
+                            TextButton(
+                              onPressed: () => acceptFriendRequest(request),
+                              child: const Text('수락', style: TextStyle(color: Colors.green)),
+                            ),
+                            TextButton(
+                              onPressed: () => _showConfirm('거절', () => rejectFriendRequest(request)),
+                              child: const Text('거절', style: TextStyle(color: Colors.red)),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    );
                   },
-                  tagBgColor: const Color(0xFFD0E4FF),
-                  tagTextColor: const Color(0xFF0066CC),
-                  trailingButtons: [
-                    TextButton(
-                      onPressed: () {
-                        if (_friends.any((f) => f.name == request.name)) {
-                          _showAlert('이미 친구 목록에 있습니다.');
-                        } else {
-                          setState(() {
-                            _friends.add(Friend(name: request.name, tags: request.tags, characterId: request.characterId));
-                            _incoming.remove(request);
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${request.name}님과 친구가 되었습니다!')));
-                        }
-                      },
-                      child: const Text('수락', style: TextStyle(color: Colors.green)),
-                    ),
-                    TextButton(
-                      onPressed: () => _showConfirm('거절', () => setState(() => _incoming.remove(request))),
-                      child: const Text('거절', style: TextStyle(color: Colors.red)),
-                    ),
-                  ],
-                );
-              }).toList(),
+                ),
+              ],
             ),
           ),
           const Divider(height: 32, thickness: 1),
+          // 보낸 친구 신청
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
+              initiallyExpanded: true,
               title: const Text('언제쯤 받아줄까...', style: TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: Colors.white,
-              children: _outgoing.map((request) {
-                return _FriendTile(
-                  name: request.name,
-                  tags: request.tags,
-                  tileColor: const Color(0xFFFBF5EB),
-                  isFavorite: false,
-                  onFavoriteToggle: null,
-                  onTap: () {},
-                  trailingButtons: [
-                    ElevatedButton(
-                      onPressed: () => setState(() => _outgoing.remove(request)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade800,
-                        shape: const StadiumBorder(),
-                        minimumSize: const Size(100, 36),
-                      ),
-                      child: const Text('친구 신청 취소', style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                );
-              }).toList(),
+              children: [
+                StreamBuilder<List<FriendRequest>>(
+                  stream: outgoingRequestsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final requests = snapshot.data ?? [];
+                    if (requests.isEmpty) {
+                      return const Padding(
+                        padding: EdgeInsets.all(16.0),
+                        child: Text('보낸 친구 신청이 없습니다.'),
+                      );
+                    }
+                    return Column(
+                      children: requests.map((request) {
+                        return FutureBuilder<String>(
+                          future: getReceiverNickName(request.receiverId),
+                          builder: (context, snapshot) {
+                            final receiverNickName = snapshot.data ?? '...';
+                            return _FriendTile(
+                              name: receiverNickName,
+                              tags: const [],
+                              tileColor: const Color(0xFFFBF5EB),
+                              isFavorite: false,
+                              onFavoriteToggle: null,
+                              onTap: () {},
+                              trailingButtons: [
+                                ElevatedButton(
+                                  onPressed: () => cancelFriendRequest(request),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.grey.shade800,
+                                    shape: const StadiumBorder(),
+                                    minimumSize: const Size(100, 36),
+                                  ),
+                                  child: const Text('친구 신청 취소', style: TextStyle(color: Colors.white)),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+                      }).toList(),
+                    );
+                  },
+                ),
+              ],
             ),
           ),
         ],
@@ -298,109 +735,142 @@ class _FriendScreenState extends State<FriendScreen> {
   }
 
   Widget _buildRecommendationSlider() {
-    if (_virtualIds.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return StreamBuilder<List<RecommendedUser>>(
+      stream: recommendedUsersStream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('오류: ${snapshot.error}'));
+        }
+        final recommendedUsers = snapshot.data ?? [];
+        if (recommendedUsers.isEmpty) {
+          return const Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.people_outline, size: 64, color: Colors.grey),
+                SizedBox(height: 16),
+                Text('추천할 친구가 없습니다', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500)),
+                SizedBox(height: 8),
+                Text('새로운 친구들이 곧 추천될 예정입니다!', style: TextStyle(fontSize: 14, color: Colors.grey)),
+              ],
+            ),
+          );
+        }
+        return Column(
           children: [
-            Icon(Icons.people_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text('추천할 친구가 없습니다', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500)),
-            SizedBox(height: 8),
-            Text('새로운 친구들이 곧 추천될 예정입니다!', style: TextStyle(fontSize: 14, color: Colors.grey)),
-          ],
-        ),
-      );
-    }
-    return Column(
-      children: [
-        Expanded(
-          child: PageView.builder(
-            controller: PageController(viewportFraction: 0.85),
-            itemCount: _virtualIds.length,
-            itemBuilder: (context, i) {
-              final character = Character.getCharacterById(_virtualIds[i]);
-              return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                child: Container(
-                  decoration: BoxDecoration(color: const Color(0xFFF7EFE6), borderRadius: BorderRadius.circular(20)),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 110,
-                        height: 110,
-                        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: Colors.brown[100]!, width: 3), color: Colors.white),
-                        child: ClipOval(
-                          child: Transform.translate(
-                            offset: const Offset(0, -10),
-                            child: Image.asset(_getProfileImagePath(_virtualIds[i]), fit: BoxFit.cover),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset('assets/images/friendScreen/star_on.png', width: 20, height: 20),
-                          const SizedBox(width: 6),
-                          Text(character.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children: character.keywords
-                            .map((tag) => Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: Colors.yellow.shade100, borderRadius: BorderRadius.circular(8)),
-                          child: Text('#$tag', style: const TextStyle(fontSize: 13, color: Colors.brown)),
-                        ))
-                            .toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                        decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10)),
-                        child: Text(character.speech, textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_outgoing.any((r) => r.name == character.name)) {
-                            _showAlert('이미 신청 목록에 있습니다.');
-                          } else if (_friends.any((f) => f.name == character.name)) {
-                            _showAlert('이미 친구 목록에 있습니다.');
-                          } else {
-                            setState(() {
-                              _outgoing.add(FriendRequest(name: character.name, tags: character.keywords, characterId: character.id));
-                              _virtualIds.remove(character.id);
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${character.name}님께 요청했습니다.')));
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade800,
-                          shape: const StadiumBorder(),
-                          minimumSize: const Size(140, 44),
-                        ),
-                        child: const Text('친구 신청', style: TextStyle(color: Colors.white)),
-                      ),
-                    ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('추천 친구', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  IconButton(
+                    onPressed: _refreshRecommendations,
+                    icon: const Icon(Icons.refresh, color: Colors.grey),
+                    tooltip: '새로운 추천 친구 보기',
                   ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: () async => _refreshRecommendations(),
+                child: PageView.builder(
+                  controller: PageController(viewportFraction: 0.85),
+                  itemCount: recommendedUsers.length,
+                  itemBuilder: (context, i) {
+                    final user = recommendedUsers[i];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF7EFE6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 110,
+                              height: 110,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.brown[100]!, width: 3),
+                                color: Colors.white,
+                              ),
+                              child: ClipOval(
+                                child: user.profileImage.isNotEmpty
+                                    ? Image.network(user.profileImage, fit: BoxFit.cover)
+                                    : const Icon(Icons.person, size: 60, color: Colors.grey),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset('assets/images/friendScreen/star_on.png', width: 20, height: 20),
+                                const SizedBox(width: 6),
+                                Text(user.nickName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 4,
+                              children: user.tags.map((tag) => Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: Colors.yellow.shade100, borderRadius: BorderRadius.circular(8)),
+                                child: Text('#$tag', style: const TextStyle(fontSize: 13, color: Colors.brown)),
+                              )).toList(),
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10)),
+                              child: Text(user.bio.isNotEmpty ? user.bio : '안녕하세요!', textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
+                            ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () => sendFriendRequestByEmail(user.email),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.grey.shade800,
+                                shape: const StadiumBorder(),
+                                minimumSize: const Size(140, 44),
+                              ),
+                              child: const Text('친구 신청', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
-        ),
-        if (_virtualIds.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          const Text('옆으로 스와이프 하세요', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 16),
-        ],
-      ],
+              ),
+            ),
+            if (recommendedUsers.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('옆으로 스와이프 하세요', style: TextStyle(color: Colors.grey)),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.refresh, size: 16, color: Colors.grey),
+                  const SizedBox(width: 4),
+                  GestureDetector(
+                    onTap: _refreshRecommendations,
+                    child: const Text('새로고침', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ],
+        );
+      },
     );
   }
 
@@ -408,42 +878,60 @@ class _FriendScreenState extends State<FriendScreen> {
     showDialog(
       context: context,
       barrierColor: Colors.black.withOpacity(0.2),
-      builder: (context) => Dialog(
+      builder: (BuildContext dialogContext) => Dialog(
         backgroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Text('정말 $action 하시겠습니까?', textAlign: TextAlign.center, style: const TextStyle(fontSize: 17)),
-            const SizedBox(height: 24),
-            Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                style: TextButton.styleFrom(backgroundColor: Colors.grey.shade200, minimumSize: const Size(100, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: const Text('아니요'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('정말 $action 하시겠습니까?', textAlign: TextAlign.center, style: const TextStyle(fontSize: 17)),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.grey.shade200,
+                      minimumSize: const Size(100, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('아니요'),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pop(dialogContext);
+                      onOk();
+                    },
+                    style: TextButton.styleFrom(
+                      backgroundColor: Colors.red.shade50,
+                      minimumSize: const Size(100, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('네', style: TextStyle(color: Colors.red)),
+                  ),
+                ],
               ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  onOk();
-                },
-                style: TextButton.styleFrom(backgroundColor: Colors.red.shade50, minimumSize: const Size(100, 44), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: const Text('네', style: TextStyle(color: Colors.red)),
-              ),
-            ]),
-          ]),
+            ],
+          ),
         ),
       ),
     );
   }
 
   void _showAlert(String message) {
+    if (!mounted) return;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (BuildContext dialogContext) => AlertDialog(
         content: Text(message),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('확인'))
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('확인'),
+          ),
         ],
       ),
     );
@@ -485,13 +973,22 @@ class _FriendTile extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(color: tileColor, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: tileColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Row(
           children: [
             if (onFavoriteToggle != null) ...[
               GestureDetector(
                 onTap: onFavoriteToggle,
-                child: Image.asset(isFavorite ? 'assets/images/friendScreen/star_on.png' : 'assets/images/friendScreen/star_off.png', width: 24, height: 24),
+                child: Image.asset(
+                  isFavorite
+                      ? 'assets/images/friendScreen/star_on.png'
+                      : 'assets/images/friendScreen/star_off.png',
+                  width: 24,
+                  height: 24,
+                ),
               ),
               const SizedBox(width: 12),
             ],
@@ -509,8 +1006,7 @@ class _FriendTile extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: tagBackground, borderRadius: BorderRadius.circular(8)),
                       child: Text('#$tag', style: TextStyle(fontSize: 12, color: tagText)),
-                    ))
-                        .toList(),
+                    )).toList(),
                   ),
                 ],
               ),
@@ -518,235 +1014,6 @@ class _FriendTile extends StatelessWidget {
             ...trailingButtons,
           ],
         ),
-      ),
-    );
-  }
-}
-
-class FriendProfileScreen extends StatelessWidget {
-  final Character character;
-  final VoidCallback? onBack;
-
-  const FriendProfileScreen({required this.character, this.onBack, Key? key}) : super(key: key);
-
-  String _getProfileImagePath(int characterId) => 'assets/images/Setting/chac$characterId.png';
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black, size: 20),
-          onPressed: () {
-            if (onBack != null) {
-              onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const CalendarNotification.NotificationPage()
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.grey, size: 24),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 40),
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white, boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 8))]),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: ClipOval(
-                          child: Transform.scale(scale: 0.8, child: Image.asset(_getProfileImagePath(character.id), fit: BoxFit.cover)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset('assets/images/friendScreen/star_on.png', width: 20, height: 20),
-                        const SizedBox(width: 8),
-                        Text(character.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black)),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: const Color(0xFFFFF9E6), borderRadius: BorderRadius.circular(16)),
-                      width: double.infinity,
-                      child: Column(
-                        children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: character.keywords
-                                  .map((keyword) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                decoration: BoxDecoration(color: const Color(0xFFFFF9E6), borderRadius: BorderRadius.circular(15), border: Border.all(color: const Color(0xFFE6C35C), width: 2)),
-                                child: Text('# $keyword', style: const TextStyle(fontSize: 13, color: Colors.black87, fontWeight: FontWeight.w600)),
-                              ))
-                                  .toList(),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                            decoration: BoxDecoration(color: const Color(0xFFE8E8E8), borderRadius: BorderRadius.circular(12)),
-                            width: double.infinity,
-                            constraints: const BoxConstraints(minHeight: 80),
-                            child: Text(character.speech, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.6)),
-                          ),
-                          Container(width: double.infinity, height: 1, color: const Color(0xFFE0E0E0), margin: const EdgeInsets.symmetric(vertical: 20)),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (_) => ChatScreen(character: character)));
-                                },
-                                style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFB8A598), foregroundColor: Colors.white, minimumSize: const Size(100, 40), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)), elevation: 0),
-                                child: const Text('채팅', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                              ),
-                              const SizedBox(width: 12),
-                              OutlinedButton(
-                                onPressed: () {
-                                  if (onBack != null) {
-                                    onBack!();
-                                  } else {
-                                    Navigator.pop(context);
-                                  }
-                                },
-                                style: OutlinedButton.styleFrom(foregroundColor: const Color(0xFFFF6B6B), backgroundColor: const Color(0xFFFFF0F0), side: BorderSide.none, minimumSize: const Size(100, 40), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))),
-                                child: const Text('나가기', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-
-class FriendPage extends StatefulWidget {
-  const FriendPage({Key? key}) : super(key: key);
-
-  @override
-  State<FriendPage> createState() => _FriendPageState();
-}
-
-class _FriendPageState extends State<FriendPage> {
-  bool _recommendationsEnabled = true;
-
-  @override
-  Widget build(BuildContext context) {
-    print('현재 추천친구 상태: $_recommendationsEnabled');
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('친구'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // 방법 1: async/await 없이 then을 사용
-              Navigator.push<bool>(
-                context,
-                MaterialPageRoute(builder: (_) => const FriendManagementScreen()),
-              ).then((result) {
-                print('받아온 값: $result');
-
-                if (result != null) {
-                  setState(() {
-                    _recommendationsEnabled = result;
-                    print('적용된 상태: $_recommendationsEnabled');
-                  });
-                }
-              });
-
-              // 또는 방법 2: FriendManagementScreen에서 값을 정확히 반환하는지 확인
-              // async/await를 유지하면서 아래 코드는 그대로 사용
-            },
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          const SizedBox(height: 24),
-          if (_recommendationsEnabled)
-            const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text(
-                '✨ 추천 친구 목록 ✨',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-              ),
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text(
-                '🚫 추천 친구를 비활성화했습니다.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-            ),
-          const Divider(),
-          if (_recommendationsEnabled)
-            Expanded(
-              child: ListView.builder(
-                itemCount: 5, // 예시
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.person)),
-                    title: Text('친구 ${index + 1}'),
-                  );
-                },
-              ),
-            )
-          else
-            const SizedBox(), // 추천친구 비활성화 시 아무것도 안보이게
-        ],
       ),
     );
   }
