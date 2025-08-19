@@ -3,7 +3,8 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:new_project_1/auth/LoginHome.dart';
-import 'package.naver_login_sdk/naver_login_sdk.dart';
+// 🔥 Fixed Naver Login SDK import
+import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 친구 관리 화면
 import 'dart:math' as math;

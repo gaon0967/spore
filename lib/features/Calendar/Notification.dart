@@ -21,9 +21,18 @@ class NotificationService {
     String? type,
     Map<String, dynamic>? data,
   }) async {
+    // ✅ 'users' 컬렉션 아래의 'notifications' 하위 컬렉션으로 경로 변경
+    if (receiverId.isEmpty) {
+      print('알림 생성 오류: receiverId가 비어있습니다.');
+      return;
+    }
     try {
-      await _firestore.collection('notifications').add({
-        'receiverId': receiverId,
+      await _firestore
+          .collection('users')
+          .doc(receiverId)
+          .collection('notifications')
+          .add({
+        // 'receiverId'는 경로에 포함되므로 문서 데이터에서는 필수가 아님 (필요시 유지)
         'title': title,
         'content': content,
         'timestamp': FieldValue.serverTimestamp(),
@@ -31,7 +40,6 @@ class NotificationService {
         'type': type,
         'data': data,
         'read': false,
-        'uid': receiverId, // 🔥 보안 규칙 준수를 위한 필드
       });
     } catch (e) {
       print('알림 생성 오류: $e');
@@ -75,13 +83,22 @@ class NotificationService {
       final batch = _firestore.batch();
       final myFriendsRef = _firestore.collection('users').doc(currentUserId).collection('friends').doc(senderId);
       final theirFriendsRef = _firestore.collection('users').doc(senderId).collection('friends').doc(currentUserId);
-      batch.set(myFriendsRef, {'friendId': senderId, 'favorite': false, 'blockStatus': false, 'uid': currentUserId, 'createdAt': FieldValue.serverTimestamp()});
-      batch.set(theirFriendsRef, {'friendId': currentUserId, 'favorite': false, 'blockStatus': false, 'uid': senderId, 'createdAt': FieldValue.serverTimestamp()});
+      batch.set(myFriendsRef, {'friendId': senderId, 'favorite': false, 'blockStatus': false, 'createdAt': FieldValue.serverTimestamp()});
+      batch.set(theirFriendsRef, {'friendId': currentUserId, 'favorite': false, 'blockStatus': false, 'createdAt': FieldValue.serverTimestamp()});
 
+      // ✅ 참고: 친구 요청 경로는 이전 대화에서 수정한 버전을 사용해야 합니다.
+      // 여기서는 최상위 컬렉션으로 가정하고 작성합니다.
       final requestQuery = await _firestore.collection('friendRequests').where('senderId', isEqualTo: senderId).where('receiverId', isEqualTo: currentUserId).get();
       for (var doc in requestQuery.docs) { batch.delete(doc.reference); }
 
-      final notificationQuery = await _firestore.collection('notifications').where('receiverId', isEqualTo: currentUserId).where('senderId', isEqualTo: senderId).where('type', isEqualTo: 'friend_request').get();
+      // ✅ 알림 삭제 경로를 하위 컬렉션으로 변경
+      final notificationQuery = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('notifications')
+          .where('senderId', isEqualTo: senderId)
+          .where('type', isEqualTo: 'friend_request')
+          .get();
       for (var doc in notificationQuery.docs) { batch.delete(doc.reference); }
 
       await batch.commit();
@@ -100,10 +117,18 @@ class NotificationService {
     if (currentUserId == null) return;
     try {
       final batch = _firestore.batch();
+
       final requestQuery = await _firestore.collection('friendRequests').where('senderId', isEqualTo: senderId).where('receiverId', isEqualTo: currentUserId).get();
       for (var doc in requestQuery.docs) { batch.delete(doc.reference); }
 
-      final notificationQuery = await _firestore.collection('notifications').where('receiverId', isEqualTo: currentUserId).where('senderId', isEqualTo: senderId).where('type', isEqualTo: 'friend_request').get();
+      // ✅ 알림 삭제 경로를 하위 컬렉션으로 변경
+      final notificationQuery = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('notifications')
+          .where('senderId', isEqualTo: senderId)
+          .where('type', isEqualTo: 'friend_request')
+          .get();
       for (var doc in notificationQuery.docs) { batch.delete(doc.reference); }
       await batch.commit();
     } catch (e) {
@@ -115,9 +140,11 @@ class NotificationService {
   // 내 알림 목록 실시간으로 가져오기
   Stream<List<AppNotification>> getMyNotifications() {
     if (currentUserId == null) return Stream.value([]);
+    // ✅ 알림 조회 경로를 하위 컬렉션으로 변경 (where 불필요)
     return _firestore
+        .collection('users')
+        .doc(currentUserId)
         .collection('notifications')
-        .where('receiverId', isEqualTo: currentUserId)
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) => snapshot.docs.map((doc) => AppNotification.fromFirestore(doc)).toList());
@@ -125,14 +152,26 @@ class NotificationService {
 
   // 알림 한 개 삭제
   Future<void> deleteNotification(String notificationId) async {
-    await _firestore.collection('notifications').doc(notificationId).delete();
+    if (currentUserId == null) return;
+    // ✅ 알림 삭제 경로를 하위 컬렉션으로 변경
+    await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('notifications')
+        .doc(notificationId)
+        .delete();
   }
 
   // 모든 알림 삭제
   Future<void> deleteAllNotifications() async {
     if (currentUserId == null) return;
     final batch = _firestore.batch();
-    final notifications = await _firestore.collection('notifications').where('receiverId', isEqualTo: currentUserId).get();
+    // ✅ 모든 알림 조회 경로를 하위 컬렉션으로 변경
+    final notifications = await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('notifications')
+        .get();
     for (var doc in notifications.docs) {
       batch.delete(doc.reference);
     }
@@ -403,6 +442,7 @@ Widget _buildRequestButtons(BuildContext context, AppNotification noti, String u
     children: [
       TextButton(
         onPressed: () async {
+          if (noti.senderId == null) return;
           try {
             await service.acceptFriendRequest(noti.senderId!);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$userName님과 친구가 되었습니다!')));
@@ -416,6 +456,7 @@ Widget _buildRequestButtons(BuildContext context, AppNotification noti, String u
       SizedBox(width: 8),
       TextButton(
         onPressed: () async {
+          if (noti.senderId == null) return;
           try {
             await service.rejectFriendRequest(noti.senderId!);
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('친구 요청을 거절했습니다.')));
