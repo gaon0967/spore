@@ -303,37 +303,53 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
   void _showEditIntroModal() {
     final controller = TextEditingController(text: introText);
+    bool _isDialogShowing = false;
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (modalContext) {
         final bottomInset = MediaQuery.of(modalContext).viewInsets.bottom;
 
-        void finishIntroEdit() {
+        Future<void> saveIntroText(String userId, String intro) async {
+          await FirebaseFirestore.instance.collection('users').doc(userId).set({
+            'intro': intro,
+          }, SetOptions(merge: true));
+        }
+
+        void finishIntroEdit() async {
           final trimmed = controller.text.trim();
           if (trimmed.isEmpty) {
-            showDialog(
-              context: modalContext,
-              builder: (_) => AlertDialog(
-                title: const Text('입력 필요'),
-                content: const Text('최소 1자 이상 입력해주세요.'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.of(modalContext).pop(),
-                    child: const Text('확인'),
-                  ),
-                ],
-              ),
-            );
+            if (!_isDialogShowing) {
+              _isDialogShowing = true;
+              Navigator.of(modalContext).pop();
+              _showCompleteMessageDialog(context, '한 글자 이상 입력해주세요.');
+              _isDialogShowing = false;
+            }
             return;
           }
+
+          await saveIntroText(userId, trimmed);
+
           setState(() {
             introText = trimmed;
           });
+
           Navigator.of(modalContext).pop();
           _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
+        }
+
+        void onTextChanged(String value) {
+          int lineCount = '\n'.allMatches(value).length + 1;
+          if (lineCount > 3) {
+            final lines = value.split('\n').take(3).join('\n');
+            controller.text = lines;
+            controller.selection = TextSelection.fromPosition(
+                TextPosition(offset: controller.text.length));
+          }
         }
 
         return Padding(
@@ -346,20 +362,22 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   controller: controller,
                   maxLength: 50,
                   autofocus: true,
-                  maxLines: 1,
-                  textInputAction: TextInputAction.done,
+                  maxLines: 3,
+                  minLines: 1,
+                  keyboardType: TextInputType.multiline,
+                  onChanged: onTextChanged,
                   decoration: InputDecoration(
                     hintText: '한줄 소개를 입력하세요',
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(30),
-                        borderSide: BorderSide.none),
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
                     filled: true,
                     fillColor: const Color(0xFFF3F4F8),
-                    contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 12),
+                    contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     counterText: '',
                   ),
-                  onSubmitted: (_) => finishIntroEdit(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -369,8 +387,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   backgroundColor: Colors.black,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(30)),
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 14, horizontal: 22),
+                  padding:
+                  const EdgeInsets.symmetric(vertical: 14, horizontal: 22),
                 ),
                 child: const Text(
                   '완료',
