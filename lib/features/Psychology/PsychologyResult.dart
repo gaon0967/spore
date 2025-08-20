@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../auth/naverAndFirebaseAuth.dart';
 import 'package:new_project_1/features/Home/main_screen.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart';
+import 'package:new_project_1/features/Settings/firebase_title.dart';
 
 // --- 데이터 모델 및 저장소 ---
 class Character {
@@ -267,7 +267,9 @@ class _InfoContainer extends StatelessWidget {
                   final authService = AuthService();
                   try {
                     // 심리테스트 타이틀 지급
-                    await handlePsychologyTestCompletion();
+                    await SavePsychologyTestCompletion(count: 1); // 첫 심리테스트 완료
+                    await SavePsychologyTestCompletion(count: 2); // 재검사 완료
+
 
                     final userData = await authService.signInWithNaver(
                       character.id,
