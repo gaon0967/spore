@@ -267,9 +267,7 @@ class _InfoContainer extends StatelessWidget {
                   final authService = AuthService();
                   try {
                     // 심리테스트 타이틀 지급
-                    await SavePsychologyTestCompletion(count: 1); // 첫 심리테스트 완료
-                    await SavePsychologyTestCompletion(count: 2); // 재검사 완료
-
+                    await SavePsychologyTestCompletion();
 
                     final userData = await authService.signInWithNaver(
                       character.id,
