@@ -301,7 +301,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     }
   }
 
-  void _showEditIntroModal() {
+  void _showEditIntroModal( ) {
     final controller = TextEditingController(text: introText);
     bool _isDialogShowing = false;
 
