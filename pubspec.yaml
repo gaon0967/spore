@@ -104,6 +104,8 @@ flutter:
 
         - asset: assets/fonts/LeagueSpartan-VariableFont_wght.ttf
           weight: 700
+        - asset: assets/fonts/LeagueSpartan-Bold.ttf
+          weight: 800
     - family: Golos Text
       fonts:
         - asset: assets/fonts/GolosText-VariableFont_wght.ttf
