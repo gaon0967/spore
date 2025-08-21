@@ -267,7 +267,7 @@ class _InfoContainer extends StatelessWidget {
                   final authService = AuthService();
                   try {
                     // 심리테스트 타이틀 지급
-                    await SavePsychologyTestCompletion();
+                    await PsychologyTestCompletion();
 
                     final userData = await authService.signInWithNaver(
                       character.id,

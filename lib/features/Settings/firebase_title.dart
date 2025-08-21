@@ -21,7 +21,7 @@ Future<List<String>> getUnlockedTitlesFromFirestore() async {
   return list.cast<String>();
 }
 
-/// Firestore에 타이틀 추가 (중복 제거)
+// Firestore에 타이틀 추가 (중복 제거)
 Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
   if (newTitles.isEmpty) return;
   final docRef = await _userDoc();
@@ -32,8 +32,8 @@ Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
   }, SetOptions(merge: true));
 }
 
-// 심리테스트 카운트 증가 (트랜잭션 보장)
-Future<int> incrementPsychologyTestCountInFirestore() async {
+// 심리테스트 카운트 증가(1회, 2회 구분 위함)
+Future<int> incrementPsyCount() async {
   final docRef = await _userDoc();
   if (docRef == null) return 0;
   return FirebaseFirestore.instance.runTransaction((txn) async {
@@ -48,9 +48,8 @@ Future<int> incrementPsychologyTestCountInFirestore() async {
   });
 }
 
-
-
-// 로컬 → Firestore로 마이그레이션 (선택사항)
+// 회원가입 타이틀 추가
+// 로컬 → Firestore로 마이그레이션(회원가입 시)
 Future<void> handleNewUserTitle() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
@@ -72,13 +71,13 @@ Future<void> handleNewUserTitle() async {
   print('회원가입 타이틀 저장 완료');
 }
 
-// 심리테스트 타이틀 처리
-Future<void> SavePsychologyTestCompletion() async {
+// 심리테스트 타이틀 추가
+Future<void> PsychologyTestCompletion() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
   final currentTitles = await getUnlockedTitlesFromFirestore();
-  final count = await incrementPsychologyTestCountInFirestore();
+  final count = await incrementPsyCount();
 
   List<String> titleIds = [];
 
@@ -105,4 +104,54 @@ Future<void> SavePsychologyTestCompletion() async {
   }
 
   print('심리테스트 타이틀 저장 완료');
+}
+
+// 친구 타이틀 추가
+Future<List<TitleInfo>> handleFriendCount(
+    int newCount, {
+      Function? onUpdate,
+    }) async {
+  final prefs = await SharedPreferences.getInstance();
+  int psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
+
+  final stats = UserStats(
+    psychologyTestCount: 0, // UserStats 때문에 남겨둠
+    friendsCount: newCount,
+  );
+
+  // 친구 관련 타이틀 불러오기
+  final friendTitles =
+  allTitles.where((t) => t.id.startsWith('friend_')).toList();
+
+  final newlyEarnedTitles =
+  await filterAndSaveTitles(stats, friendTitles, onUpdate: onUpdate);
+
+  // Firestore에도 저장
+  final titleNames = newlyEarnedTitles.map((t) => t.name).toList();
+  if (titleNames.isNotEmpty) {
+    await addUnlockedTitlesToFirestore(titleNames);
+  }
+
+  return newlyEarnedTitles;
+}
+
+// 앱 초기 실행 시 호출(앱 업데이트 시)
+// 로컬의 모든 타이틀을 firebase로 한 번만 옮기는 마이그레이션 함수
+Future<void> migrateAllLocalTitlesToFirestoreOnce() async {
+  final prefs = await SharedPreferences.getInstance();
+  final migrated = prefs.getBool('titles_migrated') ?? false;
+  if (migrated) {
+    print('✅ 이미 마이그레이션 완료됨.');
+    return;
+  }
+
+  final localTitles = prefs.getStringList('unlocked_titles') ?? [];
+  if (localTitles.isEmpty) {
+    print('🔥 로컬 타이틀 없음.');
+    return;
+  }
+
+  await addUnlockedTitlesToFirestore(localTitles);
+  await prefs.setBool('titles_migrated', true);
+  print('✅ 마이그레이션 완료 및 기록 저장됨.');
 }

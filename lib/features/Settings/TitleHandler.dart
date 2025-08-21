@@ -227,14 +227,14 @@ Future<void> _setUnlockedTitles(List<String> titles) async {
 }
 
 /// ------------------------------
-/// 함수명: _filterAndSaveTitles
+/// 함수명: filterAndSaveTitles
 /// 목적: 유저 상태를 기반으로 획득한 타이틀을 필터링하고 SharedPreferences에 저장
 /// 입력: UserStats stats - 현재 유저 상태 정보
 /// 입력: List<TitleInfo> titlesToCheck - 검사할 타이틀 목록
 /// 입력: Function? onUpdate - 타이틀 목록 업데이트 시 호출할 콜백 함수 (선택 사항)
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
-Future<List<TitleInfo>> _filterAndSaveTitles(
+Future<List<TitleInfo>> filterAndSaveTitles(
   UserStats stats,
   List<TitleInfo> titlesToCheck, {
   Function? onUpdate,
@@ -296,7 +296,7 @@ Future<List<TitleInfo>> handlePsychologyTestCompletion({
           )
           .toList();
 
-  return _filterAndSaveTitles(stats, psychologyTitles, onUpdate: onUpdate);
+  return filterAndSaveTitles(stats, psychologyTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -310,7 +310,7 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
 
   final newUserTitles = allTitles.where((t) => t.id == 'spore_family').toList();
 
-  await _filterAndSaveTitles(stats, newUserTitles, onUpdate: onUpdate);
+  await filterAndSaveTitles(stats, newUserTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -335,7 +335,7 @@ Future<List<TitleInfo>> handleFriendCountChange(
   final friendTitles =
       allTitles.where((t) => t.id.startsWith('friend_')).toList();
 
-  return _filterAndSaveTitles(stats, friendTitles, onUpdate: onUpdate);
+  return filterAndSaveTitles(stats, friendTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -369,7 +369,7 @@ Future<List<TitleInfo>> handleProfileEditTitles({
           )
           .toList();
 
-  return _filterAndSaveTitles(stats, profileTitles, onUpdate: onUpdate);
+  return filterAndSaveTitles(stats, profileTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -403,7 +403,7 @@ Future<List<TitleInfo>> handleMessageSentTitle(
     'handleMessageSentTitle - 검사할 타이틀: ${messageTitles.map((t) => t.name).toList()}',
   );
 
-  return _filterAndSaveTitles(stats, messageTitles, onUpdate: onUpdate);
+  return filterAndSaveTitles(stats, messageTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -438,7 +438,7 @@ Future<List<TitleInfo>> handleFavoriteFriendTitle(
           )
           .toList();
 
-  return _filterAndSaveTitles(stats, favoriteTitles, onUpdate: onUpdate);
+  return filterAndSaveTitles(stats, favoriteTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -469,7 +469,7 @@ Future<List<TitleInfo>> handleTodoCountTitle(
           )
           .toList();
 
-  return await _filterAndSaveTitles(stats, todoTitles, onUpdate: onUpdate);
+  return await filterAndSaveTitles(stats, todoTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -526,5 +526,5 @@ Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitle(
   final streakTitles =
       allTitles.where((t) => t.id.startsWith('streak_')).toList();
 
-  return await _filterAndSaveTitles(stats, streakTitles, onUpdate: onUpdate);
+  return await filterAndSaveTitles(stats, streakTitles, onUpdate: onUpdate);
 }

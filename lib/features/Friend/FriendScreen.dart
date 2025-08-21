@@ -6,6 +6,11 @@ import '../Psychology/PsychologyResult.dart'; // Character 모델
 import 'ChatScreen.dart';                     // ChatScreen 위젯
 import '../Calendar/Notification.dart' as CalendarNotification; // 별칭 import
 import '../Settings/settings_screen.dart';
+// 친구 수 카운트 하고, 그에 따른 타이틀을 지급하기 위해 추가했습니다~ -현주-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
+
 
 class Friend {
   final String name;
@@ -241,7 +246,7 @@ class _FriendScreenState extends State<FriendScreen> {
                   tagTextColor: const Color(0xFF0066CC),
                   trailingButtons: [
                     TextButton(
-                      onPressed: () {
+                      onPressed: () async{ // await 사용하기 위해 async 추가했어용 -현주-
                         if (_friends.any((f) => f.name == request.name)) {
                           _showAlert('이미 친구 목록에 있습니다.');
                         } else {
@@ -250,6 +255,21 @@ class _FriendScreenState extends State<FriendScreen> {
                             _incoming.remove(request);
                           });
                           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${request.name}님과 친구가 되었습니다!')));
+
+                          // Firestore에서 친구 수 계산 -현주-
+                          final user = FirebaseAuth.instance.currentUser;
+                          if (user != null) {
+                            final snapshot = await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid)
+                                .collection('friends')
+                                .where('blockStatus', isEqualTo: false)
+                                .get();
+                            final count = snapshot.docs.length;
+
+                            // 타이틀 지급 함수 호출 -현주-
+                            await TitlesRemote.handleFriendCount(count);
+                          }
                         }
                       },
                       child: const Text('수락', style: TextStyle(color: Colors.green)),
