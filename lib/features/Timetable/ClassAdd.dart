@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';     // ✔️ 반드시 import
 import 'course_model.dart';
+import '../Settings/TitleHandler.dart';
 
 class ClassAdd extends StatefulWidget {
   const ClassAdd({super.key});
@@ -82,7 +83,7 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  void _validateAndSubmit() {
+  void _validateAndSubmit() async {
     if (!_formKey.currentState!.validate()) return;
     if (_startTime == null || _endTime == null) {
       setState(() => _timeErrorText = '시간을 선택해주세요.');
@@ -107,6 +108,22 @@ class _ClassAddState extends State<ClassAdd> {
       endTime: _endTime!.hour + (_endTime!.minute / 60),
       color: _selectedColor,
     );
+
+    // 1. 총 시간표 개수 얻기
+    final scheduleCount = await getTotalSchedule();
+
+    // 2. 타이틀 지급 함수 호출 후 UI 갱신 콜백 전달
+    final newTitles = await handleScheduleCountTitle(
+      scheduleCount,
+      onUpdate: () {
+        setState(() {
+          // 필요에 따라 UI 상태 업데이트
+        });
+      },
+    );
+
+    // print('획득된 새 타이틀 개수: ${newTitles.length}');
+
     Navigator.of(context).pop(newCourse);
   }
 
