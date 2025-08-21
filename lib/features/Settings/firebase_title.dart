@@ -107,6 +107,24 @@ Future<void> PsychologyTestCompletion() async {
 }
 
 // 친구 타이틀 추가
+Future<void> saveFriendToFirestore(String friendName, int characterId, List<String> tags) async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  await FirebaseFirestore.instance
+      .collection('users')
+      .doc(user.uid)
+      .collection('friends')
+      .doc(friendName) // 혹은 친구의 UID 등 고유 ID
+      .set({
+    'name': friendName,
+    'characterId': characterId,
+    'tags': tags,
+    'blockStatus': false,
+    'createdAt': FieldValue.serverTimestamp(),
+  });
+}
+
 Future<List<TitleInfo>> handleFriendCount(
     int newCount, {
       Function? onUpdate,

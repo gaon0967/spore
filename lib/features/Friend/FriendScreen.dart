@@ -247,31 +247,57 @@ class _FriendScreenState extends State<FriendScreen> {
                   trailingButtons: [
                     TextButton(
                       onPressed: () async{ // await 사용하기 위해 async 추가했어용 -현주-
-                        if (_friends.any((f) => f.name == request.name)) {
-                          _showAlert('이미 친구 목록에 있습니다.');
-                        } else {
-                          setState(() {
-                            _friends.add(Friend(name: request.name, tags: request.tags, characterId: request.characterId));
-                            _incoming.remove(request);
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('${request.name}님과 친구가 되었습니다!')));
+                  if (_friends.any((f) => f.name == request.name)) {
+                    _showAlert('이미 친구 목록에 있습니다.');
+                  } else {
+                    setState(() {
+                      _friends.add(Friend(name: request.name,
+                          tags: request.tags,
+                          characterId: request.characterId));
+                      _incoming.remove(request);
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('${request
+                            .name}님과 친구가 되었습니다!')));
 
-                          // Firestore에서 친구 수 계산 -현주-
-                          final user = FirebaseAuth.instance.currentUser;
-                          if (user != null) {
-                            final snapshot = await FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(user.uid)
-                                .collection('friends')
-                                .where('blockStatus', isEqualTo: false)
-                                .get();
-                            final count = snapshot.docs.length;
+                    // Firestore에서 친구 수 계산 -현주-
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user != null) {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .collection('friends')
+                          .doc(request.name)  // 또는 UID 기반이면 uid
+                          .set({
+                        'name': request.name,
+                        'characterId': request.characterId,
+                        'tags': request.tags,
+                        'blockStatus': false,
+                        'createdAt': FieldValue.serverTimestamp(),
+                      });
+                      final snapshot = await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(user.uid)
+                          .collection('friends')
+                          .where('blockStatus', isEqualTo: false)
+                          .get();
 
-                            // 타이틀 지급 함수 호출 -현주-
-                            await TitlesRemote.handleFriendCount(count);
-                          }
-                        }
-                      },
+                      // Firestore 연동 타이틀 지급
+                      final count = snapshot.docs.length;
+                      final awarded = await TitlesRemote.handleFriendCount(
+                          count);
+
+                      if (awarded.isNotEmpty) {
+                        final names = awarded.map((t) => t.name).join(', ');
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('타이틀 획득: $names')),
+                        );
+                        // 타이틀 지급 함수 호출
+
+                      }
+                    }
+                  }
+                },
                       child: const Text('수락', style: TextStyle(color: Colors.green)),
                     ),
                     TextButton(
