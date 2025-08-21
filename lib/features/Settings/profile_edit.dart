@@ -5,6 +5,8 @@ import 'package:new_project_1/features/Psychology/PsychologyQuestion.dart';
 import 'package:new_project_1/features/Psychology/PsychologyResult.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
@@ -32,8 +34,38 @@ String getImagePathByCharacterId(int id) {
     default: return 'assets/images/profile.png';
   }
 }
+/// 클래스: ThreeLinesInputFormatter
+/// 목적: TextField에서 사용자 입력을 실시간으로 포맷팅하여, 최대 3줄까지만 허용하고, 글자 수는 최대 50자로 제한.
+/// 반환: - formatEditUpdate 메서드는 이전 입력 상태와 새로운 입력 상태를 받아, 제한 조건(줄 수 3줄, 글자 수 50자)을 만족하는 새로운 입력 값을 반환.
+/// - 조건에 맞지 않는 입력은 이전 상태를 반환해 입력을 차단.
+/// 예외: 줄 수가 3줄을 초과하거나, 글자 수가 50자를 넘는 입력이 들어오면, 새로운 입력을 무시하고 이전 입력 상태를 반환하여 입력을 제한.
+class ThreeLinesInputFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue,
+      TextEditingValue newValue) {
+    if (newValue.composing.isValid) {
+      return newValue;
+    }
 
-/// 클래스: ProfileEdit
+    final lines = newValue.text.split('\n');
+    if (lines.length > 3) {
+      return oldValue;
+    }
+    if (newValue.text.characters.length > 50) {
+      final trimmed = newValue.text.characters.take(50).toString();
+      int offset = newValue.selection.baseOffset;
+      if (offset > trimmed.length) {
+        offset = trimmed.length;
+      }
+      return TextEditingValue(
+        text: trimmed,
+        selection: TextSelection.collapsed(offset: offset),
+      );
+    }
+    return newValue;
+  }
+}
+  /// 클래스: ProfileEdit
 /// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
 /// 반환: StatefulWidget 인스턴스 반환
 /// 예외: 없음
@@ -341,17 +373,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           Navigator.of(modalContext).pop();
           _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
         }
-
-        void onTextChanged(String value) {
-          int lineCount = '\n'.allMatches(value).length + 1;
-          if (lineCount > 3) {
-            final lines = value.split('\n').take(3).join('\n');
-            controller.text = lines;
-            controller.selection = TextSelection.fromPosition(
-                TextPosition(offset: controller.text.length));
-          }
-        }
-
         return Padding(
           padding: EdgeInsets.only(
               left: 16, right: 16, bottom: bottomInset + 16, top: 30),
@@ -365,7 +386,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   maxLines: 3,
                   minLines: 1,
                   keyboardType: TextInputType.multiline,
-                  onChanged: onTextChanged,
+                  inputFormatters: [ThreeLinesInputFormatter()],
                   decoration: InputDecoration(
                     hintText: '한줄 소개를 입력하세요',
                     border: OutlineInputBorder(
