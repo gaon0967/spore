@@ -6,6 +6,7 @@ import 'package:new_project_1/auth/LoginHome.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 프로필 변경 화면
 import 'package:naver_login_sdk/naver_login_sdk.dart'; // Naver 로그인 SDK
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// ==============================
 /// 클래스명: SettingsScreen
@@ -638,7 +639,7 @@ class SettingsScreen extends StatelessWidget {
                                       /// 반환: 없음
                                       /// 예외: 없음
                                       /// ------------------------------
-                                      onTap: () {
+                                      onTap: () async{  // async는 탈퇴 시 타이틀 데이터 삭제를 위해 추가했습니다.
                                         final user =
                                             FirebaseAuth.instance.currentUser;
                                         if (user == null) {
@@ -646,6 +647,10 @@ class SettingsScreen extends StatelessWidget {
                                         }
                                         print('회원 탈퇴: ${user.uid}');
                                         callDeleteUserAllData(user.uid);
+
+                                        // 로컬 데이터 지우기(타이틀 포함)
+                                        final prefs = await SharedPreferences.getInstance();
+                                        await prefs.clear();
 
                                         Navigator.push(
                                           context,

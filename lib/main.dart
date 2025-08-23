@@ -8,6 +8,8 @@ import 'auth/firebase_options.dart'; // Firebase CLI로 생성된 파일
 import 'auth/LoginHome.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
 const urlScheme = 'flutterNaverLogin'; // IOS 어플에만 이용(아직 안함)
 const clientId = 'eW2zZw8AjJC4iudM9OzD'; // naver api id
@@ -21,6 +23,14 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await initializeDateFormatting('ko_KR', null);
   await initializeDateFormatting('en_US', null);
+
+  // 로그인 직후 1회 동기화
+  FirebaseAuth.instance.authStateChanges().listen((user) async {
+    if (user == null) return;
+    TitlesRemote.migrateAllLocalTitlesToFirestoreOnce();
+    await TitlesRemote.syncFirestoreTitlesToLocal();
+  });
+
   // api key를 넣어줍니다.
   NaverLoginSDK.initialize(
     urlScheme: urlScheme,

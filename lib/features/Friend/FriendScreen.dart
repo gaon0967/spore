@@ -292,8 +292,6 @@ class _FriendScreenState extends State<FriendScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(content: Text('타이틀 획득: $names')),
                         );
-                        // 타이틀 지급 함수 호출
-
                       }
                     }
                   }

@@ -26,10 +26,14 @@ Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
   if (newTitles.isEmpty) return;
   final docRef = await _userDoc();
   if (docRef == null) return;
+
+  // firestore 저장
   await docRef.set({
     'unlocked_titles': FieldValue.arrayUnion(newTitles),
     'updatedAt': FieldValue.serverTimestamp(),
   }, SetOptions(merge: true));
+
+  await syncFirestoreTitlesToLocal();
 }
 
 // 심리테스트 카운트 증가(1회, 2회 구분 위함)
@@ -50,13 +54,13 @@ Future<int> incrementPsyCount() async {
 
 // 회원가입 타이틀 추가
 // 로컬 → Firestore로 마이그레이션(회원가입 시)
-Future<void> handleNewUserTitle() async {
+Future<void> handleNewUserTitle({Function? onUpdate}) async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
   final currentTitles = await getUnlockedTitlesFromFirestore();
-
   final stats = UserStats(isNewUser: true, psychologyTestCount: 0);
+
   final title = allTitles.firstWhere(
         (t) => t.id == 'spore_family',
     orElse: () => TitleInfo(id: '', name: '', condition: (_) => false),
@@ -66,9 +70,7 @@ Future<void> handleNewUserTitle() async {
       title.condition(stats) &&
       !currentTitles.contains(title.name)) {
     await addUnlockedTitlesToFirestore([title.name]);
-    print('타이틀 획득: ${title.name}');
   }
-  print('회원가입 타이틀 저장 완료');
 }
 
 // 심리테스트 타이틀 추가
@@ -102,38 +104,18 @@ Future<void> PsychologyTestCompletion() async {
   if (newlyEarnedTitles.isNotEmpty) {
     await addUnlockedTitlesToFirestore(newlyEarnedTitles);
   }
-
-  print('심리테스트 타이틀 저장 완료');
 }
 
 // 친구 타이틀 추가
-Future<void> saveFriendToFirestore(String friendName, int characterId, List<String> tags) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  await FirebaseFirestore.instance
-      .collection('users')
-      .doc(user.uid)
-      .collection('friends')
-      .doc(friendName) // 혹은 친구의 UID 등 고유 ID
-      .set({
-    'name': friendName,
-    'characterId': characterId,
-    'tags': tags,
-    'blockStatus': false,
-    'createdAt': FieldValue.serverTimestamp(),
-  });
-}
-
 Future<List<TitleInfo>> handleFriendCount(
     int newCount, {
       Function? onUpdate,
     }) async {
   final prefs = await SharedPreferences.getInstance();
-  int psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
+  final psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
 
   final stats = UserStats(
-    psychologyTestCount: 0, // UserStats 때문에 남겨둠
+    psychologyTestCount: psychologyCount, // UserStats 때문에 남겨둠
     friendsCount: newCount,
   );
 
@@ -154,14 +136,8 @@ Future<List<TitleInfo>> handleFriendCount(
 }
 
 // 투두리스트 타이틀 추가
-Future<void> saveUnlockedTitlesToFirestore(List<String> unlockedTitles) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
-
-  final userDoc = FirebaseFirestore.instance.collection('users').doc(user.uid);
-  await userDoc.set({
-    'unlocked_titles': unlockedTitles,
-  }, SetOptions(merge: true));
+Future<void> TodoTitlesFirestore(List<String> unlockedTitles) async {
+  await addUnlockedTitlesToFirestore(unlockedTitles);
 }
 
 Future<List<TitleInfo>> handleTodoCount(
@@ -189,20 +165,18 @@ Future<List<TitleInfo>> handleTodoCount(
   return newlyEarnedTitles;
 }
 
-// 투두 N일 연속 타이틀 추가
-Future<List<TitleInfo>> handleConsecutiveTodoSuccessToFirestore(
-    Map<DateTime, List<Event>> events,
-    DateTime referenceDate, {
+// 투두 n일 연속 타이틀 추가
+Future<List<TitleInfo>> ConstTodoCount(
+    int consecutiveDays, {
       Function? onUpdate,
     }) async {
-  final consecutiveDays = calculateConsecutiveSuccessDays(events, referenceDate);
-
   final stats = UserStats(
     psychologyTestCount: 0,
     consecutiveTodoSuccess: consecutiveDays,
   );
 
-  final streakTitles = allTitles.where((t) => t.id.startsWith('streak_')).toList();
+  final streakTitles =
+  allTitles.where((t) => t.id.startsWith('streak_')).toList();
 
   final newlyEarnedTitles =
   await filterAndSaveTitles(stats, streakTitles, onUpdate: onUpdate);
@@ -211,30 +185,84 @@ Future<List<TitleInfo>> handleConsecutiveTodoSuccessToFirestore(
   if (titleNames.isNotEmpty) {
     await addUnlockedTitlesToFirestore(titleNames);
   }
-
   return newlyEarnedTitles;
 }
+// firestore에 저장된 일정으로 연속일수 계산
+Future<void> handleConsecutiveTodo() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
 
+  final doc = await FirebaseFirestore.instance.collection('plans').doc(user.uid).get();
+  final data = doc.data();
+  final dateMap = (data?['date'] as Map<String, dynamic>?) ?? {};
+
+  bool isAllDone(String yyyymmdd) {
+    final daily = dateMap[yyyymmdd];
+    if (daily == null) return false;
+    final eventsMap = (daily as Map<String, dynamic>);
+    if (eventsMap.isEmpty) return false;
+    // 모든 이벤트의 isDone이 true인지 확인
+    return eventsMap.values.every((e) => (e as Map<String, dynamic>)['isDone'] == true);
+  }
+
+  String toKey(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}${d.month.toString().padLeft(2, '0')}${d.day.toString().padLeft(2, '0')}';
+
+  int count = 0;
+  DateTime d = DateTime.now().toUtc();
+  while (true) {
+    final key = toKey(DateTime.utc(d.year, d.month, d.day));
+    if (!isAllDone(key)) break;
+    count++;
+    d = d.subtract(const Duration(days: 1));
+  }
+
+  await ConstTodoCount(count);
+}
+// Firestore에 -> SharedPreferences 동기화
+// 타이틀 지급을 위함
+Future<void> syncFirestoreTitlesToLocal() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final remote = await getUnlockedTitlesFromFirestore();
+  final prefs = await SharedPreferences.getInstance();
+
+  await prefs.setStringList('unlocked_titles', remote);
+}
 
 
 
 // 앱 초기 실행 시 호출(앱 업데이트 시)
 // 로컬의 모든 타이틀을 firebase로 한 번만 옮기는 마이그레이션 함수
 Future<void> migrateAllLocalTitlesToFirestoreOnce() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+  final uid = user.uid;
+
   final prefs = await SharedPreferences.getInstance();
-  final migrated = prefs.getBool('titles_migrated') ?? false;
-  if (migrated) {
-    print('✅ 이미 마이그레이션 완료됨.');
+  final migratedKey = 'titles_migrated_$uid';
+  if (prefs.getBool(migratedKey) ?? false) {
     return;
   }
 
-  final localTitles = prefs.getStringList('unlocked_titles') ?? [];
+  // 서버에 이미 있으면 마이그레이션 스킵
+  final remote = await getUnlockedTitlesFromFirestore();
+  if (remote.isNotEmpty) {
+    await prefs.setBool(migratedKey, true);
+    return;
+  }
+
+  // UID별 로컬 키만 사용 (이전 계정 잔여분 유입 방지)
+  final localKey = 'unlocked_titles_$uid';
+  final localTitles = prefs.getStringList(localKey) ?? [];
+
   if (localTitles.isEmpty) {
-    print('🔥 로컬 타이틀 없음.');
+    await prefs.setBool(migratedKey, true);
     return;
   }
 
+  // 마이그레이션 기록 저장
   await addUnlockedTitlesToFirestore(localTitles);
-  await prefs.setBool('titles_migrated', true);
-  print('✅ 마이그레이션 완료 및 기록 저장됨.');
+  await prefs.setBool(migratedKey, true);
 }
