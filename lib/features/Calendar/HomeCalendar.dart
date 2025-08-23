@@ -4,11 +4,13 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'Event.dart';
+import 'event.dart';
 import '../Settings/settings_screen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
-import 'dart:async'; 
+import 'dart:async';
+import 'package:new_project_1/features/Settings/TitleHandler.dart';
+import '../Settings/firebase_title.dart' as TitlesRemote;
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
 │   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
@@ -38,7 +40,7 @@ class HomeCalendar extends StatefulWidget {
 // =========== 상태를 관리하고 화면을 다시 그리는 _HomeCalendarState 클래스 ===========
 class _HomeCalendarState extends State<HomeCalendar> {
   final GlobalKey<AnimatedListState> _listKey =
-      GlobalKey<AnimatedListState>(); //AnimatedList 위젯을 제어하기 위한 키
+  GlobalKey<AnimatedListState>(); //AnimatedList 위젯을 제어하기 위한 키
   DateTime _focusedDay = getToday(); //현재 화면에 보이는 날짜
   DateTime _selectedDay = getToday(); // 사용자가 직접 선택한 날짜
   bool _isSettingsPressed = false; // 설정 아이콘이 눌렸는지 여부 나타냄
@@ -52,7 +54,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   final Map<DateTime, List<Event>> _events =
-      {}; //날짜(DateTime)를 키로, 해당 날짜에 있는 일정(Event) 리스트를 값으로 갖는 Map
+  {}; //날짜(DateTime)를 키로, 해당 날짜에 있는 일정(Event) 리스트를 값으로 갖는 Map
 
   //============initState() :  캘린더 화면이 처음 열릴 때, Firestore 데이터베이스에 실시간 연결을 설정하고 자동 업데이트를 준비하는 역할 =================
   @override
@@ -73,29 +75,36 @@ class _HomeCalendarState extends State<HomeCalendar> {
           if (data != null && data['date'] != null) {
             final dateMap = data['date'] as Map<String, dynamic>;
 
-            dateMap.forEach((dateString, dailyEventsMap) { //date 정보 덩어리를 날짜별로 쪼갠다
+            dateMap.forEach((dateString,
+                dailyEventsMap) { //date 정보 덩어리를 날짜별로 쪼갠다
               final year = int.parse(dateString.substring(0, 4));
               final month = int.parse(dateString.substring(4, 6));
               final day = int.parse(dateString.substring(6, 8));
               final dateTime = DateTime.utc(year, month, day);
 
-              final events = (dailyEventsMap as Map<String, dynamic>).values.map((eventData) { // 각 날짜에 있는 일정들을 Event 객체로 변환
-                final startTimeParts = (eventData['startTime'] as String).split(':');
-                final endTimeParts = (eventData['endTime'] as String).split(':');
+              final events = (dailyEventsMap as Map<String, dynamic>).values
+                  .map((eventData) { // 각 날짜에 있는 일정들을 Event 객체로 변환
+                final startTimeParts = (eventData['startTime'] as String).split(
+                    ':');
+                final endTimeParts = (eventData['endTime'] as String).split(
+                    ':');
                 return Event(
                   id: eventData['id'],
                   title: eventData['title'],
                   color: Color(eventData['color']),
                   isCompleted: eventData['isDone'],
-                  startTime: TimeOfDay(hour: int.parse(startTimeParts[0]), minute: int.parse(startTimeParts[1])),
-                  endTime: TimeOfDay(hour: int.parse(endTimeParts[0]), minute: int.parse(endTimeParts[1])),
+                  startTime: TimeOfDay(hour: int.parse(startTimeParts[0]),
+                      minute: int.parse(startTimeParts[1])),
+                  endTime: TimeOfDay(hour: int.parse(endTimeParts[0]),
+                      minute: int.parse(endTimeParts[1])),
                 );
               }).toList();
-              loadedEvents[dateTime] = events; //깔끔하게 변환된 Event 객체들을 날짜별로 묶어 loadedEvents 라는 최종 결과물에 차곡차곡 정리
+              loadedEvents[dateTime] =
+                  events; //깔끔하게 변환된 Event 객체들을 날짜별로 묶어 loadedEvents 라는 최종 결과물에 차곡차곡 정리
             });
           }
         }
-        
+
         setState(() { // 화면 갱신 (UI 업데이트)
           _events.clear();
           _events.addAll(loadedEvents);
@@ -120,11 +129,14 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     // 새 이벤트인 경우 고유 ID 생성
     if (!isUpdating && event.id == null) {
-      event.id = _firestore.collection('plans').doc().id;
+      event.id = _firestore
+          .collection('plans')
+          .doc()
+          .id;
     }
 
     final dayKey = DateFormat('yyyyMMdd').format(_selectedDay);
-    final docRef = _firestore.collection('plans').doc(_currentUser!.uid); 
+    final docRef = _firestore.collection('plans').doc(_currentUser!.uid);
 
     final eventMap = {
       'id': event.id,
@@ -132,9 +144,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
       'color': event.color.value,
       'isDone': event.isCompleted,
       'startTime':
-          '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
+      '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime
+          .minute.toString().padLeft(2, '0')}',
       'endTime':
-          '${event.endTime.hour.toString().padLeft(2, '0')}:${event.endTime.minute.toString().padLeft(2, '0')}',
+      '${event.endTime.hour.toString().padLeft(2, '0')}:${event.endTime.minute
+          .toString().padLeft(2, '0')}',
     };
 
     // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
@@ -190,6 +204,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
         result.id = existingEvent.id; // 기존 ID 유지
         _getEventsForDay(day)[eventIndex] = result;
       });
+
       // 2. Firestore 업데이트
       _addOrUpdateEvent(result, isUpdating: true);
     }
@@ -203,6 +218,10 @@ class _HomeCalendarState extends State<HomeCalendar> {
         if (_events[day] == null) _events[day] = [];
         _getEventsForDay(day).add(result);
       });
+
+      final totalTodoCount = _events.values.fold<int>(0, (sum, list) => sum + list.length);
+      await TitlesRemote.handleTodoCount(totalTodoCount);
+
       _listKey.currentState?.insertItem(
         _getEventsForDay(day).length - 1,
         duration: const Duration(milliseconds: 180),
@@ -211,7 +230,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   }
 
   // 삭제 버튼 로직
-  void _removeItem(int index) {
+  void _removeItem(int index) async{
     final day = DateTime.utc(
       _selectedDay.year,
       _selectedDay.month,
@@ -232,6 +251,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     // 4. Firestore에서 데이터 삭제
     _deleteEvent(eventToRemove);
+
+    // 투두리스트 개수 타이틀 지급
+    final totalTodoCount = _events.values.fold<int>(0, (sum, list) => sum + list.length);
+    await TitlesRemote.handleTodoCount(totalTodoCount);
+    setState(() {});
   }
 
   Widget _buildEventContent(Event event, {int? index}) {
@@ -424,12 +448,25 @@ class _HomeCalendarState extends State<HomeCalendar> {
                             ),
                           ),
                           trailing: GestureDetector(
-                            onTap: () {
+                            onTap: () async{
+                              final wasCompleted = event.isCompleted;
                               setState(() {
                                 event.isCompleted = !event.isCompleted;
                               });
                               // isDone 상태만 Firestore에 업데이트
                               _addOrUpdateEvent(event, isUpdating: true);
+                              if (!wasCompleted && event.isCompleted) {
+                                final allDoneToday = _getEventsForDay(_selectedDay).every((e) => e.isCompleted);
+                                if (allDoneToday) {
+                                  final earned = await handleConsecutiveTodoSuccessTitle(_events, _selectedDay);
+                                  if (earned.isNotEmpty) {
+                                    await TitlesRemote.addUnlockedTitlesToFirestore(
+                                      earned.map((t) => t.name).toList(),
+                                    );
+                                  }
+                                }
+                              }
+                              setState(() {}); // UI 갱신
                             },
                             child: Container(
                               color: Colors.transparent,
