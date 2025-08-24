@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';     // ✔️ 반드시 import
 import 'course_model.dart';
 import '../Settings/TitleHandler.dart';
+import '../Settings/firebase_title.dart';
 
 class ClassAdd extends StatefulWidget {
   const ClassAdd({super.key});
@@ -113,13 +114,9 @@ class _ClassAddState extends State<ClassAdd> {
     final scheduleCount = await getTotalSchedule();
 
     // 2. 타이틀 지급 함수 호출 후 UI 갱신 콜백 전달
-    final newTitles = await handleScheduleCountTitle(
+    final newTitles = await handleScheduleCountFirestore(
       scheduleCount,
-      onUpdate: () {
-        setState(() {
-          // 필요에 따라 UI 상태 업데이트
-        });
-      },
+      onUpdate: () => setState(() {}),
     );
 
     // print('획득된 새 타이틀 개수: ${newTitles.length}');

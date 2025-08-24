@@ -261,6 +261,39 @@ Future<List<TitleInfo>> handleFavoriteFriendTitleFirestore(
 
   return newlyEarnedTitles;
 }
+// 시간표 개수 기반 타이틀 지급 (개수 직접 전달)
+Future<List<TitleInfo>> handleScheduleCountFirestore(
+    int scheduleCount, {
+      Function? onUpdate,
+    }) async {
+  final stats = UserStats(
+    psychologyTestCount: 0,
+    scheduleCount: scheduleCount,
+  );
+
+  final scheduleTitles =
+  allTitles.where((t) => t.id.startsWith('schedule_')).toList();
+
+  final newlyEarned = await filterAndSaveTitles(
+    stats,
+    scheduleTitles,
+    onUpdate: onUpdate,
+  );
+
+  final names = newlyEarned.map((t) => t.name).toList();
+  if (names.isNotEmpty) {
+    await addUnlockedTitlesToFirestore(names);
+  }
+  return newlyEarned;
+}
+
+// Firestore의 시간표 데이터를 읽어 개수를 계산 → 타이틀 지급
+Future<List<TitleInfo>> handleScheduleTitlesFromFirestore({
+  Function? onUpdate,
+}) async {
+  final count = await getTotalSchedule(); // 이미 구현된 함수 사용
+  return handleScheduleCountFirestore(count, onUpdate: onUpdate);
+}
 
 // 앱 초기 실행 시 호출(앱 업데이트 시)
 // 로컬의 모든 타이틀을 firebase로 한 번만 옮기는 마이그레이션 함수
