@@ -2,6 +2,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:new_project_1/features/Calendar/event.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
 /// ==============================
 /// 클래스명: UserStats
 /// 역할: 유저의 다양한 상태 정보를 담는 모델
@@ -17,6 +18,7 @@ class UserStats {
   final int messageCount; // 메시지 보낸 개수
   final int todoCount; // 투두리스트 개수
   final int consecutiveTodoSuccess; // 투두리스트 N일 연속
+  final int scheduleCount;
 
   UserStats({
     required this.psychologyTestCount,
@@ -27,6 +29,7 @@ class UserStats {
     this.messageCount = 0,
     this.todoCount = 0,
     this.consecutiveTodoSuccess = 0,
+    this.scheduleCount = 0,
   });
 }
 
@@ -93,28 +96,8 @@ final allTitles = [
     name: '자기소개러',
     condition: (stats) => stats.hasIntro,
   ),
-  TitleInfo(
-    id: 'photo_sharer',
-    name: '사진 공유러',
-    condition: (stats) => stats.hasProfileImage,
-  ),
-  TitleInfo(
-    id: 'pro_pr',
-    name: '자기 PR의 PRO',
-    condition: (stats) => stats.hasIntro && stats.hasProfileImage,
-  ),
 
-  // 메시지 관련
-  TitleInfo(
-    id: 'smalltalk_starter',
-    name: '스몰토크 스타터',
-    condition: (stats) => stats.messageCount >= 1,
-  ),
-  TitleInfo(
-    id: 'smalltalk_master',
-    name: '스몰토크의 귀재',
-    condition: (stats) => stats.messageCount >= 20,
-  ),
+  // 친구 수
   TitleInfo(
     id: 'favorite_one',
     name: '한명이면 충분해',
@@ -174,6 +157,28 @@ final allTitles = [
     name: '이제는 습관',
     condition: (stats) => stats.consecutiveTodoSuccess >= 7,
   ),
+
+  // 시간표 추가
+  TitleInfo(
+    id: 'schedule_1',
+    name: '언제든 놀자!',
+    condition: (stats) => stats.scheduleCount >= 1,
+  ),
+  TitleInfo(
+    id: 'schedule_3',
+    name: '지금은 좀..',
+    condition: (stats) => stats.scheduleCount >= 3,
+  ),
+  TitleInfo(
+    id: 'schedule_5',
+    name: '바쁘다 바빠',
+    condition: (stats) => stats.scheduleCount >= 5,
+  ),
+  TitleInfo(
+    id: 'schedule_7',
+    name: '눈코뜰새 없어!',
+    condition: (stats) => stats.scheduleCount >= 7,
+  ),
 ];
 
 /// ------------------------------
@@ -184,9 +189,9 @@ final allTitles = [
 /// 반환: Future<void>
 /// ------------------------------
 Future<void> addTitles(
-  List<TitleInfo> earnedTitles, {
-  Function? onUpdate,
-}) async {
+    List<TitleInfo> earnedTitles, {
+      Function? onUpdate,
+    }) async {
   final prefs = await SharedPreferences.getInstance();
   final unlocked = prefs.getStringList('unlocked_titles') ?? [];
   bool updated = false;
@@ -235,10 +240,10 @@ Future<void> _setUnlockedTitles(List<String> titles) async {
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> filterAndSaveTitles(
-  UserStats stats,
-  List<TitleInfo> titlesToCheck, {
-  Function? onUpdate,
-}) async {
+    UserStats stats,
+    List<TitleInfo> titlesToCheck, {
+      Function? onUpdate,
+    }) async {
   final earnedTitles = titlesToCheck.where((t) => t.condition(stats)).toList();
 
   final unlocked = await _getUnlockedTitles();
@@ -289,12 +294,12 @@ Future<List<TitleInfo>> handlePsychologyTestCompletion({
   final stats = UserStats(psychologyTestCount: count);
 
   final psychologyTitles =
-      allTitles
-          .where(
-            (t) =>
-                t.id == 'spore_beginner' || t.id == 'spore_detailed_beginner',
-          )
-          .toList();
+  allTitles
+      .where(
+        (t) =>
+    t.id == 'spore_beginner' || t.id == 'spore_detailed_beginner',
+  )
+      .toList();
 
   return filterAndSaveTitles(stats, psychologyTitles, onUpdate: onUpdate);
 }
@@ -321,9 +326,9 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleFriendCountChange(
-  int newCount, {
-  Function? onUpdate,
-}) async {
+    int newCount, {
+      Function? onUpdate,
+    }) async {
   final prefs = await SharedPreferences.getInstance();
   int psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
 
@@ -333,7 +338,7 @@ Future<List<TitleInfo>> handleFriendCountChange(
   );
 
   final friendTitles =
-      allTitles.where((t) => t.id.startsWith('friend_')).toList();
+  allTitles.where((t) => t.id.startsWith('friend_')).toList();
 
   return filterAndSaveTitles(stats, friendTitles, onUpdate: onUpdate);
 }
@@ -359,51 +364,9 @@ Future<List<TitleInfo>> handleProfileEditTitles({
     hasProfileImage: hasProfileImage,
   );
 
-  final profileTitles =
-      allTitles
-          .where(
-            (t) =>
-                t.id == 'intro_writer' ||
-                t.id == 'photo_sharer' ||
-                t.id == 'pro_pr',
-          )
-          .toList();
+  final profileTitles = allTitles.where((t) => t.id == 'intro_writer').toList();
 
   return filterAndSaveTitles(stats, profileTitles, onUpdate: onUpdate);
-}
-
-/// ------------------------------
-/// 함수명: handleMessageSentTitle
-/// 목적: 메시지 전송 횟수에 따라 관련 타이틀 획득 여부를 검사
-/// 입력: int messageCount - 총 보낸 메시지 횟수
-/// 입력: Function? onUpdate - 타이틀 목록 업데이트 시 호출할 콜백 함수 (선택 사항)
-/// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
-/// ------------------------------
-Future<List<TitleInfo>> handleMessageSentTitle(
-  int messageCount, {
-  Function? onUpdate,
-}) async {
-  final prefs = await SharedPreferences.getInstance();
-  int psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
-
-  final stats = UserStats(
-    psychologyTestCount: psychologyCount,
-    messageCount: messageCount,
-  );
-
-  final messageTitles =
-      allTitles
-          .where(
-            (t) => t.id == 'smalltalk_starter' || t.id == 'smalltalk_master',
-          )
-          .toList();
-
-  print('handleMessageSentTitle - 메시지 개수: $messageCount');
-  print(
-    'handleMessageSentTitle - 검사할 타이틀: ${messageTitles.map((t) => t.name).toList()}',
-  );
-
-  return filterAndSaveTitles(stats, messageTitles, onUpdate: onUpdate);
 }
 
 /// ------------------------------
@@ -414,9 +377,9 @@ Future<List<TitleInfo>> handleMessageSentTitle(
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleFavoriteFriendTitle(
-  int favoriteCount, {
-  Function? onUpdate,
-}) async {
+    int favoriteCount, {
+      Function? onUpdate,
+    }) async {
   final prefs = await SharedPreferences.getInstance();
 
   // 현재 저장된 심리테스트 횟수나 기타 필요한 상태 읽기
@@ -429,14 +392,14 @@ Future<List<TitleInfo>> handleFavoriteFriendTitle(
 
   // 즐겨찾기 타이틀만 추출
   final favoriteTitles =
-      allTitles
-          .where(
-            (t) =>
-                t.id == 'favorite_one' ||
-                t.id == 'favorite_several' ||
-                t.id == 'favorite_capybara',
-          )
-          .toList();
+  allTitles
+      .where(
+        (t) =>
+    t.id == 'favorite_one' ||
+        t.id == 'favorite_several' ||
+        t.id == 'favorite_capybara',
+  )
+      .toList();
 
   return filterAndSaveTitles(stats, favoriteTitles, onUpdate: onUpdate);
 }
@@ -449,9 +412,9 @@ Future<List<TitleInfo>> handleFavoriteFriendTitle(
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleTodoCountTitle(
-  int todoCount, {
-  Function? onUpdate,
-}) async {
+    int todoCount, {
+      Function? onUpdate,
+    }) async {
   final stats = UserStats(
     todoCount: todoCount,
     messageCount: 0,
@@ -459,15 +422,15 @@ Future<List<TitleInfo>> handleTodoCountTitle(
   );
 
   final todoTitles =
-      allTitles
-          .where(
-            (t) =>
-                t.id == 'todo_comfortable' ||
-                t.id == 'todo_human' ||
-                t.id == 'todo_god' ||
-                t.id == 'todo_killer',
-          )
-          .toList();
+  allTitles
+      .where(
+        (t) =>
+    t.id == 'todo_comfortable' ||
+        t.id == 'todo_human' ||
+        t.id == 'todo_god' ||
+        t.id == 'todo_killer',
+  )
+      .toList();
 
   return await filterAndSaveTitles(stats, todoTitles, onUpdate: onUpdate);
 }
@@ -480,9 +443,9 @@ Future<List<TitleInfo>> handleTodoCountTitle(
 /// 반환: int - 연속 성공 일수
 /// ------------------------------
 int calculateConsecutiveSuccessDays(
-  Map<DateTime, List<Event>> events,
-  DateTime fromDate,
-) {
+    Map<DateTime, List<Event>> events,
+    DateTime fromDate,
+    ) {
   int count = 0;
   DateTime date = fromDate;
 
@@ -509,10 +472,10 @@ int calculateConsecutiveSuccessDays(
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitle(
-  Map<DateTime, List<Event>> events,
-  DateTime referenceDate, {
-  Function? onUpdate,
-}) async {
+    Map<DateTime, List<Event>> events,
+    DateTime referenceDate, {
+      Function? onUpdate,
+    }) async {
   final consecutiveDays = calculateConsecutiveSuccessDays(
     events,
     referenceDate,
@@ -524,7 +487,65 @@ Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitle(
   );
 
   final streakTitles =
-      allTitles.where((t) => t.id.startsWith('streak_')).toList();
+  allTitles.where((t) => t.id.startsWith('streak_')).toList();
 
   return await filterAndSaveTitles(stats, streakTitles, onUpdate: onUpdate);
+}
+
+/// ------------------------------
+/// 함수명: handleScheduleCountTitle
+/// 목적: 시간표 추가 개수에 따라 관련 타이틀 획득 여부 검사
+/// 입력: int scheduleCount - 현재 추가된 시간표 개수
+/// 입력: Function? onUpdate - 타이틀 목록 업데이트 시 호출할 콜백 함수 (선택 사항)
+/// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
+/// ------------------------------
+Future<List<TitleInfo>> handleScheduleCountTitle(
+    int scheduleCount, {
+      Function? onUpdate,
+    }) async {
+  // print('[handleScheduleTitle] 시작 - scheduleCount: $scheduleCount');
+  final stats = UserStats(
+    psychologyTestCount: 0,
+    scheduleCount: scheduleCount,
+  );
+
+  final scheduleTitles =
+  allTitles.where((t) => t.id.startsWith('schedule_')).toList();
+
+  // print('[handleScheduleTitle] 컬렉션에서 schedule 관련 타이틀 개수: ${scheduleTitles.length}');
+
+  return await filterAndSaveTitles(stats, scheduleTitles, onUpdate: onUpdate);
+}
+
+Future<int> getTotalSchedule() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return 0;
+
+  final timetableRef = FirebaseFirestore.instance
+      .collection('timetables')
+      .doc(user.uid)
+      .collection('TableName');
+
+  int totalSubjects = 0;
+
+  final semesterDocs = await timetableRef.get();
+
+  for (var semesterDoc in semesterDocs.docs) {
+    final classesRef = semesterDoc.reference.collection('classes');
+    final dayDocs = await classesRef.get();
+
+    for (var dayDoc in dayDocs.docs) {
+      // 각 요일 문서 필드 수(과목 수) 세기
+      final data = dayDoc.data();
+
+      // 필요한 경우 특정 메타필드를 제외한 필드 개수 구하기
+      final filterKeys = {'createdAt', 'someOtherMetaField'}; // 메타 필드 이름 정확히 추가
+      int subjectCount = data.keys.where((key) => !filterKeys.contains(key)).length;
+
+      totalSubjects += subjectCount;
+    }
+  }
+
+  // print('총 과목 개수: $totalSubjects');
+  return totalSubjects;
 }

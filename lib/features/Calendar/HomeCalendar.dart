@@ -9,7 +9,7 @@ import '../Settings/settings_screen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
-import 'package:new_project_1/features/Settings/TitleHandler.dart';
+import '../Settings/TitleHandler.dart';
 import '../Settings/firebase_title.dart' as TitlesRemote;
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
@@ -219,6 +219,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
         _getEventsForDay(day).add(result);
       });
 
+      // 투두리스트 개수 타이틀 지급
       final totalTodoCount = _events.values.fold<int>(0, (sum, list) => sum + list.length);
       await TitlesRemote.handleTodoCount(totalTodoCount);
 
