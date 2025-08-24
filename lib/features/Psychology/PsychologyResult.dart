@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../auth/naverAndFirebaseAuth.dart';
 import 'package:new_project_1/features/Home/main_screen.dart';
 import 'package:new_project_1/features/Settings/firebase_title.dart';
+import '../Settings/TitleHandler.dart';
 
 // --- 데이터 모델 및 저장소 ---
 class Character {

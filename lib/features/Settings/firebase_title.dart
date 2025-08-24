@@ -231,7 +231,36 @@ Future<void> syncFirestoreTitlesToLocal() async {
   await prefs.setStringList('unlocked_titles', remote);
 }
 
+// 즐겨찾기 타이틀 추가
+Future<List<TitleInfo>> handleFavoriteFriendTitleFirestore(
+    int favoriteCount, {
+      Function? onUpdate,
+    }) async {
+  final prefs = await SharedPreferences.getInstance();
+  final psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
 
+  final stats = UserStats(
+    psychologyTestCount: psychologyCount,
+    friendsCount: favoriteCount, // 즐겨찾기 개수 재사용(기존 정책과 동일)
+  );
+
+  final favoriteTitles = allTitles.where(
+        (t) =>
+        t.id == 'favorite_one' ||
+        t.id == 'favorite_several' ||
+        t.id == 'favorite_capybara',
+  ).toList();
+
+  final newlyEarnedTitles =
+  await filterAndSaveTitles(stats, favoriteTitles, onUpdate: onUpdate);
+
+  final titleNames = newlyEarnedTitles.map((t) => t.name).toList();
+  if (titleNames.isNotEmpty) {
+    await addUnlockedTitlesToFirestore(titleNames);
+  }
+
+  return newlyEarnedTitles;
+}
 
 // 앱 초기 실행 시 호출(앱 업데이트 시)
 // 로컬의 모든 타이틀을 firebase로 한 번만 옮기는 마이그레이션 함수
