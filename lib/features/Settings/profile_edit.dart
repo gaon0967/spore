@@ -9,7 +9,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart';
-import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
 Future<List<int>> fetchUserCharacterIds(String userId) async {
@@ -635,16 +634,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         hasIntro: introText.isNotEmpty,
         hasProfileImage: true,
       );
-      final newNames = earnTitles.map((t) => t.name).toList();
-      if (earnTitles.isNotEmpty) {
-        final names = earnTitles.map((t) => t.name).toList();
-        await addTitles(earnTitles);
-        setState(() {
-          unlockedTitles = {...unlockedTitles, ...names}.toList();
-        });
-        await TitlesRemote.addUnlockedTitlesToFirestore(names);
-      }
-
       await addTitles(earnTitles);
     } catch (e) {
       ScaffoldMessenger.of(
@@ -774,15 +763,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         hasIntro: introText.isNotEmpty,
         hasProfileImage: _profileImage != null || _profileImageUrl != null,
     );
-    // Firestore 반영 + 화면 즉시 갱신
-    if (earnedTitles.isNotEmpty) {
-      final names = earnedTitles.map((t) => t.name).toList();
-      await addTitles(earnedTitles); // 로컬 SharedPreferences 저장
-      setState(() {
-        unlockedTitles = {...unlockedTitles, ...names}.toList(); // 즉시 UI 반영
-      });
-      await TitlesRemote.addUnlockedTitlesToFirestore(names); // Firestore 동기화
-    }
+    await addTitles(earnedTitles);
 
     Navigator.pop(context);
     _hideBottomMessageAfterDelay();
