@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   table_calendar: ^3.0.9
-  intl: ^0.19.0
+  intl: ^0.20.2
   cloud_firestore: ^5.6.12  # db
   cloud_functions: ^5.5.0  # firebase functions 이용을 위함
   firebase_auth: ^5.7.0    # 인증을 위함
