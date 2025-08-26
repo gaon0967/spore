@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:new_project_1/features/Psychology/PsychologyQuestion.dart';
 import 'package:new_project_1/features/Psychology/PsychologyResult.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/services.dart';
+import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart';
 
@@ -56,15 +56,12 @@ class ImagePickerMenu extends StatefulWidget {
   const ImagePickerMenu({super.key, required this.onSelect});
 
   @override
-  State<ImagePickerMenu> createState() => _ImagePickerMenuState();
-}
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue,
+      TextEditingValue newValue) {
+    if (newValue.composing.isValid) {
+      return newValue;
+    }
 
-/// 클래스: _ImagePickerMenuState
-/// 목적: ImagePickerMenu의 상태 관리 및 UI 빌드
-/// 반환: State<ImagePickerMenu> 인스턴스 반환
-/// 예외: 없음
-class _ImagePickerMenuState extends State<ImagePickerMenu> {
-  int? selectedIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -189,8 +186,7 @@ class _ImagePickerMenuState extends State<ImagePickerMenu> {
     );
   }
 }
-
-/// 클래스: ProfileEdit
+  /// 클래스: ProfileEdit
 /// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
 /// 반환: StatefulWidget 인스턴스 반환
 /// 예외: 없음
@@ -201,8 +197,10 @@ class ProfileEdit extends StatefulWidget {
   State<ProfileEdit> createState() => _ProfileEditPageState();
 }
 
+
 String? _bottomMessage;
 bool _showBottomMessage = false;
+
 
 /// 클래스: TitleSelect
 /// 목적: 사용자가 획득한 타이틀 중에서 최대 2개를 선택할 수 있도록 하는 UI 컴포넌트
@@ -391,18 +389,12 @@ class _TitleSelectState extends State<TitleSelect> {
 }
 
 /// 클래스: _ProfileEditPageState
-/// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 이미지 업로드, 닉네임 및 한줄 소개 편집 기능을 제공
+/// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 닉네임 및 한줄 소개 편집 기능을 제공
 /// 반환: State<ProfileEdit> 인스턴스 반환
-/// 예외: Firestore 접근 실패, 이미지 업로드 실패 등의 예외 처리 필요
+/// 예외: Firestore 접근 실패 예외 처리 필요
 class _ProfileEditPageState extends State<ProfileEdit> {
-  String nickname = "닉네임을 입력하세요";
+  String name = "";
   String introText = "";
-  File? _profileImage;
-  String? _profileImageUrl;
-  final ImagePicker picker = ImagePicker();
-
-  bool _isEditingNickname = false;
-  late TextEditingController _nicknameController;
 
   List<int> psychologyResultIds = [];
   List<Character> availableCharacters = [];
@@ -468,7 +460,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   @override
   void initState() {
     super.initState();
-    _nicknameController = TextEditingController(text: nickname);
 
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -484,12 +475,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
   }
 
-  @override
-  void dispose() {
-    _nicknameController.dispose();
-    super.dispose();
-  }
-
   Future<void> _loadSelectedIdAndApply() async {
     if (userId.isEmpty || availableCharacters.isEmpty) return;
     final doc =
@@ -503,7 +488,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         );
         setState(() {
           selectedCharacter = char;
-          _profileImage = null;
         });
       }
     }
@@ -521,10 +505,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         final data = doc.data();
         if (data != null) {
           setState(() {
-            nickname = data['nickname'] ?? nickname;
+            name = data['name'] ?? "";
             introText = data['intro'] ?? introText;
-            _nicknameController.text = nickname;
-            _profileImageUrl = data['profileImageUrl'];
           });
         }
       }
@@ -595,7 +577,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     setState(() {
       selectedCharacter = firstCharacter;
       availableCharacters = others;
-      _profileImage = null;
     });
   }
 
@@ -688,35 +669,57 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       barrierColor: Colors.black54,
-      barrierDismissible: true,
-      builder: (contextDialog) {
-        final menuWidth = screenWidth * 0.65;
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
         return Center(
-          child: SizedBox(
-            width: menuWidth,
-            child: Material(
-              borderRadius: BorderRadius.circular(18),
-              child: ImagePickerMenu(
-                onSelect: (index) {
-                  Navigator.of(contextDialog).pop();
-                  WidgetsBinding.instance.addPostFrameCallback((_) {
-                    if (index == 0) {
-                      _pickImageFromGallery();
-                    } else if (index == 1) {
-                      if (availableCharacters.isNotEmpty) {
-                        setState(() {
-                          selectedCharacter = availableCharacters.first;
-                          _profileImage = null;
-                        });
-                        _saveSelectedCharacterId();
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("이미 변경되었습니다.")),
-                        );
-                      }
-                    }
-                  });
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: screenWidth * 0.65,
+              padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 20),
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade400),
+              ),
+              child: Builder(
+                builder: (dialogContext) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        message,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF535353),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      const Divider(thickness: 1, height: 1, color: Color(0xFFDDDDDD)),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 44,
+                        child: TextButton(
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.black,
+                            padding: EdgeInsets.zero,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(0),
+                            ),
+                          ),
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          child: const Text(
+                            '확인',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
                 },
               ),
             ),
@@ -821,17 +824,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         );
       },
     );
-  }
-
-  void _hideBottomMessageAfterDelay() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _showBottomMessage = false;
-          _bottomMessage = null;
-        });
-      }
-    });
   }
 
   Widget _introWithUnderline(String intro, TextStyle style) {
