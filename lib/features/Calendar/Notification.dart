@@ -261,14 +261,11 @@ List<TextSpan> _buildStyledTextSpans(AppNotification noti) {
 }
 
 
-// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
-// ★★★ 바로 이 함수가 요청에 따라 수정된 핵심 부분입니다. ★★★
-// ▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
 Widget _buildStyledNotiBox(
   AppNotification noti,
   BuildContext context,
   Function(DateTime) onGoToCalendar,
-  // [수정] 친구 요청 콜백 함수들은 더 이상 필요 없으므로 삭제합니다.
+  void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
 ) {
   Color bgColor = Color(0xF4F4F4F4);
   String? label;
@@ -297,7 +294,7 @@ Widget _buildStyledNotiBox(
       width: screenWidth * 0.09,
       height: screenWidth * 0.09,
     );
-    rightText = '바로 가기'; // [수정] 모든 친구 알림에 '바로 가기'를 표시합니다.
+    rightText = '바로 가기'; // [수정] 모든 친구 알림에 '바로 가기'를 표시
   } else if (noti.type == 'title' ||
       noti.title.contains('타이틀')) {
     label = '타이틀';
@@ -310,7 +307,7 @@ Widget _buildStyledNotiBox(
     rightText = '바로 가기';
   }
 
-  // [수정] '수락'/'거절' 버튼을 만들던 로직을 삭제하고, '바로 가기' 버튼을 만드는 로직으로 통합합니다.
+  // [수정] '수락'/'거절' 버튼을 만들던 로직을 삭제하고, '바로 가기' 버튼을 만드는 로직으로 통합
   Widget? actionArea;
   if (rightText != null) {
     actionArea = Positioned(
@@ -321,8 +318,17 @@ Widget _buildStyledNotiBox(
           if (noti.title.contains("D-Day") && noti.dueDate != null) {
             onGoToCalendar(noti.dueDate!);
           }
-          // TODO: 친구 알림의 '바로 가기' 클릭 시 동작을 여기에 구현합니다.
-          // (예: 친구 목록 페이지로 이동 또는 해당 친구 프로필로 이동 등)
+          // 친구 관련 알림일 경우
+          else if (noti.type?.startsWith('friend_') ?? noti.title.contains('친구')) {
+            onNavigateToFriendsCallback(
+              tabIndex: 1,
+              expandRequests: true,
+            );
+            
+            Navigator.of(context).pop();
+          }
+          
+          // TODO: 다른 '바로 가기' 액션이 있다면 여기에 추가
         },
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -425,14 +431,10 @@ Widget _buildStyledNotiBox(
     ),
   );
 }
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-// ★★★ 여기까지가 요청에 따라 수정된 핵심 부분입니다. ★★★
-// ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
-
-// ---------------------------------
 
 class NotificationPage extends StatefulWidget {
-  const NotificationPage({super.key});
+  final void Function({int tabIndex, bool expandRequests}) onNavigateToFriends;
+  const NotificationPage({super.key, required this.onNavigateToFriends});
 
   @override
   State<NotificationPage> createState() => _NotificationPageState();
@@ -908,8 +910,12 @@ class _NotificationPageState extends State<NotificationPage> {
             onPointerCancel: (_) => setState(() => _pressedIndex = null),
             child: Stack(
               children: [
-                // [수정] _buildStyledNotiBox 호출 시 더 이상 콜백 함수를 전달하지 않습니다.
-                _buildStyledNotiBox(noti, context, (date) => Navigator.of(context).pop(date)),
+                _buildStyledNotiBox(
+                  noti, 
+                  context, 
+                  (date) => Navigator.of(context).pop(date),
+                  widget.onNavigateToFriends, // <- 이 부분을 추가!
+                ),
                 Positioned.fill(
                   child: IgnorePointer(
                     child: AnimatedContainer(
@@ -968,6 +974,8 @@ class _NotificationPageState extends State<NotificationPage> {
                   noti,
                   context,
                   (_) {},
+                  // 삭제 애니메이션 중에는 동작할 필요가 없으므로, 비어있는 함수를 전달합니다.
+                  ({int tabIndex = 0, bool expandRequests = false}) {}, 
                 ),
               ),
             ),

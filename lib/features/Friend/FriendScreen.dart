@@ -14,7 +14,6 @@ import 'dart:math';
 class Friend {
   final String friendId;
   final String name;
-  final String nickName;
   final List<String> tags;
   final String profileImage;
   final bool favorite;
@@ -23,7 +22,6 @@ class Friend {
   const Friend({
     required this.friendId,
     required this.name,
-    required this.nickName,
     this.tags = const [],
     this.profileImage = '',
     this.favorite = false,
@@ -35,7 +33,6 @@ class FriendRequest {
   final String senderId;
   final String receiverId;
   final String senderName;
-  final String senderNickName;
   final List<String> senderTags;
   final String senderProfileImage;
   final Timestamp timestamp;
@@ -44,7 +41,6 @@ class FriendRequest {
     required this.senderId,
     required this.receiverId,
     required this.senderName,
-    required this.senderNickName,
     this.senderTags = const [],
     this.senderProfileImage = '',
     required this.timestamp,
@@ -52,14 +48,25 @@ class FriendRequest {
 
   factory FriendRequest.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    List<String> tags = [];
+    // senderTags 필드가 존재하는지 확인하고, 타입에 따라 안전하게 파싱합니다.
+    final senderTagsData = data['senderTags'];
+    if (senderTagsData != null) {
+    if (senderTagsData is List) {
+    tags = List<String>.from(senderTagsData);
+    } else if (senderTagsData is Map) {
+    // Map일 경우, values만 가져와서 리스트로 변환 (DB 스냅샷과 유사한 처리)
+    tags = senderTagsData.values.map((e) => e.toString()).toList();
+    }
+    }
+
     return FriendRequest(
-      senderId: data['senderId'] ?? '',
-      receiverId: data['receiverId'] ?? '',
-      senderName: data['senderName'] ?? '',
-      senderNickName: data['senderNickName'] ?? '',
-      senderTags: List<String>.from(data['senderTags'] ?? []),
-      senderProfileImage: data['senderProfileImage'] ?? '',
-      timestamp: data['timestamp'] ?? Timestamp.now(),
+    senderId: data['senderId'] ?? '',
+    receiverId: data['receiverId'] ?? '',
+    senderName: data['senderName'] ?? '',
+    senderTags: tags, // 안전하게 파싱된 tags 리스트를 사용
+    senderProfileImage: data['senderProfileImage'] ?? '',
+    timestamp: data['timestamp'] ?? Timestamp.now(),
     );
   }
 }
@@ -67,7 +74,6 @@ class FriendRequest {
 class RecommendedUser {
   final String uid;
   final String name;
-  final String nickName;
   final String email;
   final List<String> tags;
   final String profileImage;
@@ -76,7 +82,6 @@ class RecommendedUser {
   const RecommendedUser({
     required this.uid,
     required this.name,
-    required this.nickName,
     required this.email,
     this.tags = const [],
     this.profileImage = '',
@@ -88,7 +93,6 @@ class RecommendedUser {
     return RecommendedUser(
       uid: doc.id,
       name: data['name'] ?? '',
-      nickName: data['nickName'] ?? '',
       email: data['email'] ?? '',
       tags: List<String>.from(data['title'] ?? []),
       profileImage: data['profileImage'] ?? '',
@@ -100,8 +104,18 @@ class RecommendedUser {
 // --- 위젯 ---
 
 class FriendScreen extends StatefulWidget {
+  final void Function({int tabIndex, bool expandRequests}) onNavigateToFriends;
   final Function(Character)? onShowProfile;
-  const FriendScreen({Key? key, this.onShowProfile}) : super(key: key);
+  final int initialTabIndex;
+  final bool expandRequestsSection;
+
+  const FriendScreen({
+    Key? key,
+    this.onShowProfile,
+    this.initialTabIndex = 0,
+    this.expandRequestsSection = false,
+    required this.onNavigateToFriends,
+  }) : super(key: key);
 
   @override
   State<FriendScreen> createState() => _FriendScreenState();
@@ -115,6 +129,7 @@ class _FriendScreenState extends State<FriendScreen> {
   final Random _random = Random();
   final CalendarNotification.NotificationService _notificationService = CalendarNotification.NotificationService();
 
+  
   String? get currentUserId => _auth.currentUser?.uid;
 
   @override
@@ -144,7 +159,6 @@ class _FriendScreenState extends State<FriendScreen> {
             friends.add(Friend(
               friendId: friendId,
               name: userData['name'] ?? '',
-              nickName: userData['nickName'] ?? '',
               tags: List<String>.from(userData['title'] ?? []),
               profileImage: userData['profileImage'] ?? '',
               favorite: friendData['favorite'] ?? false,
@@ -201,7 +215,13 @@ class _FriendScreenState extends State<FriendScreen> {
         .where('receiverId', isEqualTo: currentUserId)
         .orderBy('timestamp', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList());
+        .map((snapshot) {
+        print('FriendScreen: Firestore에서 ${snapshot.docs.length}개의 친구 신청 문서를 찾았습니다.');
+        if (snapshot.docs.isNotEmpty) {
+          print('첫 번째 문서 데이터: ${snapshot.docs.first.data()}');
+        }
+        return snapshot.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList();
+      });
   }
 
   // 보낸 친구 신청 스트림
@@ -267,16 +287,10 @@ class _FriendScreenState extends State<FriendScreen> {
         'senderId': currentUserId,
         'receiverId': receiverId,
         'senderName': currentUserData['name'] ?? '',
-        'senderNickName': currentUserData['nickName'] ?? '',
         'senderTags': currentUserData['title'] ?? [],
         'senderProfileImage': currentUserData['profileImage'] ?? '',
         'timestamp': FieldValue.serverTimestamp(),
       });
-
-      await _notificationService.createFriendRequestNotification(
-          receiverId,
-          currentUserData['nickName'] ?? currentUserData['name'] ?? 'Unknown'
-      );
 
       if (mounted) {
         _emailCtrl.clear();
@@ -313,12 +327,12 @@ class _FriendScreenState extends State<FriendScreen> {
       await batch.commit();
 
       final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
-      final myName = currentUserDoc.data()?['nickName'] ?? 'Unknown';
+      final myName = currentUserDoc.data()?['name'] ?? 'Unknown';
       await _notificationService.createFriendAcceptedNotification(request.senderId, myName);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${request.senderNickName}님과 친구가 되었습니다!')),
+          SnackBar(content: Text('${request.senderName}님과 친구가 되었습니다!')),
         );
       }
     } catch (e) {
@@ -341,7 +355,7 @@ class _FriendScreenState extends State<FriendScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${request.senderNickName}님의 친구 신청을 거절했습니다.')),
+          SnackBar(content: Text('${request.senderName}님의 친구 신청을 거절했습니다.')),
         );
       }
     } catch (e) {
@@ -365,7 +379,7 @@ class _FriendScreenState extends State<FriendScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${friend.nickName}님을 차단했습니다.')),
+          SnackBar(content: Text('${friend.name}님을 차단했습니다.')),
         );
       }
     } catch (e) {
@@ -385,7 +399,7 @@ class _FriendScreenState extends State<FriendScreen> {
           .delete();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${friend.nickName}님을 친구 목록에서 삭제했습니다.')),
+          SnackBar(content: Text('${friend.name}님을 친구 목록에서 삭제했습니다.')),
         );
       }
     } catch (e) {
@@ -461,6 +475,7 @@ class _FriendScreenState extends State<FriendScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('FriendScreen 현재 사용자 UID: $currentUserId');
     if (currentUserId == null) {
       return const Scaffold(
         body: Center(
@@ -470,6 +485,7 @@ class _FriendScreenState extends State<FriendScreen> {
     }
 
     return DefaultTabController(
+      initialIndex: widget.initialTabIndex,
       length: 3,
       child: Scaffold(
         backgroundColor: Colors.white,
@@ -482,7 +498,10 @@ class _FriendScreenState extends State<FriendScreen> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                    builder: (context) => const CalendarNotification.NotificationPage()
+                  builder: (context) => CalendarNotification.NotificationPage(
+                    // 전달받은 콜백(widget.onNavigateToFriends)을 넘겨줍니다.
+                    onNavigateToFriends: widget.onNavigateToFriends,
+                  ),
                 ),
               );
             },
@@ -559,7 +578,7 @@ class _FriendScreenState extends State<FriendScreen> {
             itemBuilder: (context, idx) {
               final friend = friends[idx];
               return _FriendTile(
-                name: friend.nickName,
+                name: friend.name,
                 tags: friend.tags,
                 tileColor: Colors.grey.shade50,
                 isFavorite: friend.favorite,
@@ -628,6 +647,7 @@ class _FriendScreenState extends State<FriendScreen> {
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
+              initiallyExpanded: widget.expandRequestsSection,
               title: const Text('나랑 친구해줘!', style: TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: Colors.white,
               children: [
@@ -647,7 +667,7 @@ class _FriendScreenState extends State<FriendScreen> {
                     return Column(
                       children: requests.map((request) {
                         return _FriendTile(
-                          name: request.senderNickName,
+                          name: request.senderName,
                           tags: request.senderTags,
                           tileColor: const Color(0xFFE8F0FE),
                           isFavorite: false,
@@ -678,7 +698,7 @@ class _FriendScreenState extends State<FriendScreen> {
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
-              initiallyExpanded: true,
+              initiallyExpanded: false,
               title: const Text('언제쯤 받아줄까...', style: TextStyle(fontWeight: FontWeight.bold)),
               backgroundColor: Colors.white,
               children: [
@@ -813,7 +833,7 @@ class _FriendScreenState extends State<FriendScreen> {
                               children: [
                                 Image.asset('assets/images/friendScreen/star_on.png', width: 20, height: 20),
                                 const SizedBox(width: 6),
-                                Text(user.nickName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
+                                Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
                               ],
                             ),
                             const SizedBox(height: 8),
