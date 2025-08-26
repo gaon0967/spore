@@ -22,11 +22,11 @@ class LoginScreen extends StatelessWidget {
           children: [
             _TopSection(), //  상단 섹션
 
-            SizedBox(height: screenHeight * 0.08), //  남는 세로 공간
+            SizedBox(height: screenHeight * 0.13), //  남는 세로 공간
 
             _ChatBubbleSection(), //  말풍선 섹션
 
-            SizedBox(height: screenHeight * 0.1), // 남는 세로 공간
+            SizedBox(height: screenHeight * 0.08), // 남는 세로 공간
 
             _BottomSection(), // 하단 섹션
 
@@ -51,32 +51,32 @@ class _TopSection extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 40.0, bottom: 20.0),
+      padding: const EdgeInsets.only(top: 70.0, bottom: 20.0),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Image.asset(
             'assets/images/LoginHome/Logo.png',
-            width: screenWidth * 0.12,
+            width: screenWidth * 0.093,
           ),
-          const SizedBox(height: 15),
+          const SizedBox(height: 10),
           const Text(
             "하루를 공유하고, 일정을 관리하세요.",
             style: TextStyle(
               fontFamily: 'Golos Text',
-              fontSize: 14,
+              fontSize: 13.3,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF514949),
+              color: Color.fromARGB(255, 104, 95, 95),
             ),
           ),
-          const SizedBox(height: 8),
           Text(
             "spore",
             style: TextStyle(
               fontFamily: 'League Spartan',
-              fontSize: screenWidth * 0.11,
-              fontWeight: FontWeight.w900, // bold 에서 수정.
+              fontSize: screenWidth * 0.125,
+              fontWeight: FontWeight.w800, // bold 에서 수정.
               color: const Color(0xFF6B6060),
+              height: 1.0, // 큰 폰트의 기본 줄 간격으로 인한 상단 여백을 줄입니다.
             ),
           ),
         ],
@@ -194,73 +194,30 @@ class _ChatBubbleSection extends StatelessWidget {
 class _ChatBubbleSection extends StatelessWidget {
   const _ChatBubbleSection();
 
-  // 말풍선을 만드는 재사용 가능한 함수
-  Widget _buildChatBubble({
-    required BuildContext context,
-    required String imagePath,
-    required String text,
-    required Alignment alignment,
-    required double imageWidth,
-  }) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    const bubbleTextStyle = TextStyle(
-      fontFamily: 'Golos Text',
-      fontSize: 12,
-      color: Color(0xFF777575),
-      fontWeight: FontWeight.w500,
-    );
-
-    return Align(
-      alignment: alignment,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // 이미지의 너비를 반응형으로 설정합니다.
-          Image.asset(imagePath, width: screenWidth * imageWidth),
-          // 텍스트에 좌우, 하단 여백을 주어 이미지 중앙에 예쁘게 배치합니다.
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8.0, left: 15, right: 15),
-            child: Text(
-              text,
-              style: bubbleTextStyle,
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-      child: Column(
-        children: [
-          _buildChatBubble(
-            context: context,
-            imagePath: 'assets/images/LoginHome/talk1.png',
-            text: "💬오늘 일정 뭐였지 ?? 💬",
-            alignment: Alignment.centerLeft,
-            imageWidth: 0.5, // 원본 이미지 너비 비율
+      child: Center(
+        // Transform.translate 위젯을 사용하여 위치를 미세 조정합니다.
+        child: Transform.translate(
+          offset: const Offset(-20.0,0.0), // dx: 음수는 왼쪽, dy: 양수는 아래로 이동
+          child: ClipRRect(
+            // 먼저 잘라낼 영역을 정의합니다.
+            borderRadius: BorderRadius.circular(15.0),
+            // 그 안에서 이미지를 살짝 확대합니다.
+            child: Transform.scale(
+              scale: 1.005, // 0.5% 확대하여 문제의 가장자리를 잘리는 영역 밖으로 밀어냅니다.
+              child: Image.asset(
+                'assets/images/LoginHome/talk1.png',
+                width: screenWidth * 0.9,
+                // 이미지 렌더링 품질을 높여 경계선이 뭉개지는 현상을 완화합니다.
+                filterQuality: FilterQuality.high,
+              ),
+            ),
           ),
-          const SizedBox(height: 20),
-          _buildChatBubble(
-            context: context,
-            imagePath: 'assets/images/LoginHome/talk2.png',
-            text: "spore 로 관리해봐! 친구들 일정도 볼 수 있대 📅",
-            alignment: Alignment.centerRight,
-            imageWidth: 0.75, // 원본 이미지 너비 비율
-          ),
-          const SizedBox(height: 20),
-          _buildChatBubble(
-            context: context,
-            imagePath: 'assets/images/LoginHome/talk3.png',
-            text: "새로운 친구들을 만날 수 있어서 좋네 👥",
-            alignment: Alignment.centerLeft,
-            imageWidth: 0.68, // 원본 이미지 너비 비율
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -287,31 +244,18 @@ class _BottomSection extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        NaverLoginButton(
-          style: NaverLoginButtonStyle(
-            mode: NaverButtonMode.green,
-            type: NaverButtonType.rectangleBar,
-          ),
-
-          width: screenWidth * 0.8,
-          height: 55,
-          onPressed: () async {
+        // NaverLoginButton을 GestureDetector와 Container로 대체하여 커스텀 버튼 생성
+        GestureDetector(
+          onTap: () async {
             print("네이버 로그인 버튼 클릭됨");
-
-            // 1. AuthService 클래스의 인스턴스를 생성.
             final authService = AuthService();
-
             try {
-              // 2, 로그인 전용.
-              
               final userData = await authService.signInWithNaver(default_id);
-
               print("characterId : ${userData["characterId"]}");
 
-
+              if (!context.mounted) return;
 
               if (userData["characterId"] == -1) {
-                if (!context.mounted) return;
                 await Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
@@ -319,7 +263,6 @@ class _BottomSection extends StatelessWidget {
                   ),
                 );
               } else {
-                if (!context.mounted) return;
                 await Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const MainScreen()),
@@ -333,13 +276,41 @@ class _BottomSection extends StatelessWidget {
               );
             }
           },
+          child: Container(
+            width: screenWidth * 0.7,
+            height: 59,
+            decoration: BoxDecoration(
+              color: const Color(0xFF03C75A), // 네이버 녹색
+              borderRadius: BorderRadius.circular(999), // 완전한 타원형 모양
+            ),
+            child: const Center(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    "NAVER",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    "로그인",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
 
-        // 원래는 계정이 없다면? 심리 테스트 바로 가기 자리인데 여기 부터 삭제. _ 심리 테스트 고치는 동안 만 사용하기.
-
-
-
-        
         const SizedBox(height: 20),
 
         // 계정이 없는 사람들을 위한 텍스트 버튼

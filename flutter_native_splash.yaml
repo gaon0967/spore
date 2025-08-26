@@ -22,7 +22,9 @@ flutter_native_splash:
   color: "#FFFEF9"
   image: assets/images/LoadingLogo.png
   fullscreen: true
-
+  android_gravity: center_horizontal|center_vertical # 명시적으로 중앙 설정
+  ios_content_mode: scaleAspectFit # 비율 유지하며 맞춤
+  web_image_mode: contain # 비율 유지하며 맞춤
   
     
   
@@ -66,7 +68,7 @@ flutter_native_splash:
   android_12:
     color: "#FFFEF9"
     image: assets/images/LoadingLogo.png
-    
+    icon_background_color: "#FFFEF9" 
     # The image parameter sets the splash screen icon image.  If this parameter is not specified,
     # the app's launcher icon will be used instead.
     # Please note that the splash screen will be clipped to a circle on the center of the screen.
