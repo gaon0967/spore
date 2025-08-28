@@ -475,11 +475,15 @@ return Positioned(
       ),
     );
   }
-
-  Widget _buildFriendsSection(double screenWidth, double screenHeight) {
+Widget _buildFriendsSection(double screenWidth, double screenHeight) {
     final horizontalPadding = screenWidth * 0.05;
     final verticalPadding = screenHeight * 0.03;
     final titleFontSize = screenWidth * 0.035;
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return Container();
+    }
 
     return Container(
       width: double.infinity,
@@ -500,26 +504,68 @@ return Positioned(
               color: const Color(0xFFC9C9C9),
               borderRadius: BorderRadius.circular(screenWidth * 0.05),
             ),
-            child: Text('친구 시간표',
-                style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.w600, color: const Color(0xFF5F5F5F))),
+            child: Text(
+              '친구 시간표',
+              style: TextStyle(fontSize: titleFontSize, fontWeight: FontWeight.w600, color: const Color(0xFF5F5F5F)),
+            ),
           ),
           SizedBox(height: screenHeight * 0.02),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: 2,
-            itemBuilder: (context, index) {
-              final friendName = ['김가부기', '가부스탁스'][index];
-              return _buildFriendButton(friendName, screenWidth, screenHeight);
+          // Firestore에서 현재 사용자의 친구 목록을 가져오는 StreamBuilder
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .collection('friends')
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('오류: ${snapshot.error}'));
+              }
+              if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                return const Center(child: Text('친구가 없습니다.'));
+              }
+
+              final friendDocs = snapshot.data!.docs;
+
+              return ListView.separated(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: friendDocs.length,
+                itemBuilder: (context, index) {
+                  final friendDoc = friendDocs[index];
+                  final friendUid = friendDoc.id; // 친구의 UID는 문서 ID로 가져옵니다.
+
+                  return FutureBuilder<DocumentSnapshot>(
+                    // 친구의 UID로 'users' 컬렉션에서 이름을 조회합니다.
+                    future: FirebaseFirestore.instance.collection('users').doc(friendUid).get(),
+                    builder: (context, userSnapshot) {
+                      if (userSnapshot.connectionState == ConnectionState.waiting) {
+                        return _buildFriendButton(context, '로딩 중...', friendUid, screenWidth, screenHeight);
+                      }
+                      if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+                        return _buildFriendButton(context, '알 수 없는 친구', friendUid, screenWidth, screenHeight);
+                      }
+
+                      final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                      final friendName = userData['name'] ?? '이름 없음';
+
+                      return _buildFriendButton(context, friendName, friendUid, screenWidth, screenHeight);
+                    },
+                  );
+                },
+                separatorBuilder: (context, index) => SizedBox(height: screenHeight * 0.015),
+              );
             },
-            separatorBuilder: (context, index) => SizedBox(height: screenHeight * 0.015),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildFriendButton(String name, double screenWidth, double screenHeight) {
+  Widget _buildFriendButton(BuildContext context, String name, String uid, double screenWidth, double screenHeight) {
     final buttonFontSize = screenWidth * 0.04;
     final iconSize = screenWidth * 0.04;
 
@@ -527,7 +573,8 @@ return Positioned(
       onPressed: () {
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => FriendTimetable(friendName: name)),
+          // Pass both the name and the UID to the FriendTimetable widget
+          MaterialPageRoute(builder: (context) => FriendTimetable(friendName: name, friendUid: uid)),
         );
       },
       style: ElevatedButton.styleFrom(

@@ -1,23 +1,82 @@
 import 'package:flutter/material.dart';
-import 'course_model.dart'; 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'course_model.dart';
 
-class FriendTimetable extends StatelessWidget {
+class FriendTimetable extends StatefulWidget {
   final String friendName;
+  final String friendUid;
 
-  FriendTimetable({super.key, required this.friendName});
+  FriendTimetable({super.key, required this.friendName, required this.friendUid});
 
-  // ### ⭐️ 수정된 부분: Course 생성자에서 id 파라미터 제거 ⭐️ ###
-  final List<Course> friendCourses = [
-    Course(title: '리눅스눅스', professor: '함부기', room: '제2호관-401', day: 0, startTime: 9, endTime: 11, color: Color(0xFFCDDEE3)),
-    Course(title: '고양이와 낮잠', professor: '냐옹이다옹', room: '제5호관-201', day: 1, startTime: 11, endTime: 13, color: Color(0xFF8E9CBF)),
-    Course(title: '가부기와 햄 부기', professor: '미사에', room: '제5호관-409', day: 2, startTime: 9, endTime: 11, color: Color(0xFF97B4C7)),
-    Course(title: '땅울림개론', professor: '에렌 예거', room: '제5호관-207', day: 2, startTime: 12, endTime: 14, color: Color(0xFFBBCDC0)),
-    Course(title: '밥 얻어먹는 기술', professor: '각설이', room: '제10호관-101', day: 3, startTime: 12, endTime: 14, color: Color(0xFFE5EAEF)),
-  ];
+  @override
+  _FriendTimetableState createState() => _FriendTimetableState();
+}
+
+class _FriendTimetableState extends State<FriendTimetable> {
+  List<Course> _friendCourses = [];
+  bool _isLoading = true;
+  String _currentSemester = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFriendCourses();
+  }
+
+  Future<void> _loadFriendCourses() async {
+    setState(() {
+      _isLoading = true;
+    });
+    try {
+      final now = DateTime.now();
+      final currentYear = now.year.toString();
+      final currentSemester = (now.month >= 1 && now.month <= 6) ? '1학기' : '2학기';
+      final defaultTableName = "$currentYear년 $currentSemester";
+
+      final snapshot = await FirebaseFirestore.instance
+          .collection('timetables')
+          .doc(widget.friendUid)
+          .collection('TableName')
+          .doc(defaultTableName)
+          .collection('classes')
+          .get();
+
+      List<Course> allCourses = [];
+      for (var doc in snapshot.docs) {
+        final dayId = doc.id;
+        final data = doc.data();
+        if (data.containsKey('subjects')) {
+          final List<dynamic> subjectsList = data['subjects'];
+          for (var subjectData in subjectsList) {
+            allCourses.add(Course.fromMap(subjectData as Map<String, dynamic>, dayId));
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _friendCourses = allCourses;
+          _currentSemester = defaultTableName;
+        });
+      }
+    } catch (e) {
+      print("친구 시간표 로딩 실패: $e");
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final scale = MediaQuery.of(context).size.width / 411.0;
+
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
@@ -29,7 +88,7 @@ class FriendTimetable extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(
-          friendName,
+          widget.friendName,
           style: TextStyle(
             color: Colors.black87,
             fontWeight: FontWeight.bold,
@@ -46,7 +105,7 @@ class FriendTimetable extends StatelessWidget {
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 23 * scale, vertical: 8 * scale),
                 child: Text(
-                  '2025년 여름학기',
+                  _currentSemester,
                   style: TextStyle(
                     color: const Color(0xFF556283).withOpacity(0.8),
                     fontSize: 12 * scale,
@@ -87,7 +146,7 @@ class FriendTimetable extends StatelessWidget {
           child: Stack(
             children: [
               _buildGrid(headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale),
-              ...friendCourses.map((course) => _buildCourseItem(course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale)),
+              ..._friendCourses.map((course) => _buildCourseItem(course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale)),
             ],
           ),
         );
@@ -187,11 +246,11 @@ class FriendTimetable extends StatelessWidget {
           ),
           SizedBox(height: 12 * scale),
           ListView.builder(
-            itemCount: friendCourses.length,
+            itemCount: _friendCourses.length,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemBuilder: (context, index) {
-              final course = friendCourses[index];
+              final course = _friendCourses[index];
               return Card(
                 elevation: 1.5,
                 margin: EdgeInsets.only(bottom: 12 * scale),
