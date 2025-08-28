@@ -320,11 +320,19 @@ Widget _buildStyledNotiBox(
           }
           // 친구 관련 알림일 경우
           else if (noti.type?.startsWith('friend_') ?? noti.title.contains('친구')) {
-            onNavigateToFriendsCallback(
-              tabIndex: 1,
-              expandRequests: true,
-            );
-            
+            if (noti.type == 'friend_request') {
+              // '친구 신청' 알림 -> 친구 신청 목록으로 이동 (기존 동작)
+              onNavigateToFriendsCallback(
+                tabIndex: 1, 
+                expandRequests: true,
+              );
+            } else { 
+              // '친구가 되었습니다' 및 기타 친구 알림 -> 친구 목록으로 이동
+              onNavigateToFriendsCallback(
+                tabIndex: 0, // 친구 목록 탭
+                expandRequests: false, 
+              );
+            }
             Navigator.of(context).pop();
           }
           
