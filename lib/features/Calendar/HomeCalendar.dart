@@ -30,8 +30,12 @@ DateTime getToday() {
 }
 
 class HomeCalendar extends StatefulWidget {
+  final void Function({int tabIndex, bool expandRequests}) onNavigateToFriends;
   // 사용자 정의 Stateful 위젯 클래스(화면 자동 갱신)
-  const HomeCalendar({Key? key}) : super(key: key);
+  const HomeCalendar({
+    Key? key,
+    required this.onNavigateToFriends,
+  }) : super(key: key);
 
   @override
   State<HomeCalendar> createState() => _HomeCalendarState(); //실제 UI는 _HomeCalendarState 에서 정의됨
@@ -322,6 +326,47 @@ class _HomeCalendarState extends State<HomeCalendar> {
           ),
         ),
       ),
+    );
+  }
+
+  Route _createSettingsSlidingRoute() {
+    return PageRouteBuilder(
+      pageBuilder:
+          (context, animation, secondaryAnimation) => const SettingsScreen(),
+      transitionDuration: const Duration(milliseconds: 700),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = const Offset(1.0, 0.0); // 오른쪽에서 시작
+        var end = Offset.zero; // 중앙으로 이동
+        var curve = Curves.ease;
+
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
+  Route _createSlidingRoute(
+    void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
+  ) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => NotificationPage(
+        // 전달받은 콜백 함수를 NotificationPage에 넘겨줍니다.
+        onNavigateToFriends: onNavigateToFriendsCallback,
+      ),
+      transitionDuration: const Duration(milliseconds: 700),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = const Offset(1.0, 0.0);
+        var end = Offset.zero;
+        var curve = Curves.ease;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
     );
   }
 
@@ -627,10 +672,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                   print('알림 아이콘 클릭됨!');
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (context) => const NotificationPage(),
-                                    ),
+                                    _createSlidingRoute(widget.onNavigateToFriends),// NotificationPage를 여는 함수
                                   );
                                 },
                                 // --- 투명도 효과를 위한 부분 ---

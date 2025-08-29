@@ -1,989 +1,741 @@
-// lib/features/Friend/friend_screen.dart
-
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
-import 'package:new_project_1/features/Friend/friend_management.dart';
-import '../Psychology/PsychologyResult.dart'; // Character 모델
-import 'ChatScreen.dart'; // ChatScreen 위젯
-import '../Calendar/Notification.dart' as CalendarNotification; // 별칭 import
+import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
+import '../Calendar/event.dart';
 import '../Settings/settings_screen.dart';
-import '../Settings/firebase_title.dart';
+import '../Calendar/Notification.dart';
+import 'package:flutter/cupertino.dart';
+import 'dart:async';
+import '../Settings/TitleHandler.dart';
+import '../Settings/firebase_title.dart' as TitlesRemote;
 
-class Friend {
-  final String name;
-  final List<String> tags;
-  final int characterId;
+/* ├── HomeCalendar (StatefulWidget)
+│   ├── State: _HomeCalendarState
+│   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
+│   │   ├── 일정 데이터: _events (Map<DateTime, List<Event>>)
+│   │   ├── 일정 CRUD: 추가, 수정, 삭제
+│   │   ├── UI 구성
+│   │   │   ├── 상단: 월/년 텍스트 + 설정/알림 버튼
+│   │   │   ├── TableCalendar (달력)
+│   │   │   ├── 선택된 날짜 아래 일정 목록 (AnimatedList + Slidable)
+│   └── 일정 추가 다이얼로그: AddEventDialog (Dialog 위젯)
+*/
 
-  const Friend({
-    required this.name,
-    this.tags = const [],
-    required this.characterId,
-  });
+//========== getToday() : 시간은 제외하고, 오늘 날짜만 UTC 기준으로 반환해줌 ==========
+DateTime getToday() {
+  final now = DateTime.now(); // 현재 시간(날짜 + 시각)을 가져옴
+  return DateTime.utc(now.year, now.month, now.day); // 현재 날짜에서 연도, 월, 일만 꺼냄
 }
 
-class FriendRequest {
-  final String name;
-  final List<String> tags;
-  final int characterId;
-
-  const FriendRequest({
-    required this.name,
-    this.tags = const [],
-    required this.characterId,
-  });
-}
-
-class FriendRecommendation {
-  final String name;
-  final List<String> tags;
-  final int characterId;
-
-  const FriendRecommendation({
-    required this.name,
-    this.tags = const [],
-    required this.characterId,
-  });
-}
-
-class FriendScreen extends StatefulWidget {
-  final Function(Character)? onShowProfile;
-
-  const FriendScreen({Key? key, this.onShowProfile}) : super(key: key);
+class HomeCalendar extends StatefulWidget {
+  final void Function({int tabIndex, bool expandRequests}) onNavigateToFriends;
+  // 사용자 정의 Stateful 위젯 클래스(화면 자동 갱신)
+  const HomeCalendar({
+    Key? key,
+    required this.onNavigateToFriends,
+  }) : super(key: key);
 
   @override
-  State<FriendScreen> createState() => _FriendScreenState();
+  State<HomeCalendar> createState() => _HomeCalendarState(); //실제 UI는 _HomeCalendarState 에서 정의됨
 }
 
-//
-class _FriendScreenState extends State<FriendScreen> {
-  final List<Friend> _friends = [
-    const Friend(name: '가부기', tags: ['유일무이', '집순이'], characterId: 4),
-    const Friend(name: '햄부기', tags: ['유일무이', '소심이'], characterId: 6),
-    const Friend(name: '돼콩이', tags: ['맛잘알', '소포어의 식구'], characterId: 5),
-    const Friend(name: '오덴세', tags: ['인싸', '스포어의 비기너'], characterId: 2),
-  ];
-  final Set<int> _favorites = {};
-  final List<FriendRequest> _incoming = [
-    const FriendRequest(name: '리바이', tags: ['소심마', '집들이'], characterId: 3),
-    const FriendRequest(name: '김고양', tags: ['신비주의', '집순이'], characterId: 8),
-  ];
-  final List<FriendRequest> _outgoing = [
-    const FriendRequest(name: '김고양', tags: ['신비주의', '집순이'], characterId: 8),
-  ];
-  List<int> _virtualIds = [4, 2, 6];
-  final TextEditingController _codeCtrl = TextEditingController();
+// =========== 상태를 관리하고 화면을 다시 그리는 _HomeCalendarState 클래스 ===========
+class _HomeCalendarState extends State<HomeCalendar> {
+  final GlobalKey<AnimatedListState> _listKey =
+  GlobalKey<AnimatedListState>(); //AnimatedList 위젯을 제어하기 위한 키
+  DateTime _focusedDay = getToday(); //현재 화면에 보이는 날짜
+  DateTime _selectedDay = getToday(); // 사용자가 직접 선택한 날짜
+  bool _isSettingsPressed = false; // 설정 아이콘이 눌렸는지 여부 나타냄
+  bool _isNotificationsPressed = false; // 알림 아이콘이 눌렸는지
+  Object? _pressedIndex; // 사용자가 누른 리스트 아이템의 인덱스나 고유값을 담을 변수
+  StreamSubscription? _plansSubscription;
+  bool _isChangingDate = false;
+  bool _isInitialLoad = true; // 앱이 처음 로딩 중인지 확인
+  bool _isAddButtonPressed = false;
 
-  String _getProfileImagePath(int characterId) {
-    return 'assets/images/Setting/chac$characterId.png';
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final User? _currentUser = FirebaseAuth.instance.currentUser;
+
+  final Map<DateTime, List<Event>> _events =
+  {}; //날짜(DateTime)를 키로, 해당 날짜에 있는 일정(Event) 리스트를 값으로 갖는 Map
+
+  //============initState() :  캘린더 화면이 처음 열릴 때, Firestore 데이터베이스에 실시간 연결을 설정하고 자동 업데이트를 준비하는 역할 =================
+  @override
+  void initState() {
+    super.initState();
+    if (_currentUser != null) {
+      _plansSubscription = _firestore //실시간 연결 설정 (구독)
+          .collection('plans')
+          .doc(_currentUser!.uid)
+          .snapshots()
+          .listen((snapshot) {
+        if (!mounted) return;
+
+        final Map<DateTime, List<Event>> loadedEvents = {}; // 데이터 변환 (파싱)
+
+        if (snapshot.exists) {
+          // 서버에 데이터가 있으면
+          final data = snapshot.data();
+          if (data != null && data['date'] != null) {
+            final dateMap = data['date'] as Map<String, dynamic>;
+
+            dateMap.forEach((dateString, dailyEventsMap) {
+              //date 정보 덩어리를 날짜별로 쪼갠다
+              final year = int.parse(dateString.substring(0, 4));
+              final month = int.parse(dateString.substring(4, 6));
+              final day = int.parse(dateString.substring(6, 8));
+              final dateTime = DateTime.utc(year, month, day);
+
+              final events =
+              (dailyEventsMap as Map<String, dynamic>).values.map((
+                  eventData,
+                  ) {
+                // 각 날짜에 있는 일정들을 Event 객체로 변환
+                final startTimeParts =
+                (eventData['startTime'] as String).split(':');
+                final endTimeParts = (eventData['endTime'] as String)
+                    .split(':');
+                return Event(
+                  id: eventData['id'],
+                  title: eventData['title'],
+                  color: Color(eventData['color']),
+                  isCompleted: eventData['isDone'],
+                  startTime: TimeOfDay(
+                    hour: int.parse(startTimeParts[0]),
+                    minute: int.parse(startTimeParts[1]),
+                  ),
+                  endTime: TimeOfDay(
+                    hour: int.parse(endTimeParts[0]),
+                    minute: int.parse(endTimeParts[1]),
+                  ),
+                );
+              }).toList();
+
+              events.sort((a, b) {
+                // 1순위: 시작 시간 (오름차순)
+                final aStart = a.startTime.hour * 60 + a.startTime.minute;
+                final bStart = b.startTime.hour * 60 + b.startTime.minute;
+                int startCompare = aStart.compareTo(bStart);
+                if (startCompare != 0) {
+                  return startCompare;
+                }
+
+                // 2순위: 종료 시간 (오름차순)
+                final aEnd = a.endTime.hour * 60 + a.endTime.minute;
+                final bEnd = b.endTime.hour * 60 + b.endTime.minute;
+                return aEnd.compareTo(bEnd);
+              });
+              loadedEvents[dateTime] =
+                  events; //깔끔하게 변환된 Event 객체들을 날짜별로 묶어 loadedEvents 라는 최종 결과물에 차곡차곡 정리
+            });
+          }
+        }
+
+        setState(() {
+          // 화면 갱신 (UI 업데이트)
+          _events.clear();
+          _events.addAll(loadedEvents);
+          if (_isInitialLoad) {
+            _isInitialLoad = false;
+          }
+        });
+      });
+    }
   }
 
+  // ============== dispose() :  화면이 없어질 때 데이터 수신을 중단하여 메모리 누수를 방지 ========================
   @override
   void dispose() {
-    _codeCtrl.dispose();
+    _plansSubscription?.cancel();
     super.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        backgroundColor: Colors.white,
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                  const CalendarNotification.NotificationPage(),
-                ),
-              );
-            },
-          ),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.settings, color: Colors.grey),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const SettingsScreen(),
-                  ),
-                );
-              },
-            ),
-          ],
-          bottom: const TabBar(
-            indicatorColor: Colors.black,
-            labelColor: Colors.black,
-            unselectedLabelColor: Colors.grey,
-            tabs: [Tab(text: '친구 목록'), Tab(text: '신청 목록'), Tab(text: '추천 친구')],
-          ),
+  //================= 새로운 일정을 데이터베이스에 추가하거나 기존 일정을 수정(업데이트)하는 역할 ==========================================
+  void _addOrUpdateEvent(Event event, {bool isUpdating = false}) {
+    if (_currentUser == null) return;
+
+    // 새 이벤트인 경우 고유 ID 생성
+    if (!isUpdating && event.id == null) {
+      event.id = _firestore.collection('plans').doc().id;
+    }
+
+    final dayKey = DateFormat('yyyyMMdd').format(_selectedDay);
+    final docRef = _firestore.collection('plans').doc(_currentUser!.uid);
+
+    final eventMap = {
+      'id': event.id,
+      'title': event.title,
+      'color': event.color.value,
+      'isDone': event.isCompleted,
+      'startTime':
+      '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
+      'endTime':
+      '${event.endTime.hour.toString().padLeft(2, '0')}:${event.endTime.minute.toString().padLeft(2, '0')}',
+    };
+
+    // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
+    docRef.set({
+      // // 최종적으로 변환된 eventMap 데이터를 Firestore에 저장
+      'uid': _currentUser!.uid, // 사용자 ID도 함께 저장
+      'date': {
+        dayKey: {event.id: eventMap},
+      },
+    }, SetOptions(merge: true)); // merge:true는 다른 날짜 데이터를 보존
+  }
+
+  //=====================일정 삭제 firebase 관리용================================
+  void _deleteEvent(Event event) {
+    if (_currentUser == null || event.id == null) return;
+
+    final dayKey = DateFormat('yyyyMMdd').format(_selectedDay);
+    final docRef = _firestore.collection('plans').doc(_currentUser!.uid);
+
+    // FieldValue.delete()를 사용하여 맵에서 해당 키-값 쌍을 제거
+    docRef.update({'date.$dayKey.${event.id}': FieldValue.delete()});
+  }
+
+  // ==================== _getEventsForDay() ===============================
+  List<Event> _getEventsForDay(DateTime day) {
+    return _events[DateTime.utc(day.year, day.month, day.day)] ?? [];
+  } //전달받은 day에 해당하는 날짜에 어떤 일정이 있는지 _events 맵에서 찾아서 리스트로 반환
+
+  // ===== _showAddEventDialog() : '+' 버튼을 눌렀을 때 새 다이얼로그를 띄우는 함수 ====
+  void _showAddEventDialog({Event? existingEvent, int? eventIndex}) async {
+    final result = await showDialog<Event>(
+      context: context,
+      builder: (BuildContext context) {
+        return AddEventDialog(
+          selectedDate: _selectedDay,
+          eventToEdit: existingEvent,
+        );
+      },
+    );
+
+    if (result == null) return;
+
+    final day = DateTime.utc(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    );
+    final eventsForDay = _getEventsForDay(day);
+
+    if (existingEvent != null && eventIndex != null) {
+      setState(() {
+        result.id = existingEvent.id;
+        eventsForDay[eventIndex] = result;
+      });
+      _addOrUpdateEvent(result, isUpdating: true);
+    } else {
+      _addOrUpdateEvent(result); // Firestore에 먼저 추가
+
+      final newEventStartTimeMinutes =
+          result.startTime.hour * 60 + result.startTime.minute;
+      final newEventEndTimeMinutes =
+          result.endTime.hour * 60 + result.endTime.minute;
+
+      int lastIndex = eventsForDay.lastIndexWhere((event) {
+        final existingEventStartTimeMinutes =
+            event.startTime.hour * 60 + event.startTime.minute;
+        final existingEventEndTimeMinutes =
+            event.endTime.hour * 60 + event.endTime.minute;
+
+        // 시작 시간이 같을 경우, 끝나는 시간이 더 빠른 이벤트를 먼저 정렬
+        if (existingEventStartTimeMinutes == newEventStartTimeMinutes) {
+          return existingEventEndTimeMinutes <= newEventEndTimeMinutes;
+        }
+        // 시작 시간이 다를 경우, 시작 시간으로 정렬
+        return existingEventStartTimeMinutes <= newEventStartTimeMinutes;
+      });
+
+      final insertIndex = lastIndex == -1 ? 0 : lastIndex + 1;
+
+      setState(() {
+        if (_events[day] == null) _events[day] = [];
+        eventsForDay.insert(insertIndex, result);
+      });
+
+      // 투두리스트 개수 타이틀 지급
+      final currentTodoCount = _getEventsForDay(day).length;
+      await TitlesRemote.handleTodoCount(
+        currentTodoCount,
+        onUpdate: () => setState(() {}),
+      );
+
+      _listKey.currentState?.insertItem(
+        insertIndex,
+        duration: const Duration(milliseconds: 180),
+      );
+    }
+  }
+
+  // 삭제 버튼 로직
+  void _removeItem(int index) async{
+    final day = DateTime.utc(
+      _selectedDay.year,
+      _selectedDay.month,
+      _selectedDay.day,
+    );
+    if (_events[day] == null || index >= _events[day]!.length) return;
+
+    // 1. 로컬 리스트에서 제거할 아이템을 먼저 가져옴
+    final eventToRemove = _getEventsForDay(day).removeAt(index);
+
+    // 2. 애니메이션 실행
+    _listKey.currentState?.removeItem(index, (context, animation) {
+      return _buildRemovingAnimatedItem(eventToRemove, animation);
+    }, duration: const Duration(milliseconds: 180));
+
+    // 3. UI 상태 업데이트 (카운터 등)
+    setState(() {});
+
+    // 4. Firestore에서 데이터 삭제
+    _deleteEvent(eventToRemove);
+
+    // 투두리스트 개수 타이틀 지급
+    final currentTodoCount = _getEventsForDay(day).length;
+    await TitlesRemote.handleTodoCount(
+      currentTodoCount,
+      onUpdate: () => setState(() {}),
+    );
+
+  }
+
+  Widget _buildEventContent(Event event, {int? index}) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return GestureDetector(
+      onTap: () {
+        if (index != null) {
+          _showAddEventDialog(existingEvent: event, eventIndex: index);
+        }
+      },
+      child: Container(
+        margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+        height: screenWidth * 0.19,
+        decoration: BoxDecoration(
+          color: event.color,
+          borderRadius: BorderRadius.circular(12),
         ),
-        body: TabBarView(
-          children: [
-            _buildFriendList(),
-            _buildRequestList(),
-            _buildRecommendationSlider(),
-          ],
+        // ListTile을 Center 위젯으로 감싸서 세로 중앙 정렬을 해줍니다.
+        child: Center(
+          child: ListTile(
+            title: Text(
+              event.title,
+              style: TextStyle(
+                fontSize: screenWidth * 0.032,
+                color:
+                event.isCompleted
+                    ? const Color(0xFF626262)
+                    : const Color(0xFF4C4747),
+                decoration:
+                event.isCompleted
+                    ? TextDecoration.lineThrough
+                    : TextDecoration.none,
+              ),
+            ),
+            subtitle: Text(
+              '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
+              style: TextStyle(
+                fontSize: screenWidth * 0.024,
+                color: const Color(0xFF626262),
+              ),
+            ),
+            trailing: GestureDetector(
+              onTap: () async{
+                setState(() {
+                  event.isCompleted = !event.isCompleted;
+                });
+                // isDone 상태 변경 시 Firestore에도 업데이트
+                _addOrUpdateEvent(event, isUpdating: true);
+
+                // Firestore(plans) 기준으로 연속 성공 일수 계산 + 타이틀 지급
+                await TitlesRemote.handleConsecutiveTodo();
+
+                // 투두리스트 연속 성공 일수 기반 타이틀 갱신
+                  setState(() {});
+              },
+              child:
+              event.isCompleted
+                  ? Text(
+                '✓',
+                style: TextStyle(
+                  fontSize: screenWidth * 0.04,
+                  color: const Color(0xFF6B6060),
+                ),
+              )
+                  : Container(
+                width: screenWidth * 0.035,
+                height: screenWidth * 0.035,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFF6B6060)),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildFriendList() {
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: _friends.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, idx) {
-        final friend = _friends[idx];
-        final isFavorite = _favorites.contains(idx);
-        return _FriendTile(
-          name: friend.name,
-          tags: friend.tags,
-          tileColor: Colors.grey.shade50,
-          isFavorite: isFavorite,
-          onFavoriteToggle: () async {
-            setState(() {
-              isFavorite ? _favorites.remove(idx) : _favorites.add(idx);
-            });
-            await handleFavoriteFriendTitleFirestore(
-              _favorites.length,
-              onUpdate: () => setState(() {}),
-            );
-          },
-          onTap: () {
-            final character = Character.getCharacterById(friend.characterId);
-            if (widget.onShowProfile != null) {
-              widget.onShowProfile!(character);
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => FriendProfileScreen(character: character),
-                ),
-              );
-            }
-          },
-          trailingButtons: [
-            TextButton(
-              onPressed:
-                  () => _showConfirm(
-                '차단',
-                    () => setState(() {
-                  _friends.removeAt(idx);
-                  // 친구맺기 타이틀 지급
-                  handleFriendCount(_friends.length);
-                }),
-              ),
-              child: const Text('차단', style: TextStyle(color: Colors.blue)),
-            ),
-            TextButton(
-              onPressed:
-                  () => _showConfirm(
-                '삭제',
-                    () => setState(() {
-                  _friends.removeAt(idx);
-                  // 친구맺기 타이틀 지급
-                  handleFriendCount(_friends.length);
-                }),
-              ),
-              child: const Text('삭제', style: TextStyle(color: Colors.red)),
-            ),
-          ],
-        );
+  Route _createSettingsSlidingRoute() {
+    return PageRouteBuilder(
+      pageBuilder:
+          (context, animation, secondaryAnimation) => const SettingsScreen(),
+      transitionDuration: const Duration(milliseconds: 700),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = const Offset(1.0, 0.0); // 오른쪽에서 시작
+        var end = Offset.zero; // 중앙으로 이동
+        var curve = Curves.ease;
+
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
+
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
 
-  Widget _buildRequestList() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _codeCtrl,
-                  decoration: InputDecoration(
-                    hintText: '친구 코드로 추가',
-                    filled: true,
-                    fillColor: Colors.grey.shade200,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: () {
-                  final code = _codeCtrl.text.trim();
-                  if (code.isNotEmpty) {
-                    setState(() {
-                      _outgoing.add(
-                        FriendRequest(
-                          name: code,
-                          tags: const [],
-                          characterId: 1,
-                        ),
-                      );
-                    });
-                    _codeCtrl.clear();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('[$code]님께 요청을 보냈습니다.')),
-                    );
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.grey.shade800,
-                  shape: const StadiumBorder(),
-                  minimumSize: const Size(60, 44),
-                ),
-                child: const Text('추가', style: TextStyle(color: Colors.white)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: const Text(
-                '나랑 친구해줘!',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              backgroundColor: Colors.white,
-              children:
-              _incoming.map((request) {
-                return _FriendTile(
-                  name: request.name,
-                  tags: request.tags,
-                  tileColor: const Color(0xFFE8F0FE),
-                  isFavorite: false,
-                  onFavoriteToggle: null,
-                  onTap: () {
-                    final character = Character.getCharacterById(
-                      request.characterId,
-                    );
-                    if (widget.onShowProfile != null) {
-                      widget.onShowProfile!(character);
-                    } else {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder:
-                              (_) =>
-                              FriendProfileScreen(character: character),
-                        ),
-                      );
-                    }
-                  },
-                  tagBgColor: const Color(0xFFD0E4FF),
-                  tagTextColor: const Color(0xFF0066CC),
-                  trailingButtons: [
-                    TextButton(
-                      onPressed: () {
-                        if (_friends.any((f) => f.name == request.name)) {
-                          _showAlert('이미 친구 목록에 있습니다.');
-                        } else {
-                          setState(() {
-                            _friends.add(
-                              Friend(
-                                name: request.name,
-                                tags: request.tags,
-                                characterId: request.characterId,
-                              ),
-                            );
-                            _incoming.remove(request);
-                          });
-                          // 타이틀 지급
-                          handleFriendCount(_friends.length);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${request.name}님과 친구가 되었습니다!'),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text(
-                        '수락',
-                        style: TextStyle(color: Colors.green),
-                      ),
-                    ),
-                    TextButton(
-                      onPressed:
-                          () => _showConfirm(
-                        '거절',
-                            () => setState(() => _incoming.remove(request)),
-                      ),
-                      child: const Text(
-                        '거절',
-                        style: TextStyle(color: Colors.red),
+  Route _createSlidingRoute(
+      void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
+      ) {
+    return PageRouteBuilder(
+      pageBuilder: (context, animation, secondaryAnimation) => NotificationPage(
+        // 전달받은 콜백 함수를 NotificationPage에 넘겨줍니다.
+        onNavigateToFriends: onNavigateToFriendsCallback,
+      ),
+      transitionDuration: const Duration(milliseconds: 700),
+      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+        var begin = const Offset(1.0, 0.0);
+        var end = Offset.zero;
+        var curve = Curves.ease;
+
+        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+
+        return SlideTransition(position: animation.drive(tween), child: child);
+      },
+    );
+  }
+
+  Widget _buildRemovingAnimatedItem(Event event, Animation<double> animation) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return SizeTransition(
+      sizeFactor: animation,
+      child: Container(
+        color: const Color(0xFFFFFEF9),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Align(
+              alignment: Alignment.centerRight,
+              child: Container(
+                width: screenWidth * 0.3,
+                // Column을 Row로 변경
+                child: Row(
+                  mainAxisAlignment:
+                  MainAxisAlignment.start, // 정렬을 start(왼쪽)로 변경
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    SizedBox(width: screenWidth * 0.085), // 왼쪽 여백 추가
+                    Padding(
+                      padding: EdgeInsets.only(bottom: screenWidth * 0.03),
+                      child: Image.asset(
+                        'assets/images/mainpage/delete.png',
+                        width: screenWidth * 0.044,
+                        height: screenWidth * 0.044,
                       ),
                     ),
                   ],
-                );
-              }).toList(),
-            ),
-          ),
-          const Divider(height: 32, thickness: 1),
-          Theme(
-            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-            child: ExpansionTile(
-              title: const Text(
-                '언제쯤 받아줄까...',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
-              backgroundColor: Colors.white,
-              children:
-              _outgoing.map((request) {
-                return _FriendTile(
-                  name: request.name,
-                  tags: request.tags,
-                  tileColor: const Color(0xFFFBF5EB),
-                  isFavorite: false,
-                  onFavoriteToggle: null,
-                  onTap: () {},
-                  trailingButtons: [
-                    ElevatedButton(
-                      onPressed:
-                          () => setState(() => _outgoing.remove(request)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade800,
-                        shape: const StadiumBorder(),
-                        minimumSize: const Size(100, 36),
-                      ),
-                      child: const Text(
-                        '친구 신청 취소',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-                  ],
-                );
-              }).toList(),
             ),
-          ),
-        ],
+            Transform.translate(
+              offset: Offset(-screenWidth * 0.3, 0),
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+                child: _buildEventContent(event, index: null),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildRecommendationSlider() {
-    if (_virtualIds.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+  // AnimatedList의 아이템을 만드는 헬퍼 함수
+  Widget _buildAnimatedItem(
+      Event event,
+      int index,
+      Animation<double> animation,
+      ) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    return SizeTransition(
+      sizeFactor: animation,
+      child: Slidable(
+        key: ValueKey(event.id),
+        endActionPane: ActionPane(
+          motion: const ScrollMotion(),
+          extentRatio: 0.3,
           children: [
-            Icon(Icons.people_outline, size: 64, color: Colors.grey),
-            SizedBox(height: 16),
-            Text(
-              '추천할 친구가 없습니다',
-              style: TextStyle(
-                fontSize: 18,
-                color: Colors.grey,
-                fontWeight: FontWeight.w500,
+            CustomSlidableAction(
+              onPressed: (context) => _removeItem(index),
+              backgroundColor: const Color(0xFFFFFEF9),
+              foregroundColor: const Color(0xFFDA6464),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(width: screenWidth * 0.03),
+                  Padding(
+                    padding: EdgeInsets.only(bottom: screenWidth * 0.03),
+                    child: Image.asset(
+                      'assets/images/mainpage/delete.png',
+                      width: screenWidth * 0.044,
+                      height: screenWidth * 0.044,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: 8),
-            Text(
-              '새로운 친구들이 곧 추천될 예정입니다!',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
           ],
-        ),
-      );
-    }
-    return Column(
-      children: [
-        Expanded(
-          child: PageView.builder(
-            controller: PageController(viewportFraction: 0.85),
-            itemCount: _virtualIds.length,
-            itemBuilder: (context, i) {
-              final character = Character.getCharacterById(_virtualIds[i]);
-              return Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 24,
-                  horizontal: 8,
-                ),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF7EFE6),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 110,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.brown[100]!,
-                            width: 3,
-                          ),
-                          color: Colors.white,
-                        ),
-                        child: ClipOval(
-                          child: Transform.translate(
-                            offset: const Offset(0, -10),
-                            child: Image.asset(
-                              _getProfileImagePath(_virtualIds[i]),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Image.asset(
-                            'assets/images/friendScreen/star_on.png',
-                            width: 20,
-                            height: 20,
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            character.name,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.brown,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 4,
-                        children:
-                        character.keywords
-                            .map(
-                              (tag) => Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.yellow.shade100,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              '#$tag',
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Colors.brown,
-                              ),
-                            ),
-                          ),
-                        )
-                            .toList(),
-                      ),
-                      const SizedBox(height: 12),
-                      Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 16),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 14,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade200,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Text(
-                          character.speech,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(fontSize: 15),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (_outgoing.any((r) => r.name == character.name)) {
-                            _showAlert('이미 신청 목록에 있습니다.');
-                          } else if (_friends.any(
-                                (f) => f.name == character.name,
-                          )) {
-                            _showAlert('이미 친구 목록에 있습니다.');
-                          } else {
-                            setState(() {
-                              _outgoing.add(
-                                FriendRequest(
-                                  name: character.name,
-                                  tags: character.keywords,
-                                  characterId: character.id,
-                                ),
-                              );
-                              _virtualIds.remove(character.id);
-                            });
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text('${character.name}님께 요청했습니다.'),
-                              ),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade800,
-                          shape: const StadiumBorder(),
-                          minimumSize: const Size(140, 44),
-                        ),
-                        child: const Text(
-                          '친구 신청',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-        if (_virtualIds.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          const Text('옆으로 스와이프 하세요', style: TextStyle(color: Colors.grey)),
-          const SizedBox(height: 16),
-        ],
-      ],
-    );
-  }
-
-  void _showConfirm(String action, VoidCallback onOk) {
-    showDialog(
-      context: context,
-      barrierColor: Colors.black.withOpacity(0.2),
-      builder:
-          (context) => Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
         ),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '정말 $action 하시겠습니까?',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 17),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.grey.shade200,
-                      minimumSize: const Size(100, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text('아니요'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onOk();
-                    },
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.red.shade50,
-                      minimumSize: const Size(100, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: const Text(
-                      '네',
-                      style: TextStyle(color: Colors.red),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.05),
+          child: Listener(
+            onPointerDown: (_) => setState(() => _pressedIndex = index),
+            onPointerUp: (_) => setState(() => _pressedIndex = null),
+            onPointerCancel: (_) => setState(() => _pressedIndex = null),
+            child: Stack(
+              children: [
+                // 1. 원래의 일정 내용
+                _buildEventContent(event, index: index),
+
+                // 2. 터치 효과를 위한 그림자 오버레이
+                IgnorePointer(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    curve: Curves.easeOut,
+                    height: screenWidth * 0.19,
+                    margin: EdgeInsets.only(bottom: screenWidth * 0.025),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color:
+                      _pressedIndex == index
+                          ? Colors.black.withAlpha(32)
+                          : Colors.transparent,
                     ),
                   ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showAlert(String message) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FriendTile extends StatelessWidget {
-  final String name;
-  final List<String> tags;
-  final Color tileColor;
-  final bool isFavorite;
-  final VoidCallback? onFavoriteToggle;
-  final VoidCallback onTap;
-  final List<Widget> trailingButtons;
-  final Color? tagBgColor;
-  final Color? tagTextColor;
-
-  const _FriendTile({
-    required this.name,
-    required this.tags,
-    required this.tileColor,
-    required this.isFavorite,
-    required this.onFavoriteToggle,
-    required this.onTap,
-    required this.trailingButtons,
-    this.tagBgColor,
-    this.tagTextColor,
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final tagBackground = tagBgColor ?? Colors.yellow.shade100;
-    final tagText = tagTextColor ?? Colors.brown.shade800;
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(16),
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: tileColor,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Row(
-          children: [
-            if (onFavoriteToggle != null) ...[
-              GestureDetector(
-                onTap: onFavoriteToggle,
-                child: Image.asset(
-                  isFavorite
-                      ? 'assets/images/friendScreen/star_on.png'
-                      : 'assets/images/friendScreen/star_off.png',
-                  width: 24,
-                  height: 24,
                 ),
-              ),
-              const SizedBox(width: 12),
-            ],
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    name,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 4,
-                    children:
-                    tags
-                        .map(
-                          (tag) => Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: tagBackground,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '#$tag',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: tagText,
-                          ),
-                        ),
-                      ),
-                    )
-                        .toList(),
-                  ),
-                ],
-              ),
+              ],
             ),
-            ...trailingButtons,
-          ],
+          ),
         ),
       ),
     );
   }
-}
 
-class FriendProfileScreen extends StatelessWidget {
-  final Character character;
-  final VoidCallback? onBack;
-
-  const FriendProfileScreen({required this.character, this.onBack, Key? key})
-      : super(key: key);
-
-  String _getProfileImagePath(int characterId) =>
-      'assets/images/Setting/chac$characterId.png';
+  Widget _buildEventsMarker(DateTime day, List<Event> events) {
+    // 상위 3개의 이벤트만 가져오거나, 3개 미만이면 있는 만큼만 가져옵니다.
+    final eventsToShow = events.length > 3 ? events.sublist(0, 3) : events;
+    final screenWidth = MediaQuery.of(context).size.width;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children:
+      eventsToShow.map((event) {
+        return Container(
+          width: screenWidth * 0.0105, // 점의 너비
+          height: screenWidth * 0.0105, // 점의 높이
+          margin: const EdgeInsets.symmetric(horizontal: 1.0), // 점 사이의 간격
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: event.color, // 각 일정의 색상으로 점 색상 지정
+          ),
+        );
+      }).toList(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final verticalPadding = screenHeight * 0.03;
+
+    final month = _focusedDay.month;
+    final year = _focusedDay.year;
+
+    final selectedDate = _selectedDay;
+    final selectedDay = selectedDate.day;
+    final selectedEngWeekDay =
+    DateFormat('EEE', 'en').format(selectedDate).toUpperCase();
+
+    final eventsForSelectedDay = _getEventsForDay(_selectedDay);
+    eventsForSelectedDay.sort((a, b) {
+      // 1. 시작 시간을 분으로 변환하여 비교
+      final aStartMinutes = a.startTime.hour * 60 + a.startTime.minute;
+      final bStartMinutes = b.startTime.hour * 60 + b.startTime.minute;
+
+      int compare = aStartMinutes.compareTo(bStartMinutes);
+
+      // 2. 시작 시간이 같다면, 종료 시간을 기준으로 재정렬
+      if (compare == 0) {
+        final aEndMinutes = a.endTime.hour * 60 + a.endTime.minute;
+        final bEndMinutes = b.endTime.hour * 60 + b.endTime.minute;
+        return aEndMinutes.compareTo(bEndMinutes); // 종료 시간 오름차순
+      }
+
+      return compare; // 시작 시간 오름차순
+    });
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F8F8),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            color: Colors.black,
-            size: 20,
-          ),
-          onPressed: () {
-            if (onBack != null) {
-              onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.grey),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder:
-                      (context) =>
-                  const CalendarNotification.NotificationPage(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings, color: Colors.grey, size: 24),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const SettingsScreen()),
-              );
-            },
-          ),
-        ],
-      ),
-      body: Column(
+      backgroundColor: const Color(0xFFFFFEF9),
+      body: Stack(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
+          Column(
+            children: [
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFFFF9),
+                  borderRadius: const BorderRadius.vertical(
+                    bottom: Radius.circular(45),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.06),
+                      offset: const Offset(0, 0.6),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
                 child: Column(
                   children: [
-                    const SizedBox(height: 40),
-                    Container(
-                      width: 140,
-                      height: 140,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
+                    SizedBox(height: verticalPadding + screenHeight * 0.025),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.07,
                       ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: ClipOval(
-                          child: Transform.scale(
-                            scale: 0.8,
-                            child: Image.asset(
-                              _getProfileImagePath(character.id),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Image.asset(
-                          'assets/images/friendScreen/star_on.png',
-                          width: 20,
-                          height: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          character.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF9E6),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      width: double.infinity,
-                      child: Column(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children:
-                              character.keywords
-                                  .map(
-                                    (keyword) => Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFFF9E6),
-                                    borderRadius: BorderRadius.circular(
-                                      15,
-                                    ),
-                                    border: Border.all(
-                                      color: const Color(0xFFE6C35C),
-                                      width: 2,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '# $keyword',
-                                    style: const TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black87,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: '$month월 ',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.065,
+                                    color: const Color(0xFF504A4A),
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              )
-                                  .toList(),
+                                TextSpan(
+                                  text: '$year년',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.035,
+                                    color: const Color(0xFF868686),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 24,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFE8E8E8),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            width: double.infinity,
-                            constraints: const BoxConstraints(minHeight: 80),
-                            child: Text(
-                              character.speech,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                height: 1.6,
-                              ),
-                            ),
-                          ),
-                          Container(
-                            width: double.infinity,
-                            height: 1,
-                            color: const Color(0xFFE0E0E0),
-                            margin: const EdgeInsets.symmetric(vertical: 20),
                           ),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              ElevatedButton(
-                                onPressed: () {
-                                  Navigator.push(
+                              GestureDetector(
+                                onTap: () async {
+                                  // 1. async 키워드 추가
+                                  print('알림 아이콘 클릭됨!');
+
+                                  // 2. Navigator.push가 결과를 반환할 때까지 기다림 (await)
+                                  final selectedDateFromNoti = await Navigator.push(
                                     context,
-                                    MaterialPageRoute(
-                                      builder:
-                                          (_) =>
-                                          ChatScreen(character: character),
-                                    ),
+                                    _createSlidingRoute(widget.onNavigateToFriends),// NotificationPage를 여는 함수
                                   );
+
+                                  // 3. 만약 NotificationPage에서 날짜(DateTime)를 반환했다면
+                                  if (selectedDateFromNoti is DateTime) {
+                                    // 4. 달력의 선택된 날짜와 포커스를 그 날짜로 변경
+                                    setState(() {
+                                      _selectedDay = selectedDateFromNoti;
+                                      _focusedDay = selectedDateFromNoti;
+                                    });
+                                  }
                                 },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFFB8A598),
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size(100, 40),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  elevation: 0,
-                                ),
-                                child: const Text(
-                                  '채팅',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                // --- 투명도 효과를 위한 부분 ---
+                                onTapDown: (details) {
+                                  setState(() {
+                                    _isNotificationsPressed =
+                                    true; // 누르기 시작하면 true
+                                  });
+                                },
+                                onTapUp: (details) {
+                                  setState(() {
+                                    _isNotificationsPressed =
+                                    false; // 손가락을 떼면 false
+                                  });
+                                },
+                                onTapCancel: () {
+                                  setState(() {
+                                    _isNotificationsPressed =
+                                    false; // 터치가 취소되어도 false
+                                  });
+                                },
+                                // --------------------------
+                                child: Opacity(
+                                  // _isSettingsPressed 상태에 따라 투명도를 조절 (눌렸을 때 50% 투명)
+                                  opacity: _isNotificationsPressed ? 0.5 : 1.0,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(0.5),
+                                    child: Image.asset(
+                                      'assets/images/mainpage/notifications.png',
+                                      width: screenWidth * 0.052,
+                                      height: screenWidth * 0.052,
+                                    ),
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              OutlinedButton(
-                                onPressed: () {
-                                  if (onBack != null) {
-                                    onBack!();
-                                  } else {
-                                    Navigator.pop(context);
-                                  }
+                              SizedBox(width: screenWidth * 0.04),
+                              GestureDetector(
+                                onTap: () {
+                                  print('설정 아이콘 클릭됨!');
+                                  Navigator.push(
+                                      context, _createSettingsSlidingRoute());
                                 },
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFFFF6B6B),
-                                  backgroundColor: const Color(0xFFFFF0F0),
-                                  side: BorderSide.none,
-                                  minimumSize: const Size(100, 40),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                ),
-                                child: const Text(
-                                  '나가기',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
+                                // --- 투명도 효과를 위한 부분 ---
+                                onTapDown: (details) {
+                                  setState(() {
+                                    _isSettingsPressed = true; // 누르기 시작하면 true
+                                  });
+                                },
+                                onTapUp: (details) {
+                                  setState(() {
+                                    _isSettingsPressed = false; // 손가락을 떼면 false
+                                  });
+                                },
+                                onTapCancel: () {
+                                  setState(() {
+                                    _isSettingsPressed =
+                                    false; // 터치가 취소되어도 false
+                                  });
+                                },
+                                // --------------------------
+                                child: Opacity(
+                                  // _isSettingsPressed 상태에 따라 투명도를 조절 (눌렸을 때 50% 투명)
+                                  opacity: _isSettingsPressed ? 0.5 : 1.0,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(0.1),
+                                    child: Image.asset(
+                                      'assets/images/mainpage/setting.png',
+                                      width: screenWidth * 0.085,
+                                      height: screenWidth * 0.085,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -992,11 +744,322 @@ class FriendProfileScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    SizedBox(height: verticalPadding * 0.7),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.1,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'S',
+                            style: TextStyle(
+                              color: const Color(0xFF8D2F2F),
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.041,
+                            ),
+                          ),
+                          Text(
+                            'M',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                          Text(
+                            'T',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                          Text(
+                            'W',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                          Text(
+                            'T',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                          Text(
+                            'F',
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                          Text(
+                            'S',
+                            style: TextStyle(
+                              color: const Color(0xFF616192),
+                              fontWeight: FontWeight.w600,
+                              fontSize: screenWidth * 0.035,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: screenWidth * 0.02),
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: screenWidth * 0.048,
+                      ),
+                      child: TableCalendar(
+                        eventLoader: _getEventsForDay,
+                        locale: 'ko_KR',
+                        firstDay: DateTime.utc(2020, 1, 1),
+                        lastDay: DateTime.utc(2030, 12, 31),
+                        focusedDay: _focusedDay,
+                        headerVisible: false,
+                        daysOfWeekHeight: 0,
+                        selectedDayPredicate:
+                            (day) => isSameDay(_selectedDay, day),
+                        onDaySelected: (selectedDay, focusedDay) {
+                          if (isSameDay(_selectedDay, selectedDay)) return;
+
+                          setState(() {
+                            _selectedDay = selectedDay;
+                            _focusedDay = focusedDay;
+                            _isChangingDate = true; // 날짜가 바뀌었음을 알림
+                          });
+
+                          //  한 프레임 뒤에 _isChangingDate를 false로 되돌려 리스트를 다시 표시
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            setState(() {
+                              _isChangingDate = false;
+                            });
+                          });
+                        },
+                        onPageChanged: (focusedDay) {
+                          setState(() {
+                            _focusedDay = focusedDay;
+                          });
+                        },
+
+                        calendarBuilders: CalendarBuilders(
+                          markerBuilder: (context, day, events) {
+                            final eventList = events.cast<Event>().toList();
+                            if (eventList.isNotEmpty) {
+                              return Align(
+                                alignment: Alignment(
+                                  0.0,
+                                  0.8,
+                                ), // 가로는 중앙, 세로는 중앙에서 약간 아래
+                                child: _buildEventsMarker(day, eventList),
+                              );
+                            }
+                            return null;
+                          },
+                          defaultBuilder: (context, day, focusedDay) {
+                            final isSaturday = day.weekday == DateTime.saturday;
+                            final isSunday = day.weekday == DateTime.sunday;
+                            Color dateColor = const Color.fromARGB(
+                              255,
+                              119,
+                              119,
+                              119,
+                            );
+                            if (isSaturday) dateColor = const Color(0xFF616192);
+                            if (isSunday) dateColor = const Color(0xFF8D2F2F);
+                            return Center(
+                              child: Text(
+                                '${day.day}',
+                                style: TextStyle(
+                                  color: dateColor,
+                                  fontWeight: FontWeight.w500,
+                                  fontSize: screenWidth * 0.035,
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                        calendarStyle: CalendarStyle(
+                          cellMargin: const EdgeInsets.all(12.5),
+                          weekendTextStyle: TextStyle(
+                            color: Colors.black,
+                            fontSize: screenWidth * 0.035,
+                          ),
+                          outsideTextStyle: const TextStyle(
+                            color: Color(0xFFC1C1C1),
+                          ),
+                          defaultTextStyle: TextStyle(
+                            color: const Color(0xFF555555),
+                            fontSize: screenWidth * 0.035,
+                          ),
+                          selectedDecoration: const BoxDecoration(
+                            color: Color(0xFFCA9E9E),
+                            shape: BoxShape.circle,
+                          ),
+                          selectedTextStyle: TextStyle(
+                            color: Colors.white,
+                            fontSize: screenWidth * 0.035,
+                          ),
+                          todayDecoration: const BoxDecoration(
+                            color: Colors.transparent,
+                            shape: BoxShape.circle,
+                          ),
+                          todayTextStyle: TextStyle(
+                            color: const Color(0xFF555555),
+                            fontSize: screenWidth * 0.035,
+                          ),
+                        ),
+                        calendarFormat: CalendarFormat.month,
+                      ),
+                    ),
+                    SizedBox(height: verticalPadding),
                   ],
                 ),
               ),
-            ),
+              Expanded(
+                child: SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 0,
+                      vertical: verticalPadding * 0.4,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          // 제목 부분에는 여백을 유지하기 위해 Padding을 추가
+                          padding: EdgeInsets.symmetric(
+                            horizontal: screenWidth * 0.05,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    '$selectedDay',
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.055,
+                                      color: const Color(0xFF4C4747),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    selectedEngWeekDay,
+                                    style: TextStyle(
+                                      fontSize: screenWidth * 0.025,
+                                      color: const Color(0xFF4C4747),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(width: screenWidth * 0.04),
+                              Text(
+                                '${eventsForSelectedDay.length}개의 할 일',
+                                style: TextStyle(
+                                  fontSize: screenWidth * 0.038,
+                                  color: const Color(0xFF898989),
+                                ),
+                              ),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: _showAddEventDialog,
+                                onTapDown: (_) => setState(() => _isAddButtonPressed = true),
+                                onTapUp: (_) => setState(() => _isAddButtonPressed = false),
+                                onTapCancel: () => setState(() => _isAddButtonPressed = false),
+                                child: Stack( // 버튼과 효과를 겹치기 위해 Stack 사용
+                                  alignment: Alignment.center,
+                                  children: [
+                                    // 1. 원래 버튼 모양
+                                    Container(
+                                      width: screenWidth * 0.109,
+                                      height: screenWidth * 0.109,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF848CA6),
+                                        borderRadius: BorderRadius.circular(screenWidth * 0.055),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.black.withOpacity(0.2),
+                                            blurRadius: 3,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '+',
+                                          style: TextStyle(
+                                            fontSize: screenWidth * 0.06,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    // 2. 터치 효과를 위한 오버레이
+                                    AnimatedContainer(
+                                      duration: const Duration(milliseconds: 150),
+                                      width: screenWidth * 0.109,
+                                      height: screenWidth * 0.109,
+                                      decoration: BoxDecoration(
+                                        // _isAddButtonPressed 상태에 따라 색상이 나타나거나 사라짐
+                                        color: _isAddButtonPressed
+                                            ? Colors.black.withOpacity(0.24) // 눌렸을 때 덧씌워질 어두운 색
+                                            : Colors.transparent, // 평소에는 투명
+                                        borderRadius: BorderRadius.circular(screenWidth * 0.055),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Divider(
+                          height: screenWidth * 0.04,
+                          color: const Color(0xFFD9D9D9),
+                          thickness: 0.8,
+                        ),
+                        SizedBox(height: screenWidth * 0.025),
+                        Expanded(
+                          child:
+                          (_isInitialLoad)
+                              ? const Center(
+                            child: CupertinoActivityIndicator(),
+                          ) // 초기 로딩 중일 때 로딩 아이콘 표시
+                              : (_isChangingDate)
+                              ? Container() // 날짜 변경 중일 때 빈 화면 표시
+                              : AnimatedList(
+                            key: _listKey,
+                            padding: EdgeInsets.zero,
+                            initialItemCount:
+                            eventsForSelectedDay.length,
+                            itemBuilder: (context, index, animation) {
+                              if (index >=
+                                  eventsForSelectedDay.length) {
+                                return const SizedBox.shrink();
+                              }
+                              final event = eventsForSelectedDay[index];
+                              return _buildAnimatedItem(
+                                event,
+                                index,
+                                animation,
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1004,84 +1067,345 @@ class FriendProfileScreen extends StatelessWidget {
   }
 }
 
-class FriendPage extends StatefulWidget {
-  const FriendPage({Key? key}) : super(key: key);
+// --- 새로운 디자인의 일정 추가 다이얼로그 위젯 ---
+class AddEventDialog extends StatefulWidget {
+  final DateTime selectedDate;
+  final Event? eventToEdit;
+  const AddEventDialog({Key? key, required this.selectedDate, this.eventToEdit})
+      : super(key: key);
 
   @override
-  State<FriendPage> createState() => _FriendPageState();
+  _AddEventDialogState createState() => _AddEventDialogState();
 }
 
-class _FriendPageState extends State<FriendPage> {
-  bool _recommendationsEnabled = true;
+class _AddEventDialogState extends State<AddEventDialog> {
+  final _titleController = TextEditingController();
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
+  bool _isStartTimeSelected = false;
+  bool _isEndTimeSelected = false;
+  bool _isTimeValid = true; //시간이 유효한지 저장하는 상태 변수
+
+  // CSS 기반 색상 목록
+  final List<Color> _colorOptions = [
+    const Color(0xFF95A797),
+    const Color(0xFFDDD2DA),
+    const Color(0xFFF4ECD2),
+    const Color(0xFF7887AD),
+    const Color(0xFFE6E6E6),
+    const Color(0xFFB3A6A6),
+    const Color(0xFFCA9E9E),
+    const Color(0xFFCDDEE3),
+  ];
+  late Color _selectedColor;
+
+  @override
+  void initState() {
+    if (widget.eventToEdit != null) {
+      // 수정 모드일 때: 전달받은 데이터로 초기값 설정
+      _titleController.text = widget.eventToEdit!.title;
+      _startTime = widget.eventToEdit!.startTime;
+      _endTime = widget.eventToEdit!.endTime;
+      _selectedColor = widget.eventToEdit!.color;
+      _isStartTimeSelected = true; // 이미 시간이 설정되었으므로 true
+      _isEndTimeSelected = true;
+    } else {
+      // 추가 모드일 때: 기존 로직
+      _selectedColor = _colorOptions.first;
+      final now = TimeOfDay.now();
+      _startTime = now;
+      _endTime = now.replacing(hour: (now.hour + 1) % 24);
+    }
+    _validateTimes();
+  }
+
+  void _validateTimes() {
+    if (_startTime == null || _endTime == null) {
+      setState(() => _isTimeValid = true);
+      return;
+    }
+    final startMinutes = _startTime!.hour * 60 + _startTime!.minute;
+    final endMinutes = _endTime!.hour * 60 + _endTime!.minute;
+
+    // 종료 시간이 시작 시간보다 크거나 같으면 유효
+    setState(() {
+      _isTimeValid = endMinutes >= startMinutes;
+    });
+  }
+
+  Future<void> _pickTime(
+      BuildContext context, {
+        required bool isStartTime,
+      }) async {
+    final initialTime = isStartTime ? _startTime : _endTime;
+    final now = DateTime.now();
+    DateTime tempPickedTime = DateTime(
+      // 1. 선택한 시간을 임시로 저장할 변수
+      now.year,
+      now.month,
+      now.day,
+      initialTime?.hour ?? now.hour,
+      initialTime?.minute ?? now.minute,
+    );
+
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    await showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: screenWidth * 0.4,
+          color: Colors.white,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  CupertinoButton(
+                    child: const Text('완료'),
+                    onPressed: () {
+                      // 3. '완료' 버튼을 누를 때만 setState로 최종 반영
+                      setState(() {
+                        final newTime = TimeOfDay.fromDateTime(tempPickedTime);
+                        if (isStartTime) {
+                          _startTime = newTime;
+                          _isStartTimeSelected = true;
+                        } else {
+                          _endTime = newTime;
+                          _isEndTimeSelected = true;
+                        }
+                        _validateTimes();
+                      });
+                      Navigator.of(context).pop();
+                    },
+                  ),
+                ],
+              ),
+              Expanded(
+                child: CupertinoDatePicker(
+                  mode: CupertinoDatePickerMode.time,
+                  use24hFormat: false,
+                  initialDateTime: tempPickedTime,
+                  onDateTimeChanged: (DateTime newDateTime) {
+                    // 2. 휠을 돌릴 때는 임시 변수 값만 변경 (setState 없음!)
+                    tempPickedTime = newDateTime;
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _saveEvent() {
+    if (_titleController.text.isEmpty ||
+        _startTime == null ||
+        _endTime == null) {
+      return;
+    }
+    final newEvent = Event(
+      title: _titleController.text,
+      startTime: _startTime!,
+      endTime: _endTime!,
+      color: _selectedColor,
+    );
+    Navigator.of(context).pop(newEvent);
+  }
 
   @override
   Widget build(BuildContext context) {
-    print('현재 추천친구 상태: $_recommendationsEnabled');
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('친구'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // 방법 1: async/await 없이 then을 사용
-              Navigator.push<bool>(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const FriendManagementScreen(),
-                ),
-              ).then((result) {
-                print('받아온 값: $result');
+    // 화면 비율에 따른 값 조절
+    final dialogHorizontalPadding = screenWidth * 0.15; // 화면 너비의 10%
+    final dialogVerticalPadding = screenHeight * 0.1; // 화면 높이의 3%
+    final contentPadding = screenWidth * 0.05; // 내부 컨텐츠 패딩
+    final spacingHeight = screenHeight * 0.006; // 위젯 간 세로 간격
+    final titleFontSize = screenWidth * 0.036;
+    final hintFontSize = screenWidth * 0.055;
+    final timeLabelFontSize = screenWidth * 0.036;
+    final timeValueFontSize = screenWidth * 0.036;
+    final colorOptionSize = screenWidth * 0.045; // 색상 선택 원 크기
+    final saveButtonTextSize = screenWidth * 0.04;
 
-                if (result != null) {
-                  setState(() {
-                    _recommendationsEnabled = result;
-                    print('적용된 상태: $_recommendationsEnabled');
-                  });
-                }
-              });
-
-              // 또는 방법 2: FriendManagementScreen에서 값을 정확히 반환하는지 확인
-              // async/await를 유지하면서 아래 코드는 그대로 사용
-            },
-          ),
-        ],
+    return Dialog(
+      backgroundColor: Colors.transparent, // Dialog 자체의 배경은 투명하게
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: dialogHorizontalPadding,
+        vertical: dialogVerticalPadding,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 24),
-          if (_recommendationsEnabled)
-            const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text(
-                '✨ 추천 친구 목록 ✨',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      child: Container(
+        padding: EdgeInsets.all(contentPadding),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFEF9),
+          borderRadius: BorderRadius.circular(12.0),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(1, 1),
+            ),
+          ],
+        ),
+        child: SingleChildScrollView(
+          // 내용이 길어질 경우 스크롤 가능하게
+          child: Column(
+            mainAxisSize: MainAxisSize.min, // 컬럼의 크기를 내용에 맞게 최소화
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                DateFormat(
+                  'M월 d일 (EEE)',
+                  'en',
+                ).format(widget.selectedDate).toUpperCase(),
+                style: TextStyle(
+                  fontSize: titleFontSize,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF504A4A),
+                ),
+                textAlign: TextAlign.left,
               ),
-            )
-          else
-            const Padding(
-              padding: EdgeInsets.all(12.0),
-              child: Text(
-                '🚫 추천 친구를 비활성화했습니다.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+              SizedBox(height: spacingHeight * 2), // 간격 조절
+              TextField(
+                controller: _titleController,
+                textAlign: TextAlign.left,
+                keyboardType: TextInputType.text,
+                style: TextStyle(
+                  fontSize: hintFontSize,
+                  fontWeight: FontWeight.w500,
+                ),
+                decoration: InputDecoration(
+                  hintText: '할 일 입력',
+                  hintStyle: const TextStyle(color: Color(0xFFBEBEBE)),
+                  border: InputBorder.none,
+                  // 내용이 길어질 경우를 대비해 텍스트필드 높이 조절
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: screenHeight * 0.01,
+                  ),
+                ),
+              ),
+              SizedBox(height: spacingHeight),
+              _buildTimeRow(
+                '시작 시간',
+                _startTime,
+                    () => _pickTime(context, isStartTime: true),
+                timeLabelFontSize,
+                timeValueFontSize,
+                _isStartTimeSelected,
+              ),
+              SizedBox(height: spacingHeight * 0.5), // 시간 줄 사이 간격
+              _buildTimeRow(
+                '종료 시간',
+                _endTime,
+                    () => _pickTime(context, isStartTime: false),
+                timeLabelFontSize,
+                timeValueFontSize,
+                _isEndTimeSelected,
+              ),
+              SizedBox(height: spacingHeight * 3.2),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.12),
+                child: GridView.count(
+                  crossAxisCount: 4,
+                  shrinkWrap: true,
+                  mainAxisSpacing: screenWidth * 0.03, // 색상 원 간격
+                  crossAxisSpacing: screenWidth * 0.03, // 색상 원 간격
+                  physics:
+                  const NeverScrollableScrollPhysics(), // GridView가 부모의 스크롤을 방해하지 않도록
+                  children:
+                  _colorOptions.map((color) {
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedColor = color),
+                      child: Container(
+                        width: colorOptionSize, // 반응형 크기 적용
+                        height: colorOptionSize, // 반응형 크기 적용
+                        decoration: BoxDecoration(
+                          color: color,
+                          shape: BoxShape.circle,
+                          border:
+                          _selectedColor == color
+                              ? Border.all(
+                            color: Color.fromARGB(
+                              150,
+                              109,
+                              101,
+                              101,
+                            ), // 알파 값 150으로 변경
+                            width: screenWidth * 0.005,
+                          )
+                              : null, // 테두리 두께도 반응형
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              SizedBox(height: spacingHeight * 3.2),
+              Align(
+                alignment: Alignment.centerRight,
+                child: ElevatedButton(
+                  onPressed: _isTimeValid ? _saveEvent : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF504A4A),
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: Colors.grey.shade300,
+                    shape: const StadiumBorder(),
+                    padding: EdgeInsets.symmetric(
+                      vertical: MediaQuery.of(context).size.height * 0.011,
+                      horizontal: MediaQuery.of(context).size.width * 0.05,
+                    ),
+                  ),
+                  child: Text(
+                    '저장',
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.035,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTimeRow(
+      String label,
+      TimeOfDay? time,
+      VoidCallback onPressed,
+      double labelSize,
+      double valueSize,
+      bool isSelected, // <--- 시간이 선택되었는지 여부를 받는 파라미터 추가
+      ) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: labelSize * 0.94,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF000000),
+            ),
+          ),
+          TextButton(
+            onPressed: onPressed,
+            child: Text(
+              time?.format(context) ?? '00:00',
+              style: TextStyle(
+                fontSize: valueSize * 0.94,
+                color: isSelected ? Colors.black : const Color(0xFFDADADA),
               ),
             ),
-          const Divider(),
-          if (_recommendationsEnabled)
-            Expanded(
-              child: ListView.builder(
-                itemCount: 5, // 예시
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: const CircleAvatar(child: Icon(Icons.person)),
-                    title: Text('친구 ${index + 1}'),
-                  );
-                },
-              ),
-            )
-          else
-            const SizedBox(), // 추천친구 비활성화 시 아무것도 안보이게
+          ),
         ],
       ),
     );
