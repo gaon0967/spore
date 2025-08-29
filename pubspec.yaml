@@ -92,6 +92,12 @@ flutter:
     - assets/images/Setting/chac6.png
     - assets/images/Setting/chac7.png
     - assets/images/Setting/chac8.png
+    - assets/images/Setting/alarm_on.png
+    - assets/images/Setting/alarm_off.png
+
+    - assets/images/TimeTable/add_icon.png
+    - assets/images/TimeTable/menu_icon.png
+
     - assets/images/Setting/chevron2.png
 
   fonts:
