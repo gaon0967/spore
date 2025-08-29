@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:new_project_1/features/Settings/TitleHandler.dart';
 
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
 Future<List<int>> fetchUserCharacterIds(String userId) async {
@@ -76,6 +77,192 @@ class ProfileEdit extends StatefulWidget {
   State<ProfileEdit> createState() => _ProfileEditPageState();
 }
 
+/// 클래스: TitleSelect
+/// 목적: 사용자가 획득한 타이틀 중에서 최대 2개를 선택할 수 있도록 하는 UI 컴포넌트
+/// - 현재 선택된 타이틀 목록과 획득한 타이틀 목록을 받아서 표시
+/// - 사용자가 타이틀 버튼을 눌러 선택/해제할 수 있으며, 최대 2개까지만 선택 가능
+/// - 선택 완료 시 선택한 타이틀 리스트를 부모 위젯에 전달
+/// 반환: StatefulWidget 인스턴스 반환
+class TitleSelect extends StatefulWidget {
+  final List<String> selected; // 현재 선택한 2개
+  final List<String> unlocked; // 획득한 타이틀 목록
+  final void Function(List<String>) onSelect; // 선택 완료 시 부모로 전달
+
+  const TitleSelect({
+    Key? key,
+    required this.selected,
+    required this.unlocked,
+    required this.onSelect,
+  }) : super(key: key);
+
+  @override
+  _TitleSelectState createState() => _TitleSelectState();
+}
+
+/// 클래스: _TitleSelectState
+/// 목적: TitleSelect의 상태를 관리하며 UI 동작과 사용자 입력 처리
+/// - 사용자가 타이틀을 선택하거나 선택 해제할 때 상태를 업데이트
+/// - 선택된 타이틀이 2개를 넘지 않도록 제한
+/// - 완료 버튼을 누르면 선택한 타이틀을 부모 위젯에 알리고 모달을 닫음
+/// 반환: State<TitleSelect> 인스턴스 반환
+class _TitleSelectState extends State<TitleSelect> {
+  late List<String> current;
+
+  @override
+  void initState() {
+    super.initState();
+    current = List.from(widget.selected);
+  }
+
+  /// 타이틀 버튼 눌렀을 때 선택/해제 토글
+  /// 이미 선택된 타이틀이면 해제, 아니면 최대 2개까지 선택 가능
+  void handleToggle(String title) {
+    setState(() {
+      if (current.contains(title)) {
+        current.remove(title);
+      } else if (current.length < 2) {
+        current.add(title);
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      // 모달 배경
+      color: Colors.black.withOpacity(0.16),
+      child: Center(
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '타이틀',
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18),
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                '타이틀 2가지를 지정해주세요. 지정한 타이틀은 프로필에 표시됩니다.',
+                style: TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 16),
+
+              // 타이틀 버튼들
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.of(context).size.height * 0.5,
+                ),
+                child: SingleChildScrollView(
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                    allTitles
+                        .where((t) => widget.unlocked.contains(t.name))
+                        .map((titleInfo) {
+                      final titleName = titleInfo.name;
+                      final isSelected = current.contains(titleName);
+                      return GestureDetector(
+                        onTap: () => handleToggle(titleName),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                            isSelected
+                                ? const Color(0xFFf4ecd2)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color:
+                              isSelected
+                                  ? const Color(0xFF6a6a6a)
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            titleName,
+                            style: TextStyle(
+                              color:
+                              isSelected
+                                  ? const Color(0xFF413b3b)
+                                  : Colors.black87,
+                              fontWeight:
+                              isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    })
+                        .toList(),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  // 취소 버튼
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // 그냥 창 닫기
+                    },
+                    child: const Text(
+                      '취소',
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+
+                  const SizedBox(width: 8),
+
+                  // 완료 버튼
+                  ElevatedButton(
+                    onPressed: () {
+                      widget.onSelect(current);
+                      Navigator.of(context).pop();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFF4ECD2),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 8,
+                      ),
+                    ),
+                    child: const Text('완료'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// 클래스: _ProfileEditPageState
 /// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 닉네임 및 한줄 소개 편집 기능을 제공
 /// 반환: State<ProfileEdit> 인스턴스 반환
@@ -91,6 +278,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
   static const String psychologyResultKey = 'psychology_result_ids';
 
+  List<String> selectedTitles = [];
+  List<String> unlockedTitles = [];
+
   @override
   void initState() {
     super.initState();
@@ -104,6 +294,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       });
     }
     _loadSavedPsychologyResult();
+    _loadUnlockedTitles();
   }
 
   Future<void> _loadSelectedIdAndApply() async {
@@ -366,6 +557,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
           await saveIntroText(userId, trimmed);
 
+          // 한줄 소개 타이틀 지급
+          await handleProfileEditTitles(
+              hasIntro: trimmed.isNotEmpty,
+              onUpdate: () {
+                setState(() {});
+              }
+          );
+
           setState(() {
             introText = trimmed;
           });
@@ -421,6 +620,22 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         );
       },
     );
+  }
+
+  Future<void> _loadUnlockedTitles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedList = prefs.getStringList('unlocked_titles') ?? [];
+
+    setState(() {
+      unlockedTitles = savedList;
+    });
+  }
+
+  /// 타이틀 선택 (2개만, TitleSelect 모달에서 선택 완료 시 설정)
+  void handleTitleSelect(List<String> picked) {
+    setState(() {
+      selectedTitles = picked;
+    });
   }
 
   @override
@@ -562,6 +777,92 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       fontSize: screenWidth * 0.038, color: Colors.black87)),
                 ],
               ),
+            ),
+
+            const SizedBox(height: 15),
+            Divider(color: Color(0xFFC0BBBB), thickness: 1),
+            const SizedBox(height: 11),
+
+            // 타이틀 변경 UI
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 타이틀 변경 버튼
+                GestureDetector(
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      barrierDismissible: true, // 밖 터치 닫기
+                      builder:
+                          (_) => TitleSelect(
+                            selected: selectedTitles,
+                            unlocked: unlockedTitles,
+                            onSelect: (newTitles) {
+                              setState(() {
+                                selectedTitles = newTitles;
+                              });
+                            },
+                          ),
+                    );
+                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        "타이틀 변경",
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.038,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF807E7E),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Image.asset(
+                        'assets/images/Setting/chevron2.png',
+                        width: 14,
+                        height: 14,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 15),
+
+                // 선택된 타이틀 표시
+                if (selectedTitles.isNotEmpty)
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children:
+                        selectedTitles.map((t) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFf4ecd2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              "# $t",
+                              style: const TextStyle(
+                                color: Color(0xFF504a4a),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                  )
+                else
+                  Text(
+                    "선택된 타이틀이 없습니다.",
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.033,
+                      color: Colors.grey,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),

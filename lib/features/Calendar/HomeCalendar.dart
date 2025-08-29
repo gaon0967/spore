@@ -4,11 +4,12 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
-import 'Event.dart';
+import 'event.dart';
 import '../Settings/settings_screen.dart';
 import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
+import '../Settings/TitleHandler.dart';
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
 │   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
@@ -255,6 +256,12 @@ class _HomeCalendarState extends State<HomeCalendar> {
         eventsForDay.insert(insertIndex, result);
       });
 
+      // 투두리스트 개수 타이틀 지급
+      final currentTodoCount = _getEventsForDay(day).length;
+      handleTodoCountTitle(currentTodoCount, onUpdate: () {
+        setState(() {}); // UI 갱신
+      });
+
       _listKey.currentState?.insertItem(
         insertIndex,
         duration: const Duration(milliseconds: 180),
@@ -284,6 +291,13 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     // 4. Firestore에서 데이터 삭제
     _deleteEvent(eventToRemove);
+
+    // 투두리스트 개수 타이틀 지급
+    final currentTodoCount = _getEventsForDay(day).length;
+    handleTodoCountTitle(currentTodoCount, onUpdate: () {
+      setState(() {}); // UI 갱신
+    });
+
   }
 
   Widget _buildEventContent(Event event, {int? index}) {
@@ -332,6 +346,11 @@ class _HomeCalendarState extends State<HomeCalendar> {
                 });
                 // isDone 상태 변경 시 Firestore에도 업데이트
                 _addOrUpdateEvent(event, isUpdating: true);
+
+                // 투두리스트 연속 성공 일수 기반 타이틀 갱신
+                handleConsecutiveTodoSuccessTitle(_events, _selectedDay, onUpdate: () {
+                  setState(() {});
+                });
               },
               child:
                   event.isCompleted

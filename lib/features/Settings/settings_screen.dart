@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:new_project_1/auth/LoginHome.dart';
 // 🔥 Fixed Naver Login SDK import
 import 'package:naver_login_sdk/naver_login_sdk.dart';
+import 'package:new_project_1/features/Calendar/Notification.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 친구 관리 화면
 import 'dart:math' as math;
@@ -37,6 +38,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     // 🔥 화면이 시작될 때 사용자 문서가 있는지 확인하고, 없으면 생성합니다.
     // 이것으로 "users/{uid}" 문서에 대한 쓰기 권한 규칙을 만족시킬 수 있습니다.
     _ensureUserDocument();
+
+    // 🌟 앱 시작 시 Firestore에서 알림 설정 불러오기
+    _loadAlarmSetting();
   }
 
   // 🔥 사용자 문서가 없으면 생성하여 보안 규칙을 통과하도록 하는 함수
@@ -101,6 +105,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
         return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
+  }
+
+  Future<void> _loadAlarmSetting() async {
+    // 📂 현재 로그인한 사용자 UID 가져오기
+    final enabled = await NotificationService().isNotificationEnabled();
+    setState(() {
+      alarmEnabled = enabled;
+      // ✅ 불러온 값으로 상태 업데이트 (UI에 반영)
+    });
   }
 
   @override
@@ -244,10 +257,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       GestureDetector(
                         // 탭하는 로직은 그대로 유지합니다.
-                        onTap: () {
+                        onTap: () async {
                           setState(() {
                             alarmEnabled = !alarmEnabled;
                           });
+
+                          // 알림
+                          await NotificationService().setNotificationEnabled(alarmEnabled);
                         },
                         // 자식 위젯을 AnimatedCrossFade로 변경합니다.
                         child: AnimatedCrossFade(
