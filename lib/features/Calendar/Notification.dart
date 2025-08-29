@@ -74,6 +74,16 @@ class NotificationService {
       print('알림 생성 오류: receiverId가 비어있습니다.');
       return;
     }
+
+    // 🔑 알림 꺼져 있으면 아예 생성 안 함
+    final receiverDoc =
+    await _firestore.collection('users').doc(receiverId).get();
+    final enabled = receiverDoc.data()?['notificationsEnabled'] ?? true;
+    if (!enabled) {
+      print("알림 꺼짐 상태 → 알림 생성 안 함");
+      return;
+    }
+
     try {
       await _firestore
           .collection('users')
@@ -213,6 +223,22 @@ class NotificationService {
     }
     await batch.commit();
   }
+
+  // 유저의 알림 허용 여부 확인
+  Future<bool> isNotificationEnabled() async {
+    if (currentUserId == null) return false;
+    final userDoc = await _firestore.collection('users').doc(currentUserId).get();
+    return userDoc.data()?['notificationsEnabled'] ?? true; // 기본값 true
+  }
+
+  // 알림 설정 업데이트
+  Future<void> setNotificationEnabled(bool enabled) async {
+    if (currentUserId == null) return;
+    await _firestore.collection('users').doc(currentUserId).update({
+      'notificationsEnabled': enabled,
+    });
+  }
+
 }
 // -----------------------------------------
 
