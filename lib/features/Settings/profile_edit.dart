@@ -77,6 +77,34 @@ class ProfileEdit extends StatefulWidget {
   State<ProfileEdit> createState() => _ProfileEditPageState();
 }
 
+/// 클래스: TitleSelect
+/// 목적: 사용자가 획득한 타이틀 중에서 최대 2개를 선택할 수 있도록 하는 UI 컴포넌트
+/// - 현재 선택된 타이틀 목록과 획득한 타이틀 목록을 받아서 표시
+/// - 사용자가 타이틀 버튼을 눌러 선택/해제할 수 있으며, 최대 2개까지만 선택 가능
+/// - 선택 완료 시 선택한 타이틀 리스트를 부모 위젯에 전달
+/// 반환: StatefulWidget 인스턴스 반환
+class TitleSelect extends StatefulWidget {
+  final List<String> selected; // 현재 선택한 2개
+  final List<String> unlocked; // 획득한 타이틀 목록
+  final void Function(List<String>) onSelect; // 선택 완료 시 부모로 전달
+
+  const TitleSelect({
+    Key? key,
+    required this.selected,
+    required this.unlocked,
+    required this.onSelect,
+  }) : super(key: key);
+
+  @override
+  _TitleSelectState createState() => _TitleSelectState();
+}
+
+/// 클래스: _TitleSelectState
+/// 목적: TitleSelect의 상태를 관리하며 UI 동작과 사용자 입력 처리
+/// - 사용자가 타이틀을 선택하거나 선택 해제할 때 상태를 업데이트
+/// - 선택된 타이틀이 2개를 넘지 않도록 제한
+/// - 완료 버튼을 누르면 선택한 타이틀을 부모 위젯에 알리고 모달을 닫음
+/// 반환: State<TitleSelect> 인스턴스 반환
 class _TitleSelectState extends State<TitleSelect> {
   late List<String> current;
 
@@ -528,6 +556,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           }
 
           await saveIntroText(userId, trimmed);
+
+          // 한줄 소개 타이틀 지급
+          await handleProfileEditTitles(
+              hasIntro: trimmed.isNotEmpty,
+              onUpdate: () {
+                setState(() {});
+              }
+          );
 
           setState(() {
             introText = trimmed;

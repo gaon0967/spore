@@ -14,7 +14,6 @@ class UserStats {
   final bool isNewUser; // 회원가입 직후 여부
   final int friendsCount; // 친구 수
   final bool hasIntro; // 자기소개 존재 여부
-  final bool hasProfileImage; // 프로필 사진 존재 여부
   final int messageCount; // 메시지 보낸 개수
   final int todoCount; // 투두리스트 개수
   final int consecutiveTodoSuccess; // 투두리스트 N일 연속
@@ -25,7 +24,6 @@ class UserStats {
     this.isNewUser = false,
     this.friendsCount = 0,
     this.hasIntro = false,
-    this.hasProfileImage = false,
     this.messageCount = 0,
     this.todoCount = 0,
     this.consecutiveTodoSuccess = 0,
@@ -347,12 +345,10 @@ Future<List<TitleInfo>> handleFriendCountChange(
 /// 함수명: handleProfileEditTitles
 /// 목적: 프로필 편집(사진, 자기소개) 완료 후 관련 타이틀 획득 여부를 검사
 /// 입력: bool hasIntro - 자기소개 존재 여부
-/// 입력: bool hasProfileImage - 프로필 사진 존재 여부
 /// 입력: Function? onUpdate - 타이틀 목록 업데이트 시 호출할 콜백 함수 (선택 사항)
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 Future<List<TitleInfo>> handleProfileEditTitles({
   required bool hasIntro,
-  required bool hasProfileImage,
   Function? onUpdate,
 }) async {
   final prefs = await SharedPreferences.getInstance();
@@ -361,7 +357,6 @@ Future<List<TitleInfo>> handleProfileEditTitles({
   final stats = UserStats(
     psychologyTestCount: psychologyCount,
     hasIntro: hasIntro,
-    hasProfileImage: hasProfileImage,
   );
 
   final profileTitles = allTitles.where((t) => t.id == 'intro_writer').toList();

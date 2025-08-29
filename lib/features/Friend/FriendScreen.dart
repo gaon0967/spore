@@ -327,6 +327,17 @@ class _FriendScreenState extends State<FriendScreen> {
 
       await batch.commit();
 
+      // 파이어베이스에서 최신 친구 목록 개수 가져오기
+      final newFriendsSnapshot = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .where('blockStatus', isEqualTo: false)
+          .get();
+
+      final newFriendCount = newFriendsSnapshot.docs.length;
+      handleFriendCountChange(newFriendCount); // 친구맺기 타이틀 지급
+
       final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
       final myName = currentUserDoc.data()?['name'] ?? 'Unknown';
       await _notificationService.createFriendAcceptedNotification(request.senderId, myName);
@@ -421,9 +432,33 @@ class _FriendScreenState extends State<FriendScreen> {
         'favorite': !friend.favorite,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // 친구 즐겨찾기 타이틀 지급
+      final int favoriteCount = await _getFavoriteCount();
+      await handleFavoriteFriendTitle(favoriteCount);
+
     } catch (e) {
       _showAlert('즐겨찾기 설정 중 오류가 발생했습니다: $e');
     }
+  }
+
+  // 즐겨찾기 친구 수를 파이어베이스에서 직접 가져오는 함수
+  Future<int> _getFavoriteCount() async {
+    // 현재 로그인한 사용자가 없다면 0을 반환
+    if (currentUserId == null) {
+      return 0;
+    }
+
+    // 'friends' 컬렉션에서 'favorite'가 true인 문서들을 모두 가져옴
+    final querySnapshot = await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('friends')
+        .where('favorite', isEqualTo: true)
+        .get();
+
+    // 가져온 문서들의 개수를 반환
+    return querySnapshot.docs.length;
   }
 
   // 친구 신청 취소
