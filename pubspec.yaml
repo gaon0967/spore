@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   table_calendar: ^3.0.9
-  intl: ^0.20.2
+  intl: ^0.20.0
   cloud_firestore: ^5.6.12  # db
   cloud_functions: ^5.5.0  # firebase functions 이용을 위함
   firebase_auth: ^5.7.0    # 인증을 위함
@@ -22,9 +22,7 @@ dependencies:
   naver_login_sdk: ^3.0.1  # naver login sdk로 쉽게 로직을 짬._찬홍 
   flutter_native_splash: ^2.4.6 # 앱 로팅화면  구현할 때 사용. _ 가령 
   auto_size_text: ^3.0.0 #설문 조사 할떄 질문이 도형을 넘지 못하게 자동으로 맞춰줄 때 사용. _가령
-  image_picker: ^1.0.4 #프로필 사진 변경할 떄 갤러리로 넘어갈 때 사용. _민서
   shared_preferences: ^2.0.15 #심리테스트 결과 불러올 때 사용. _민서
-  permission_handler: ^12.0.1 #갤러리 권한 요청할 떄 사용. _민서
 
 dev_dependencies:
   flutter_test:
@@ -84,11 +82,8 @@ flutter:
     - assets/images/PsychologyTest/Shape/Star.png
     
 
+    - assets/images/Setting/
     - assets/images/Setting/chevron.png
-    - assets/images/Setting/Exclude.png
-    - assets/images/Setting/Subtract.png
-    - assets/images/Setting/gallery.png
-    - assets/images/Setting/Union.png
     - assets/images/Setting/chac1.png
     - assets/images/Setting/chac2.png
     - assets/images/Setting/chac3.png
@@ -105,6 +100,8 @@ flutter:
 
         - asset: assets/fonts/LeagueSpartan-VariableFont_wght.ttf
           weight: 700
+        - asset: assets/fonts/LeagueSpartan-Bold.ttf
+          weight: 800
     - family: Golos Text
       fonts:
         - asset: assets/fonts/GolosText-VariableFont_wght.ttf

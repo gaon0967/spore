@@ -7,12 +7,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:characters/characters.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart';
 
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
 Future<List<int>> fetchUserCharacterIds(String userId) async {
-  final doc =
-      await FirebaseFirestore.instance.collection('users').doc(userId).get();
+  final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
   if (doc.exists) {
     final List<dynamic>? ids = doc.data()?['characterIds'];
     if (ids != null) {
@@ -35,7 +35,6 @@ String getImagePathByCharacterId(int id) {
     default: return 'assets/images/profile.png';
   }
 }
-
 /// 클래스: ThreeLinesInputFormatter
 /// 목적: TextField에서 사용자 입력을 실시간으로 포맷팅하여, 최대 3줄까지만 허용하고, 글자 수는 최대 50자로 제한.
 /// 반환: - formatEditUpdate 메서드는 이전 입력 상태와 새로운 입력 상태를 받아, 제한 조건(줄 수 3줄, 글자 수 50자)을 만족하는 새로운 입력 값을 반환.
@@ -67,8 +66,7 @@ class ThreeLinesInputFormatter extends TextInputFormatter {
     return newValue;
   }
 }
-
-/// 클래스: ProfileEdit
+  /// 클래스: ProfileEdit
 /// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
 /// 반환: StatefulWidget 인스턴스 반환
 /// 예외: 없음
@@ -79,35 +77,6 @@ class ProfileEdit extends StatefulWidget {
   State<ProfileEdit> createState() => _ProfileEditPageState();
 }
 
-
-/// 클래스: TitleSelect
-/// 목적: 사용자가 획득한 타이틀 중에서 최대 2개를 선택할 수 있도록 하는 UI 컴포넌트
-/// - 현재 선택된 타이틀 목록과 획득한 타이틀 목록을 받아서 표시
-/// - 사용자가 타이틀 버튼을 눌러 선택/해제할 수 있으며, 최대 2개까지만 선택 가능
-/// - 선택 완료 시 선택한 타이틀 리스트를 부모 위젯에 전달
-/// 반환: StatefulWidget 인스턴스 반환
-class TitleSelect extends StatefulWidget {
-  final List<String> selected; // 현재 선택한 2개
-  final List<String> unlocked; // 획득한 타이틀 목록
-  final void Function(List<String>) onSelect; // 선택 완료 시 부모로 전달
-
-  const TitleSelect({
-    Key? key,
-    required this.selected,
-    required this.unlocked,
-    required this.onSelect,
-  }) : super(key: key);
-
-  @override
-  _TitleSelectState createState() => _TitleSelectState();
-}
-
-/// 클래스: _TitleSelectState
-/// 목적: TitleSelect의 상태를 관리하며 UI 동작과 사용자 입력 처리
-/// - 사용자가 타이틀을 선택하거나 선택 해제할 때 상태를 업데이트
-/// - 선택된 타이틀이 2개를 넘지 않도록 제한
-/// - 완료 버튼을 누르면 선택한 타이틀을 부모 위젯에 알리고 모달을 닫음
-/// 반환: State<TitleSelect> 인스턴스 반환
 class _TitleSelectState extends State<TitleSelect> {
   late List<String> current;
 
@@ -174,49 +143,49 @@ class _TitleSelectState extends State<TitleSelect> {
                     spacing: 8,
                     runSpacing: 8,
                     children:
-                        allTitles
-                            .where((t) => widget.unlocked.contains(t.name))
-                            .map((titleInfo) {
-                              final titleName = titleInfo.name;
-                              final isSelected = current.contains(titleName);
-                              return GestureDetector(
-                                onTap: () => handleToggle(titleName),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                    vertical: 8,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? const Color(0xFFf4ecd2)
-                                            : Colors.white,
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color:
-                                          isSelected
-                                              ? const Color(0xFF6a6a6a)
-                                              : Colors.grey.shade300,
-                                      width: isSelected ? 1.5 : 1,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    titleName,
-                                    style: TextStyle(
-                                      color:
-                                          isSelected
-                                              ? const Color(0xFF413b3b)
-                                              : Colors.black87,
-                                      fontWeight:
-                                          isSelected
-                                              ? FontWeight.w700
-                                              : FontWeight.normal,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            })
-                            .toList(),
+                    allTitles
+                        .where((t) => widget.unlocked.contains(t.name))
+                        .map((titleInfo) {
+                      final titleName = titleInfo.name;
+                      final isSelected = current.contains(titleName);
+                      return GestureDetector(
+                        onTap: () => handleToggle(titleName),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                            isSelected
+                                ? const Color(0xFFf4ecd2)
+                                : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color:
+                              isSelected
+                                  ? const Color(0xFF6a6a6a)
+                                  : Colors.grey.shade300,
+                              width: isSelected ? 1.5 : 1,
+                            ),
+                          ),
+                          child: Text(
+                            titleName,
+                            style: TextStyle(
+                              color:
+                              isSelected
+                                  ? const Color(0xFF413b3b)
+                                  : Colors.black87,
+                              fontWeight:
+                              isSelected
+                                  ? FontWeight.w700
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                        ),
+                      );
+                    })
+                        .toList(),
                   ),
                 ),
               ),
@@ -267,11 +236,11 @@ class _TitleSelectState extends State<TitleSelect> {
 }
 
 /// 클래스: _ProfileEditPageState
-/// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 이미지 업로드, 닉네임 및 한줄 소개 편집 기능을 제공
+/// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 닉네임 및 한줄 소개 편집 기능을 제공
 /// 반환: State<ProfileEdit> 인스턴스 반환
-/// 예외: Firestore 접근 실패, 이미지 업로드 실패 등의 예외 처리 필요
+/// 예외: Firestore 접근 실패 예외 처리 필요
 class _ProfileEditPageState extends State<ProfileEdit> {
-  String name = "닉네임을 입력하세요";
+  String name = "";
   String introText = "";
 
   List<int> psychologyResultIds = [];
@@ -297,22 +266,17 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       });
     }
     _loadSavedPsychologyResult();
-
     _loadUnlockedTitles();
-
   }
 
   Future<void> _loadSelectedIdAndApply() async {
     if (userId.isEmpty || availableCharacters.isEmpty) return;
-    final doc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
     if (doc.exists) {
       final id = doc.data()?['characterId'];
       if (id != null) {
         final char = availableCharacters.firstWhere(
-          (c) => c.id == id,
-          orElse: () => availableCharacters.first,
-        );
+                (c) => c.id == id, orElse: () => availableCharacters.first);
         setState(() {
           selectedCharacter = char;
         });
@@ -494,6 +458,44 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
+  Widget _introWithUnderline(String intro, TextStyle style) {
+    final lines = intro.isEmpty ? [' '] : intro.split('\n');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines
+          .map(
+            (line) => Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(vertical: 5),
+          decoration: BoxDecoration(
+              border: Border(
+                  bottom: BorderSide(width: 1, color: Colors.grey.shade400))),
+          child: Text(
+            line,
+            style: style,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        ),
+      )
+          .toList(),
+    );
+  }
+
+  Future<void> _goToPsychologyTest() async {
+    final result = await Navigator.of(context).push<List<int>>(
+      MaterialPageRoute(builder: (context) => const PsychologyQuestion()),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        psychologyResultIds = result;
+      });
+      _applyPsychologyResult(result);
+      _savePsychologyResult(result);
+    }
+  }
+
   void _showEditIntroModal( ) {
     final controller = TextEditingController(text: introText);
     bool _isDialogShowing = false;
@@ -584,44 +586,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     );
   }
 
-  Widget _introWithUnderline(String intro, TextStyle style) {
-    final lines = intro.isEmpty ? [' '] : intro.split('\n');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: lines
-          .map(
-            (line) => Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 5),
-          decoration: BoxDecoration(
-              border: Border(
-                  bottom: BorderSide(width: 1, color: Colors.grey.shade400))),
-          child: Text(
-            line,
-            style: style,
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-          ),
-        ),
-      )
-          .toList(),
-    );
-  }
-
-  Future<void> _goToPsychologyTest() async {
-    final result = await Navigator.of(context).push<List<int>>(
-      MaterialPageRoute(builder: (context) => const PsychologyQuestion()),
-    );
-
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        psychologyResultIds = result;
-      });
-      _applyPsychologyResult(result);
-      _savePsychologyResult(result);
-    }
-  }
-
   Future<void> _loadUnlockedTitles() async {
     final prefs = await SharedPreferences.getInstance();
     final savedList = prefs.getStringList('unlocked_titles') ?? [];
@@ -659,9 +623,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       ),
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-          horizontal: screenWidth * 0.06,
-          vertical: screenHeight * 0.015,
-        ),
+            horizontal: screenWidth * 0.06, vertical: screenHeight * 0.015),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
@@ -673,46 +635,43 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   height: profileImageSize,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.grey.shade400, width: 2),
+                    border: Border.all(
+                      color: Colors.grey.shade400,
+                      width: 2,
+                    ),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: StreamBuilder<DocumentSnapshot>(
-                      stream:
-                          FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(userId)
-                              .snapshots(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        }
-                        final data =
-                            snapshot.data!.data() as Map<String, dynamic>?;
+                        stream: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(userId)
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator());
+                          }
+                          final data = snapshot.data!.data() as Map<String, dynamic>?;
+                          final charId = data?['characterId'] as int? ?? 0;
+                          final character = Character.getCharacterById(charId);
 
-                        final charId =
-                            data?['characterId'] as int? ?? 0; // 안전하게 접근
+                          if (character == null) {
+                            return Image.asset(
+                              'assets/images/profile.png',
+                              width: profileImageSize,
+                              height: profileImageSize,
+                              fit: BoxFit.cover,
+                            );
+                          }
 
-                        final character = Character.getCharacterById(charId);
-
-                        if (character == null) {
                           return Image.asset(
-                            'assets/images/profile.png',
+                            getImagePathByCharacterId(character.id),
                             width: profileImageSize,
                             height: profileImageSize,
                             fit: BoxFit.cover,
                           );
                         }
-
-                        return Image.asset(
-                          getImagePathByCharacterId(character.id),
-                          width: profileImageSize,
-                          height: profileImageSize,
-                          fit: BoxFit.cover,
-                        );
-                      },
                     ),
                   ),
                 ),
@@ -739,9 +698,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
             Container(
               width: boxWidth,
               padding: EdgeInsets.symmetric(
-                horizontal: boxWidth * 0.05,
-                vertical: 24,
-              ),
+                  horizontal: boxWidth * 0.05, vertical: 24),
               decoration: BoxDecoration(
                 color: const Color(0xFFE8EEF0),
                 borderRadius: BorderRadius.circular(16),
@@ -765,33 +722,23 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 6,
-                          ),
+                              horizontal: 14, vertical: 6),
                           decoration: BoxDecoration(
-                            color: Colors.black,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
+                              color: Colors.black,
+                              borderRadius: BorderRadius.circular(20)),
                           child: Text(
                             '수정',
-                            style: TextStyle(
-                              fontSize: screenWidth * 0.035,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: TextStyle(fontSize: screenWidth * 0.035,
+                                color: Colors.white,
+                                fontWeight: FontWeight.w500),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 15),
-                  _introWithUnderline(
-                    introText,
-                    TextStyle(
-                      fontSize: screenWidth * 0.038,
-                      color: Colors.black87,
-                    ),
-                  ),
+                  _introWithUnderline(introText, TextStyle(
+                      fontSize: screenWidth * 0.038, color: Colors.black87)),
                 ],
               ),
             ),
@@ -901,18 +848,15 @@ class _ProfileEditPageState extends State<ProfileEdit> {
               elevation: 0,
               backgroundColor: const Color(0xFF6B6060),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+                  borderRadius: BorderRadius.circular(16)),
               foregroundColor: Colors.black,
               padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
             ),
             child: Text(
               '내 캐릭터 다시 찾기',
-              style: TextStyle(
-                fontSize: screenWidth * 0.038,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+              style: TextStyle(fontSize: screenWidth * 0.038,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
             ),
           ),
         ),

@@ -14,20 +14,64 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 1; // 시작 페이지를 '홈'으로 설정
+  // FriendScreen의 상태를 제어할 변수
+  int _friendScreenTabIndex = 0;
+  bool _expandFriendRequests = false;
 
-  // 각 탭에 해당하는 페이지 위젯 목록
-  static final List<Widget> _widgetOptions = <Widget>[
-    FriendScreen(),
-    HomeCalendar(), // 기존 HomeCalendar 위젯
-    TimetableScreen(),
-  ];
+  late List<Widget> _widgetOptions;
+  Key? _friendScreenKey;
 
-  // 탭을 눌렀을 때 index를 변경하는 함수
-  void _onItemTapped(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _buildWidgetOptions(); // initState에서 위젯 리스트 생성
+  }
+
+  // 위젯 리스트를 상태에 따라 동적으로 생성하는 함수
+  void _buildWidgetOptions() {
+    _widgetOptions = <Widget>[
+      FriendScreen(
+        key: _friendScreenKey,
+        initialTabIndex: _friendScreenTabIndex,
+        expandRequestsSection: _expandFriendRequests,
+        onNavigateToFriends: _navigateToFriendsTab,
+      ),
+      HomeCalendar(
+        // HomeCalendar에 콜백 함수 전달
+        onNavigateToFriends: _navigateToFriendsTab,
+      ),
+      TimetableScreen(),
+    ];
+  }
+
+  // 외부 신호를 받아 탭과 FriendScreen 상태를 변경하는 함수
+  void _navigateToFriendsTab({int tabIndex = 0, bool expandRequests = false}) {
     setState(() {
-      _selectedIndex = index;
+      _selectedIndex = 0; // BottomNavigationBar의 '친구' 탭(index 0)으로 이동
+      _friendScreenTabIndex = tabIndex;
+      _expandFriendRequests = expandRequests;
+      if (tabIndex == 1 && expandRequests == true) {
+        // UniqueKey()는 매번 다른 값을 가지는 특별한 Key입니다.
+        _friendScreenKey = UniqueKey();
+      } else {
+        // 일반적인 탭 전환 시에는 Key를 null로 설정하여 상태를 유지합니다.
+        _friendScreenKey = null;
+      }
+      _buildWidgetOptions(); // 변경된 상태로 위젯 리스트를 다시 빌드
     });
   }
+  // 탭을 눌렀을 때 index를 변경하는 함수
+  void _onItemTapped(int index) {
+    if (index == 0) {
+      // 사용자가 직접 탭을 누를 땐, FriendScreen 상태를 초기화
+      _navigateToFriendsTab(); 
+    } else {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+  }
+
   BottomNavigationBarItem _buildNavItem({
     required int index,
     required String label,
