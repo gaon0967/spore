@@ -240,21 +240,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Padding(
                         padding: EdgeInsets.only(left: screenWidth * 0.019),
-                        child: Text('알림', style: TextStyle(fontSize: screenWidth * 0.038, color: Color(0xFF504A4A), fontFamily: 'Golos Text', fontWeight: FontWeight.w500)),
+                        child: Text('알림', style: TextStyle(fontSize: screenWidth * 0.038, color: Color(0xFF504A4A), fontFamily: 'Golos Text', fontWeight: FontWeight.w600)),
                       ),
-                      Switch(
-                        value: alarmEnabled,
-                        activeColor: Colors.white,
-                        activeTrackColor: Color(0xFF95A797),
-                        inactiveThumbColor: Colors.white,
-                        inactiveTrackColor: Color(0xFFCCCCCC),
-                        onChanged: (value) {
-                          // 🔥 setState를 사용하여 스위치 상태를 UI에 반영합니다.
+                      GestureDetector(
+                        // 탭하는 로직은 그대로 유지합니다.
+                        onTap: () {
                           setState(() {
-                            alarmEnabled = value;
+                            alarmEnabled = !alarmEnabled;
                           });
                         },
-                      ),
+                        // 자식 위젯을 AnimatedCrossFade로 변경합니다.
+                        child: AnimatedCrossFade(
+                          // 1. 애니메이션 지속 시간 설정 (0.1초)
+                          duration: const Duration(milliseconds: 100),
+
+                          // 2. '꺼짐' 상태일 때 보여줄 위젯 (첫 번째 자식)
+                          firstChild: Image.asset(
+                            'assets/images/Setting/alarm_off.png', // 꺼짐 이미지 경로
+                            width: 52,
+                            height: 55,
+                            fit: BoxFit.contain, // 이미지가 위젯 크기에 맞게 조절되도록 설정
+                          ),
+
+                          // 3. '켜짐' 상태일 때 보여줄 위젯 (두 번째 자식)
+                          secondChild: Image.asset(
+                            'assets/images/Setting/alarm_on.png', // 켜짐 이미지 경로
+                            width: 50,
+                            height: 55,
+                            fit: BoxFit.contain,
+                          ),
+
+                          // 4. 어떤 자식을 보여줄지 상태에 따라 결정
+                          crossFadeState: alarmEnabled
+                              ? CrossFadeState.showSecond // alarmEnabled가 true이면 두 번째 자식(켜짐)을 보여줌
+                              : CrossFadeState.showFirst,  // false이면 첫 번째 자식(꺼짐)을 보여줌
+                        ),
+                      )
                     ],
                   ),
                 ],
