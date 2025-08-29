@@ -7,6 +7,7 @@ import 'course_model.dart';
 import 'TimetableList.dart';
 import 'ClassAdd.dart';
 import 'FriendTimetable.dart';
+import '../Settings/firebase_title.dart';
 
 class TimetableScreen extends StatefulWidget {
   final String? tableName;
@@ -166,6 +167,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
     });
 
     await _loadCourses();
+
+    // Firestore 저장 직후: 타이틀 지급(현재 스크린의 정확한 개수 사용)
+    await handleScheduleCountFirestore(
+      _courses.length,
+      onUpdate: () => setState(() {}),
+    );
   }
 
   Future<void> _deleteCourse(Course courseToDelete) async {

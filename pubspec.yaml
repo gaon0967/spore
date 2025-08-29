@@ -8,7 +8,7 @@ environment:
 
 dependencies:
   table_calendar: ^3.0.9
-  intl: ^0.20.0
+  intl: ^0.20.2
   cloud_firestore: ^5.6.12  # db
   cloud_functions: ^5.5.0  # firebase functions 이용을 위함
   firebase_auth: ^5.7.0    # 인증을 위함
@@ -81,7 +81,6 @@ flutter:
     - assets/images/PsychologyTest/Shape/Polygon.png
     - assets/images/PsychologyTest/Shape/Star.png
     
-
     - assets/images/Setting/
     - assets/images/Setting/chevron.png
     - assets/images/Setting/chac1.png
@@ -97,7 +96,6 @@ flutter:
 
     - assets/images/TimeTable/add_icon.png
     - assets/images/TimeTable/menu_icon.png
-
 
   fonts:
     - family: League Spartan

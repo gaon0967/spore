@@ -3,137 +3,54 @@ import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:new_project_1/auth/LoginHome.dart';
-// 🔥 Fixed Naver Login SDK import
-import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
-import '../Friend/friend_management.dart'; // 친구 관리 화면
-import 'dart:math' as math;
+import '../Friend/friend_management.dart'; // 프로필 변경 화면
+import 'package:naver_login_sdk/naver_login_sdk.dart'; // Naver 로그인 SDK
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// ==============================
 /// 클래스명: SettingsScreen
-/// 역할: 앱의 설정 화면을 구성 (기존 UI 유지 + Firebase 보안 규칙 적용)
+/// 역할: 앱의 설정 화면을 구성
+/// 사용된 위젯: Scaffold, AppBar, ElevatedButton, Switch, Dialog, GestureDetector
+/// 관련 기능: 프로필 변경, 친구 관리, 알림 설정, 고객 지원, 로그아웃, 버전 정보, 회원 탈퇴
 /// ==============================
-// 🔥 상태 관리를 위해 StatefulWidget으로 구조를 확정합니다.
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  // 🔥 Firebase 인스턴스 추가
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  bool alarmEnabled = true; // 알림 스위치 현재 상태
-  bool _isLoading = true; // 🔥 로딩 상태 (처음엔 true로 설정하여 사용자 문서 확인)
-
-  String? get currentUserId => _auth.currentUser?.uid;
-
-  @override
-  void initState() {
-    super.initState();
-    // 🔥 화면이 시작될 때 사용자 문서가 있는지 확인하고, 없으면 생성합니다.
-    // 이것으로 "users/{uid}" 문서에 대한 쓰기 권한 규칙을 만족시킬 수 있습니다.
-    _ensureUserDocument();
-  }
-
-  // 🔥 사용자 문서가 없으면 생성하여 보안 규칙을 통과하도록 하는 함수
-  Future<void> _ensureUserDocument() async {
-    if (currentUserId == null) {
-      setState(() => _isLoading = false);
-      return;
-    }
-    try {
-      final userDocRef = _firestore.collection('users').doc(currentUserId);
-      final userDoc = await userDocRef.get();
-
-      if (!userDoc.exists) {
-        // 문서가 없으면, 보안 규칙을 만족시키는 기본 문서를 생성합니다.
-        await userDocRef.set({
-          'uid': currentUserId, // 🔑 보안 규칙의 핵심인 uid 필드
-          'createdAt': FieldValue.serverTimestamp(),
-          'updateAt': FieldValue.serverTimestamp(),
-        });
-      } else {
-        // 문서가 있지만 uid 필드가 없는 예전 사용자를 위한 보정 코드
-        final data = userDoc.data();
-        if (data != null && !data.containsKey('uid')) {
-          await userDocRef.update({'uid': currentUserId});
-        }
-      }
-    } catch (e) {
-      print('사용자 문서 확인/생성 오류: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('사용자 정보를 확인하는 중 오류가 발생했습니다: $e')),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
-  }
-
-  // 프로필 편집 화면으로 이동하는 애니메이션
-  Route _createSlideUpRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const ProfileEdit(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: Curves.easeOut));
-        return SlideTransition(position: animation.drive(tween), child: child);
-      },
-    );
-  }
-
-  // 친구 관리 화면으로 이동하는 애니메이션
-  Route _createFriendSlideUpRoute() {
-    return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => const FriendManagementScreen(),
-      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-        const begin = Offset(0.0, 1.0);
-        const end = Offset.zero;
-        final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: Curves.easeOut));
-        return SlideTransition(position: animation.drive(tween), child: child);
-      },
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
+    bool alarmEnabled = true; // 알림 스위치 현재 상태 (샘플 데이터)
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
       appBar: AppBar(
         backgroundColor: const Color(0xFFFFFEF9),
-        title: Text(
+        title: const Text(
           '설정',
           style: TextStyle(
             fontFamily: 'Golos Text',
-            fontWeight: FontWeight.w700,
-            fontSize: screenWidth * 0.047,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
             color: Color(0xFF504A4A),
           ),
         ),
         leading: IconButton(
-          icon: Image.asset(
-            'assets/images/Setting/go.png',
-            width: screenWidth * 0.045,
-            height: screenWidth * 0.045,
-          ),
+          icon: const Icon(Icons.arrow_back),
+
+          /// ------------------------------
+          /// 함수명: onPressed
+          /// 목적: 뒤로가기 버튼 클릭 시 이전 화면으로 이동
+          /// 입력: 없음
+          /// 반환: 없음
+          /// 예외: 없음
+          /// ------------------------------
           onPressed: () => Navigator.of(context).pop(),
         ),
-        leadingWidth: screenWidth * 0.1315,
-        titleSpacing: 0,
+        leadingWidth: 56, // 뒤로가기 화살표 아이콘의 위치 조정
+        titleSpacing: 0, // 앱바 타이틀의 글자 위치 조정
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
+
+      body: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -142,36 +59,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Row(
               children: [
                 Expanded(
+                  /// ==============================
+                  /// 위젯명: ElevatedButton (프로필 변경 버튼)
+                  /// 역할: 프로필 변경 화면으로 이동하는 버튼
+                  /// 입력: onPressed (클릭 이벤트), style (버튼 스타일), child (버튼 내용)
+                  /// 사용 위치: SettingsScreen 내 프로필 변경 기능
+                  /// ==============================
                   child: ElevatedButton(
+                    /// ------------------------------
+                    /// 함수명: onPressed
+                    /// 목적: 프로필 변경 버튼 클릭 시 ProfileEdit 화면으로 이동
+                    /// 입력: 없음
+                    /// 반환: 없음
+                    /// 예외: 없음
+                    /// ------------------------------
                     onPressed: () {
-                      Navigator.push(context, _createSlideUpRoute());
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ProfileEdit(),
+                          // 프로필 변경 버튼 클릭 시 ProfileEdit 화면으로 이동
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
-                      shadowColor: Colors.transparent,
-                      elevation: 0,
                       backgroundColor: Color(0xFFCDDEE3),
+                      // 버튼 배경색
                       foregroundColor: Color(0xFF504A4A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                      minimumSize: Size(screenWidth * 0.3945, screenWidth * 0.1526),
+                      // 버튼 글자, 아이콘 색상
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      minimumSize: const Size(168, 66),
+                      // 버튼의 최소 가로, 세로 크기
                       padding: EdgeInsets.zero,
                     ),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.0475),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           Align(
                             alignment: Alignment.centerLeft,
-                            child: Text('프로필 변경', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w600, fontSize: screenWidth * 0.038, color: Color(0xFF504A4A))),
+                            child: Text(
+                              '프로필 변경',
+                              style: TextStyle(
+                                fontFamily: 'Golos Text',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                                color: Color(0xFF504A4A),
+                              ),
+                            ),
                           ),
                           Align(
                             alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: EdgeInsets.only(right: screenWidth * 0.0095),
-                              child: Transform.rotate(
-                                angle: 270 * math.pi / 180,
-                                child: Image.asset('assets/images/Setting/chevron.png', width: screenWidth * 0.038, height: screenWidth * 0.038),
-                              ),
+                            child: Image.asset(
+                              'assets/images/Setting/chevron.png',
+                              width: 16,
+                              height: 16,
                             ),
                           ),
                         ],
@@ -179,38 +124,66 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                 ),
-                SizedBox(width: screenWidth * 0.06175),
+                const SizedBox(width: 26),
                 Expanded(
+                  /// ==============================
+                  /// 위젯명: ElevatedButton (친구 관리 버튼)
+                  /// 역할: 친구 관리 기능으로 이동하는 버튼 (현재 기능 미구현)
+                  /// 입력: onPressed (클릭 이벤트), style (버튼 스타일), child (버튼 내용)
+                  /// 사용 위치: SettingsScreen 내 친구 관리 기능
+                  /// ==============================
                   child: ElevatedButton(
+                    /// ------------------------------
+                    /// 함수명: onPressed
+                    /// 목적: 친구 관리 버튼 클릭 이벤트 (현재는 아무 동작 없음)
+                    /// 입력: 없음
+                    /// 반환: 없음
+                    /// 예외: 없음
+                    /// ------------------------------
                     onPressed: () {
-                      Navigator.push(context, _createFriendSlideUpRoute());
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const FriendManagementScreen(),
+                          // 친구 관리 버튼 클릭 시 friend_management 화면으로 이동
+                        ),
+                      );
                     },
                     style: ElevatedButton.styleFrom(
-                      shadowColor: Colors.transparent,
-                      elevation: 0,
                       backgroundColor: Color(0xFFCDDEE3),
+                      // 버튼 배경색
                       foregroundColor: Color(0xFF504A4A),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
-                      minimumSize: Size(screenWidth * 0.3945, screenWidth * 0.1526),
+                      // 버튼 글자, 아이콘 색상
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      minimumSize: const Size(168, 66),
+                      // 버튼의 최소 가로, 세로 크기
                       padding: EdgeInsets.zero,
                     ),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.0475),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           Align(
                             alignment: Alignment.centerLeft,
-                            child: Text('친구 관리', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w600, fontSize: screenWidth * 0.038, color: Color(0xFF504A4A))),
+                            child: Text(
+                              '친구 관리',
+                              style: TextStyle(
+                                fontFamily: 'Golos Text',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 16,
+                                color: Color(0xFF504A4A),
+                              ),
+                            ),
                           ),
                           Align(
                             alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: EdgeInsets.only(right: screenWidth * 0.0095),
-                              child: Transform.rotate(
-                                angle: 270 * math.pi / 180,
-                                child: Image.asset('assets/images/Setting/chevron.png', width: screenWidth * 0.038, height: screenWidth * 0.038),
-                              ),
+                            child: Image.asset(
+                              'assets/images/Setting/chevron.png',
+                              width: 16,
+                              height: 16,
                             ),
                           ),
                         ],
@@ -220,21 +193,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            SizedBox(height: screenWidth * 0.059375),
-            Divider(color: Color(0xFF847E7E), thickness: 1, indent: screenWidth * 0.011875, endIndent: screenWidth * 0.011875),
-            SizedBox(height: screenWidth * 0.059375),
+            const SizedBox(height: 25),
+
+            const Divider(
+              color: Color(0xFF847E7E), // 구분선 색깔
+              thickness: 1, // 구분선 굵기
+              indent: 5, // 구분선 왼쪽 여백
+              endIndent: 5, // 구분선 오른쪽 여백
+            ),
+
+            const SizedBox(height: 25),
             // 알림 설정
             Container(
-              padding: EdgeInsets.symmetric(vertical: screenWidth * 0.038, horizontal: screenWidth * 0.038),
-              decoration: BoxDecoration(color: Color(0xFFF8F8F8), borderRadius: BorderRadius.circular(25)),
+              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.circular(25),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: EdgeInsets.only(left: screenWidth * 0.019),
-                    child: Text('알림', style: TextStyle(fontSize: screenWidth * 0.030875, color: Color(0xFF9F9C9C), fontFamily: 'Golos Text', fontWeight: FontWeight.w700)),
+                    padding: const EdgeInsets.only(left: 8),
+                    child: const Text(
+                      '알림', // 작은 "알림"
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF9F9C9C),
+                        fontFamily: 'Golos Text',
+                      ),
+                    ),
                   ),
-                  SizedBox(height: screenWidth * 0.038),
+
+                  const SizedBox(height: 16),
+
+                  // 큰 알림 텍스트랑 스위치 Row로 묶음
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -281,75 +274,180 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ],
               ),
             ),
-            SizedBox(height: screenWidth * 0.059375),
-            Divider(color: Color(0xFF847E7E), thickness: 1, indent: screenWidth * 0.011875, endIndent: screenWidth * 0.011875),
-            SizedBox(height: screenWidth * 0.059375),
+
+            const SizedBox(height: 25),
+
+            const Divider(
+              color: Color(0xFF847E7E), // 구분선 색깔
+              thickness: 1, // 구분선 굵기
+              indent: 5, // 구분선 왼쪽 여백
+              endIndent: 5, // 구분선 오른쪽 여백
+            ),
+
+            const SizedBox(height: 25),
+
             // 고객 지원, 로그아웃, 버전정보
             Container(
-              padding: EdgeInsets.all(screenWidth * 0.038),
-              decoration: BoxDecoration(color: Color(0xFFF8F8F8), borderRadius: BorderRadius.circular(25)),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Color(0xFFF8F8F8),
+                borderRadius: BorderRadius.circular(25),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: screenWidth * 0.011875),
-                  Padding(
-                    padding: EdgeInsets.only(left: screenWidth * 0.019),
-                    child: Text('고객지원', style: TextStyle(fontSize: screenWidth * 0.030875, color: Color(0xFF9F9C9C), fontFamily: 'Golos Text', fontWeight: FontWeight.w700)),
+                  const SizedBox(height: 5),
+                  // 고객지원 제목
+                  const Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text(
+                      '고객지원',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF9F9C9C),
+                        fontFamily: 'Golos Text',
+                      ),
+                    ),
                   ),
-                  SizedBox(height: screenWidth * 0.059375),
+
+                  const SizedBox(height: 25),
+
                   Padding(
-                    padding: EdgeInsets.only(left: screenWidth * 0.019),
+                    padding: const EdgeInsets.only(left: 8),
                     child: GestureDetector(
+                      /// ------------------------------
+                      /// 함수명: onTap
+                      /// 목적: 로그아웃 텍스트 클릭 시 로그아웃 확인 다이얼로그 표시
+                      /// 입력: 없음
+                      /// 반환: 없음
+                      /// 예외: 없음
+                      /// ------------------------------
                       onTap: () {
                         showDialog(
                           context: context,
+                          barrierDismissible: true,
                           builder: (BuildContext context) {
+                            /// ==============================
+                            /// 위젯명: Dialog (로그아웃 확인 다이얼로그)
+                            /// 역할: 사용자에게 로그아웃 여부를 확인하는 팝업
+                            /// 입력: child (다이얼로그 내용)
+                            /// 사용 위치: SettingsScreen 내 로그아웃 기능
+                            /// ==============================
                             return Dialog(
-                              backgroundColor: const Color(0xFFFCFCF7),
-                              insetPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.095),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                              backgroundColor: const Color(
+                                0xFFFCFCF7,
+                              ), // 다이얼로그 배경색
+                              insetPadding: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                               child: SizedBox(
-                                width: screenWidth * 0.7125,
+                                width: 300,
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    SizedBox(height: screenWidth * .1425),
-                                    Text('로그아웃 하시겠습니까?', style: TextStyle(fontSize: screenWidth * 0.035625, color: Color(0xFF716969), fontWeight: FontWeight.w500)),
-                                    SizedBox(height: screenWidth * 0.114),
-                                    const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
+                                    const SizedBox(height: 60),
+                                    const Center(
+                                      child: Text(
+                                        '로그아웃 하시겠습니까?',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Color(0xFF716969),
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 48),
+                                    const Divider(
+                                      height: 1,
+                                      thickness: 1,
+                                      color: Color(0xFFE5E5E5),
+                                    ),
                                     Row(
                                       children: [
+                                        // 아니오 버튼
                                         Expanded(
                                           child: InkWell(
-                                            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
-                                            onTap: () => Navigator.of(context).pop(),
+                                            borderRadius:
+                                                const BorderRadius.only(
+                                                  bottomLeft: Radius.circular(
+                                                    16,
+                                                  ),
+                                                ),
+
+                                            /// ------------------------------
+                                            /// 함수명: onTap
+                                            /// 목적: 로그아웃 확인 다이얼로그에서 '아니오' 클릭 시 다이얼로그 닫기
+                                            /// 입력: 없음
+                                            /// 반환: 없음
+                                            /// 예외: 없음
+                                            /// ------------------------------
+                                            onTap:
+                                                () =>
+                                                    Navigator.of(context).pop(),
                                             child: Container(
-                                              height: screenWidth * 0.114,
+                                              height: 48,
                                               alignment: Alignment.center,
-                                              child: Text('아니오', style: TextStyle(fontSize: screenWidth * 0.035625, color: Color(0xFF635E5E), fontWeight: FontWeight.w500)),
+                                              child: const Text(
+                                                '아니오',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Color(0xFF635E5E),
+                                                  fontWeight: FontWeight.w400,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
-                                        Container(width: 1.5, height: screenWidth * 0.114, color: const Color(0xFFE5E5E5)),
+                                        // 세로 구분선
+                                        Container(
+                                          width: 1.5,
+                                          height: 48,
+                                          color: const Color(0xFFE5E5E5),
+                                        ),
+                                        // 네 버튼
                                         Expanded(
                                           child: InkWell(
-                                            borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
-                                            onTap: () async {
-                                              // 🔥 Firebase Auth 로그아웃 및 네이버 로그아웃 동시 처리
-                                              await _auth.signOut();
-                                              await NaverLoginSDK.logout();
-                                              if (mounted) {
-                                                Navigator.pushAndRemoveUntil(
-                                                  context,
-                                                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                                      (route) => false,
-                                                );
-                                              }
+                                            borderRadius:
+                                                const BorderRadius.only(
+                                                  bottomRight: Radius.circular(
+                                                    16,
+                                                  ),
+                                                ),
+
+                                            /// ------------------------------
+                                            /// 함수명: onTap
+                                            /// 목적: 로그아웃 확인 다이얼로그에서 '네' 클릭 시 다이얼로그 닫고 로그아웃 처리
+                                            /// 입력: 없음
+                                            /// 반환: 없음
+                                            /// 예외: 없음
+                                            /// ------------------------------
+                                            onTap: () {
+                                              // 로그아웃 처리 함수 호출
+                                              NaverLoginSDK.logout();
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder:
+                                                      (context) =>
+                                                          const LoginScreen(),
+                                                ),
+                                              );
                                             },
                                             child: Container(
-                                              height: screenWidth * 0.114,
+                                              height: 48,
                                               alignment: Alignment.center,
-                                              child: Text('네', style: TextStyle(fontSize: screenWidth * 0.035625, color: Color(0xFF2F3BDC), fontWeight: FontWeight.w500)),
+                                              child: const Text(
+                                                '네',
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  color: Color(0xFF2F3BDC),
+                                                  // 파랑
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
                                             ),
                                           ),
                                         ),
@@ -362,114 +460,223 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           },
                         );
                       },
-                      child: Text('로그아웃', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth * 0.038, color: Color(0xFF506497))),
+
+                      child: const Text(
+                        '로그아웃',
+                        style: TextStyle(
+                          fontFamily: 'Golos Text',
+                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          color: Color(0xFF506497),
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: screenWidth * 0.0285),
+
+                  const SizedBox(height: 12),
+
                   const Divider(color: Color(0xFFE4E4E4), thickness: 1),
-                  SizedBox(height: screenWidth * 0.0285),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.019),
+
+                  const SizedBox(height: 12),
+
+                  // 버전 정보 텍스트
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('버전정보', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth * 0.038, color: Color(0xFF504A4A))),
-                        Text('1.0.0', style: TextStyle(fontFamily: 'Golos Text', fontWeight: FontWeight.w500, fontSize: screenWidth * 0.038, color: Color(0xFF506497))),
+                        Text(
+                          '버전정보',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: Color(0xFF504A4A),
+                          ),
+                        ),
+                        Text(
+                          '1.0.0', // 현재 앱 버전 정보
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: Color(0xFF506497),
+                          ),
+                        ),
                       ],
                     ),
                   ),
-                  SizedBox(height: screenWidth * 0.02375),
+                  const SizedBox(height: 10),
                 ],
               ),
             ),
+
+            // 회원 탈퇴(하단 빨간색 텍스트)
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 45, 0, 12),
+              // 왼쪽 24, 위아래 12
               child: GestureDetector(
+                /// ------------------------------
+                /// 함수명: onTap
+                /// 목적: 회원 탈퇴 텍스트 클릭 시 회원 탈퇴 확인 다이얼로그 표시
+                /// 입력: 없음
+                /// 반환: 없음
+                /// 예외: 없음
+                /// ------------------------------
                 onTap: () {
                   showDialog(
                     context: context,
+                    barrierDismissible: true,
                     builder: (BuildContext context) {
+                      /// ==============================
+                      /// 위젯명: Dialog (회원 탈퇴 확인 다이얼로그)
+                      /// 역할: 사용자에게 회원 탈퇴 여부와 주의사항을 확인하는 팝업
+                      /// 입력: child (다이얼로그 내용)
+                      /// 사용 위치: SettingsScreen 내 회원 탈퇴 기능
+                      /// ==============================
                       return Dialog(
                         backgroundColor: const Color(0xFFFCFCF7),
-                        insetPadding: EdgeInsets.symmetric(horizontal: screenWidth * 0.095),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        insetPadding: const EdgeInsets.symmetric(
+                          horizontal: 40,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                         child: SizedBox(
-                          width: screenWidth * 0.7125,
+                          width: 300,
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              SizedBox(height: screenWidth * 0.1425),
+                              const SizedBox(height: 60),
                               Padding(
-                                padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.0475),
+                                padding: EdgeInsets.symmetric(horizontal: 20),
                                 child: RichText(
                                   textAlign: TextAlign.center,
                                   text: TextSpan(
-                                    style: TextStyle(fontSize: screenWidth * 0.035625, color: Color(0xFF716969), fontWeight: FontWeight.w500, height: 1.5),
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Color(0xFF716969),
+                                      fontWeight: FontWeight.w400,
+                                      height: 1.5,
+                                    ),
                                     children: [
                                       TextSpan(text: '정말 '),
-                                      TextSpan(text: '탈퇴 ', style: TextStyle(color: Color(0xFFDA6464), fontWeight: FontWeight.w600)),
+                                      TextSpan(
+                                        text: '탈퇴 ',
+                                        style: TextStyle(
+                                          color: Color(0xFFDA6464), // 빨간색 강조
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                       TextSpan(text: '하시겠습니까?\n회원 '),
-                                      TextSpan(text: '탈퇴 ', style: TextStyle(color: Color(0xFFDA6464), fontWeight: FontWeight.w600)),
+                                      TextSpan(
+                                        text: '탈퇴 ',
+                                        style: TextStyle(
+                                          color: Color(0xFFDA6464),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                       TextSpan(text: '시, 모든 정보는 '),
-                                      TextSpan(text: '즉시 삭제', style: TextStyle(color: Color(0xFFDA6464), fontWeight: FontWeight.w600)),
+                                      TextSpan(
+                                        text: '즉시 삭제',
+                                        style: TextStyle(
+                                          color: Color(0xFFDA6464),
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
                                       TextSpan(text: '되며\n복구할 수 없습니다.'),
                                     ],
                                   ),
                                 ),
                               ),
-                              SizedBox(height: screenWidth * 0.114),
-                              const Divider(height: 1, thickness: 1, color: Color(0xFFE5E5E5)),
+
+                              const SizedBox(height: 48),
+                              const Divider(
+                                height: 1,
+                                thickness: 1,
+                                color: Color(0xFFE5E5E5),
+                              ),
                               Row(
                                 children: [
                                   Expanded(
                                     child: InkWell(
-                                      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(16)),
+                                      borderRadius: const BorderRadius.only(
+                                        bottomLeft: Radius.circular(16),
+                                      ),
+
+                                      /// ------------------------------
+                                      /// 함수명: onTap
+                                      /// 목적: 회원 탈퇴 확인 다이얼로그에서 '아니오' 클릭 시 다이얼로그 닫기
+                                      /// 입력: 없음
+                                      /// 반환: 없음
+                                      /// 예외: 없음
+                                      /// ------------------------------
                                       onTap: () => Navigator.of(context).pop(),
                                       child: Container(
-                                        height: screenWidth * 0.114,
+                                        height: 48,
                                         alignment: Alignment.center,
-                                        child: Text('아니오', style: TextStyle(fontSize: screenWidth * 0.035625, color: Color(0xFF635E5E), fontWeight: FontWeight.w500)),
+                                        child: const Text(
+                                          '아니오',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Color(0xFF635E5E),
+                                            fontWeight: FontWeight.w400,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
-                                  Container(width: 1.5, height: screenWidth * 0.114, color: const Color(0xFFE5E5E5)),
+                                  Container(
+                                    width: 1.5,
+                                    height: 48,
+                                    color: const Color(0xFFE5E5E5),
+                                  ),
                                   Expanded(
                                     child: InkWell(
-                                      borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
-                                      onTap: () async {
-                                        final user = _auth.currentUser;
-                                        if (user == null || !mounted) return;
+                                      borderRadius: const BorderRadius.only(
+                                        bottomRight: Radius.circular(16),
+                                      ),
 
-                                        Navigator.of(context).pop(); // 탈퇴 확인 다이얼로그 닫기
-                                        showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator()));
-
-                                        try {
-                                          await callDeleteUserAllData(user.uid);
-                                          await user.delete();
-                                          await NaverLoginSDK.logout();
-
-                                          if (mounted) {
-                                            Navigator.pop(context); // 로딩 다이얼로그 닫기
-                                            Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                                  (route) => false,
-                                            );
-                                          }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            Navigator.pop(context); // 로딩 다이얼로그 닫기
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('회원 탈퇴 중 오류가 발생했습니다: $e')),
-                                            );
-                                          }
-                                          print('회원 탈퇴 오류: $e');
+                                      /// ------------------------------
+                                      /// 함수명: onTap
+                                      /// 목적: 회원 탈퇴 확인 다이얼로그에서 '네' 클릭 시 다이얼로그 닫고 회원 탈퇴 처리
+                                      /// 입력: 없음
+                                      /// 반환: 없음
+                                      /// 예외: 없음
+                                      /// ------------------------------
+                                      onTap: () async{  // async는 탈퇴 시 타이틀 데이터 삭제를 위해 추가했습니다.
+                                        final user =
+                                            FirebaseAuth.instance.currentUser;
+                                        if (user == null) {
+                                          return;
                                         }
+                                        print('회원 탈퇴: ${user.uid}');
+                                        callDeleteUserAllData(user.uid);
+
+                                        // 로컬 데이터 지우기(타이틀 포함)
+                                        final prefs = await SharedPreferences.getInstance();
+                                        await prefs.clear();
+
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) =>
+                                                    const LoginScreen(),
+                                          ),
+                                        );
                                       },
                                       child: Container(
-                                        height: screenWidth * 0.114,
+                                        height: 48,
                                         alignment: Alignment.center,
-                                        child: Text('네', style: TextStyle(fontSize: screenWidth * 0.035625, color: Color(0xFF2F3BDC), fontWeight: FontWeight.w500)),
+                                        child: const Text(
+                                          '네',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: Color(0xFF2F3BDC),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -482,7 +689,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   );
                 },
-                child: Text('회원 탈퇴', style: TextStyle(color: Color(0xFFDA6464), fontSize: screenWidth * 0.038, fontFamily: 'Golos Text', fontWeight: FontWeight.w700)),
+                child: const Text(
+                  '회원 탈퇴',
+                  style: TextStyle(
+                    color: Color(0xFFDA6464),
+                    fontSize: 16,
+                    fontFamily: 'Golos Text',
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ),
             ),
           ],
@@ -492,17 +707,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-// 🔥 회원 탈퇴 시 모든 사용자 데이터를 삭제하는 Cloud Function 호출
 Future<void> callDeleteUserAllData(String uid) async {
   try {
-    // asia-northeast3 리전을 명시해주는 것이 좋습니다.
-    final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'asia-northeast3').httpsCallable('deleteUserAllData');
-    print("Cloud Function 'deleteUserAllData' 호출, UID: $uid");
+    final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+      'deleteUserAllData',
+    );
+    print("deleteUserAllData called with uid: $uid");
     final response = await callable.call({'uid': uid});
-    print('Function 결과: ${response.data}');
+
+    print('Function result: ${response.data}');
   } on FirebaseFunctionsException catch (e) {
-    print('Functions 오류: ${e.code} - ${e.message}');
+    print('Firebase Functions exception: ${e.code} - ${e.message}');
   } catch (e) {
-    print('일반 오류: $e');
+    print('Generic exception: $e');
   }
 }
