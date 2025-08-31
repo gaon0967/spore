@@ -170,49 +170,49 @@ class _TitleSelectState extends State<TitleSelect> {
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children:
-                    allTitles
-                        .where((t) => widget.unlocked.contains(t.name))
-                        .map((titleInfo) {
-                      final titleName = titleInfo.name;
-                      final isSelected = current.contains(titleName);
-                      return GestureDetector(
-                        onTap: () => handleToggle(titleName),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                            isSelected
-                                ? const Color(0xFFf4ecd2)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color:
-                              isSelected
-                                  ? const Color(0xFF6a6a6a)
-                                  : Colors.grey.shade300,
-                              width: isSelected ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Text(
-                            titleName,
-                            style: TextStyle(
-                              color:
-                              isSelected
-                                  ? const Color(0xFF413b3b)
-                                  : Colors.black87,
-                              fontWeight:
-                              isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      );
-                    })
+                                             children:
+                     allTitles
+                         .where((t) => widget.unlocked.contains(t.name))
+                         .map((titleInfo) {
+                       final titleName = titleInfo.name;
+                       final isSelected = current.contains(titleName);
+                       return GestureDetector(
+                         onTap: () => handleToggle(titleName),
+                         child: Container(
+                           padding: const EdgeInsets.symmetric(
+                             horizontal: 16,
+                             vertical: 8,
+                           ),
+                           decoration: BoxDecoration(
+                             color:
+                             isSelected
+                                 ? const Color(0xFFf4ecd2)
+                                 : Colors.white,
+                             borderRadius: BorderRadius.circular(20),
+                             border: Border.all(
+                               color:
+                               isSelected
+                                   ? const Color(0xFF6a6a6a)
+                                   : Colors.grey.shade300,
+                               width: isSelected ? 1.5 : 1,
+                             ),
+                           ),
+                           child: Text(
+                             titleName,
+                             style: TextStyle(
+                               color:
+                               isSelected
+                                   ? const Color(0xFF413b3b)
+                                   : Colors.black87,
+                               fontWeight:
+                               isSelected
+                                   ? FontWeight.w700
+                                   : FontWeight.normal,
+                             ),
+                           ),
+                         ),
+                       );
+                     })
                         .toList(),
                   ),
                 ),

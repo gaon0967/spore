@@ -245,11 +245,13 @@ Future<List<TitleInfo>> _filterAndSaveTitles(
   final earnedTitles = titlesToCheck.where((t) => t.condition(stats)).toList();
 
   final unlocked = await _getUnlockedTitles();
+  final newlyEarnedTitles = <TitleInfo>[];
   bool updated = false;
 
   for (var t in earnedTitles) {
     if (!unlocked.contains(t.name)) {
       unlocked.add(t.name);
+      newlyEarnedTitles.add(t);
       updated = true;
     }
   }
@@ -259,7 +261,7 @@ Future<List<TitleInfo>> _filterAndSaveTitles(
     if (onUpdate != null) onUpdate();
   }
 
-  return earnedTitles;
+  return newlyEarnedTitles;
 }
 
 /// ------------------------------
@@ -427,7 +429,9 @@ Future<List<TitleInfo>> handleTodoCountTitle(
   )
       .toList();
 
-  return await _filterAndSaveTitles(stats, todoTitles, onUpdate: onUpdate);
+  final result = await _filterAndSaveTitles(stats, todoTitles, onUpdate: onUpdate);
+  
+  return result;
 }
 
 /// ------------------------------

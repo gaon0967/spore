@@ -3,6 +3,25 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Settings/TitleHandler.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart' as titles;
+import '../Calendar/Notification.dart';
+
+// 공통 타이틀 획득 처리 함수 (알림 생성 + Firestore 저장)
+Future<void> _handleTitleAcquisition(List<TitleInfo> newlyEarnedTitles) async {
+  if (newlyEarnedTitles.isEmpty) return;
+  
+  // 새로 획득한 타이틀이 있을 때 알림 생성
+  final notificationService = NotificationService();
+  for (final title in newlyEarnedTitles) {
+    await notificationService.createTitleAcquiredNotification(
+      FirebaseAuth.instance.currentUser?.uid ?? '',
+      title.name,
+    );
+  }
+  
+  // Firestore에 저장
+  final names = newlyEarnedTitles.map((t) => t.name).toList();
+  await addUnlockedTitlesToFirestore(names);
+}
 
 // Firestore에 연결된 사용자 문서 참조 반환
 Future<DocumentReference<Map<String, dynamic>>?> _userDoc() async {
@@ -27,13 +46,10 @@ Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
   if (newTitles.isEmpty) return;
   final docRef = await _userDoc();
   if (docRef == null) return;
-
-  // firestore 저장
   await docRef.set({
     'unlocked_titles': FieldValue.arrayUnion(newTitles),
     'updatedAt': FieldValue.serverTimestamp(),
   }, SetOptions(merge: true));
-
   await syncFirestoreTitlesToLocal();
 }
 
@@ -61,7 +77,6 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
 
   final currentTitles = await getUnlockedTitlesFromFirestore();
   final stats = UserStats(isNewUser: true, psychologyTestCount: 0);
-
   final title = allTitles.firstWhere(
         (t) => t.id == 'spore_family',
     orElse: () => TitleInfo(id: '', name: '', condition: (_) => false),
@@ -70,6 +85,13 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
   if (title.id.isNotEmpty &&
       title.condition(stats) &&
       !currentTitles.contains(title.name)) {
+    // 새로 획득한 타이틀이 있을 때 알림 생성
+    final notificationService = NotificationService();
+    await notificationService.createTitleAcquiredNotification(
+      FirebaseAuth.instance.currentUser?.uid ?? '',
+      title.name,
+    );
+    
     await addUnlockedTitlesToFirestore([title.name]);
   }
 }
@@ -93,17 +115,17 @@ Future<void> PsychologyTestCompletion() async {
   // 조건에 맞는 TitleInfo 객체만 골라서 필터
   final earnedTitles = allTitles.where((t) => titleIds.contains(t.id)).toList();
 
-  final newlyEarnedTitles = <String>[];
+  final newlyEarnedTitles = <TitleInfo>[];
 
   for (final title in earnedTitles) {
     if (!currentTitles.contains(title.name)) {
-      newlyEarnedTitles.add(title.name);
+      newlyEarnedTitles.add(title);
       print('타이틀 획득: ${title.name}');
     }
   }
 
   if (newlyEarnedTitles.isNotEmpty) {
-    await addUnlockedTitlesToFirestore(newlyEarnedTitles);
+    await _handleTitleAcquisition(newlyEarnedTitles);
   }
 }
 
@@ -112,8 +134,11 @@ Future<List<TitleInfo>> handleFriendCount(
     int newCount, { Function? onUpdate, }
     ) async {
   final newlyEarned = await handleFriendCountChange(newCount, onUpdate: onUpdate);
-  final names = newlyEarned.map((t) => t.name).toList();
-  if (names.isNotEmpty) await addUnlockedTitlesToFirestore(names);
+  
+  if (newlyEarned.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarned);
+  }
+  
   return newlyEarned;
 }
 
@@ -126,8 +151,12 @@ Future<List<TitleInfo>> handleTodoCount(
     int newCount, { Function? onUpdate, }
     ) async {
   final newlyEarned = await handleTodoCountTitle(newCount, onUpdate: onUpdate);
-  final names = newlyEarned.map((t) => t.name).toList();
-  if (names.isNotEmpty) await addUnlockedTitlesToFirestore(names);
+  print('🔥 새로 획득한 타이틀: ${newlyEarned.map((t) => t.name).toList()}');
+  
+  if (newlyEarned.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarned);
+  }
+  
   return newlyEarned;
 }
 
@@ -137,9 +166,17 @@ Future<List<TitleInfo>> ConstTodoCount(
     ) async {
   final stats = UserStats(psychologyTestCount: 0, consecutiveTodoSuccess: consecutiveDays);
   final streak = allTitles.where((t) => t.id.startsWith('streak_') && t.condition(stats)).toList();
-  await addTitles(streak, onUpdate: onUpdate);
-  final names = streak.map((t) => t.name).toList();
-  if (names.isNotEmpty) await addUnlockedTitlesToFirestore(names);
+  
+  // 기존에 가지고 있던 타이틀 목록 가져오기
+  final currentTitles = await getUnlockedTitlesFromFirestore();
+  
+  // 새로 획득한 타이틀만 필터링
+  final newlyEarnedTitles = streak.where((t) => !currentTitles.contains(t.name)).toList();
+  
+  if (newlyEarnedTitles.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarnedTitles);
+  }
+  
   return streak;
 }
 // firestore에 저장된 일정으로 연속일수 계산
@@ -173,7 +210,35 @@ Future<void> handleConsecutiveTodo() async {
   }
 
   await ConstTodoCount(count);
+  
+  // 투두리스트 개수 타이틀도 함께 처리
+  await handleTodoCountFromFirestore();
 }
+
+// Firestore에서 투두리스트 개수를 계산하고 타이틀 지급
+Future<void> handleTodoCountFromFirestore() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+  
+  final doc = await FirebaseFirestore.instance.collection('plans').doc(user.uid).get();
+  final data = doc.data();
+  final dateMap = (data?['date'] as Map<String, dynamic>?) ?? {};
+  
+  int totalTodoCount = 0;
+  
+  // 모든 날짜의 투두리스트 개수를 합산 (이름이 같아도 각각 카운트)
+  for (final daily in dateMap.values) {
+    if (daily is Map<String, dynamic>) {
+      final eventsMap = daily as Map<String, dynamic>;
+      totalTodoCount += eventsMap.length;
+    }
+  }
+  
+  if (totalTodoCount > 0) {
+    await handleTodoCount(totalTodoCount);
+  }
+}
+
 // Firestore에 -> SharedPreferences 동기화
 // 타이틀 지급을 위함
 Future<void> syncFirestoreTitlesToLocal() async {
@@ -191,8 +256,11 @@ Future<List<TitleInfo>> handleFavoriteFriendTitleFirestore(
     int favoriteCount, { Function? onUpdate, }
     ) async {
   final newlyEarned = await handleFavoriteFriendTitle(favoriteCount, onUpdate: onUpdate);
-  final names = newlyEarned.map((t) => t.name).toList();
-  if (names.isNotEmpty) await addUnlockedTitlesToFirestore(names);
+  
+  if (newlyEarned.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarned);
+  }
+  
   return newlyEarned;
 }
 // 시간표 타이틀 추가
@@ -200,8 +268,11 @@ Future<List<TitleInfo>> handleScheduleCountFirestore(
     int scheduleCount, { Function? onUpdate, }
     ) async {
   final newlyEarned = await handleScheduleCountTitle(scheduleCount, onUpdate: onUpdate);
-  final names = newlyEarned.map((t) => t.name).toList();
-  if (names.isNotEmpty) await addUnlockedTitlesToFirestore(names);
+  
+  if (newlyEarned.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarned);
+  }
+  
   return newlyEarned;
 }
 
@@ -221,11 +292,10 @@ Future<List<titles.TitleInfo>> handleProfileEditTitles({
     onUpdate: onUpdate,
   );
 
-  final names = earned.map((e) => e.name).toList();
-  if (names.isNotEmpty) {
-    await addUnlockedTitlesToFirestore(names);
-    await syncFirestoreTitlesToLocal();
+  if (earned.isNotEmpty) {
+    await _handleTitleAcquisition(earned);
   }
+  
   return earned;
 }
 
