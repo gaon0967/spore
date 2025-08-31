@@ -74,6 +74,16 @@ class NotificationService {
       print('알림 생성 오류: receiverId가 비어있습니다.');
       return;
     }
+
+    // 🔑 알림 꺼져 있으면 아예 생성 안 함
+    final receiverDoc =
+    await _firestore.collection('users').doc(receiverId).get();
+    final enabled = receiverDoc.data()?['notificationsEnabled'] ?? true;
+    if (!enabled) {
+      print("알림 꺼짐 상태 → 알림 생성 안 함");
+      return;
+    }
+
     try {
       await _firestore
           .collection('users')
@@ -95,11 +105,11 @@ class NotificationService {
   // 친구 신청 알림 생성 함수 (에러의 원인이 된 함수)
   Future<void> createFriendRequestNotification(String receiverId, String senderName) async {
     await createNotification(
-      receiverId: receiverId,
-      title: '친구 알림',
-      content: '$senderName 님이 친구신청을 보냈습니다.',
-      senderId: currentUserId,
-      type: 'friend_request'
+        receiverId: receiverId,
+        title: '친구 알림',
+        content: '$senderName 님이 친구신청을 보냈습니다.',
+        senderId: currentUserId,
+        type: 'friend_request'
     );
   }
   // 친구 신청 수락 처리
@@ -138,7 +148,7 @@ class NotificationService {
 
       // 상대방에게 '친구가 되었다'는 알림 보내기
       final currentUserDoc =
-          await _firestore.collection('users').doc(currentUserId).get();
+      await _firestore.collection('users').doc(currentUserId).get();
       final myName = currentUserDoc.data()?['nickName'] ?? 'Unknown';
       await createFriendAcceptedNotification(senderId, myName);
     } catch (e) {
@@ -213,6 +223,22 @@ class NotificationService {
     }
     await batch.commit();
   }
+
+  // 유저의 알림 허용 여부 확인
+  Future<bool> isNotificationEnabled() async {
+    if (currentUserId == null) return false;
+    final userDoc = await _firestore.collection('users').doc(currentUserId).get();
+    return userDoc.data()?['notificationsEnabled'] ?? true; // 기본값 true
+  }
+
+  // 알림 설정 업데이트
+  Future<void> setNotificationEnabled(bool enabled) async {
+    if (currentUserId == null) return;
+    await _firestore.collection('users').doc(currentUserId).update({
+      'notificationsEnabled': enabled,
+    });
+  }
+
 }
 // -----------------------------------------
 
@@ -262,11 +288,11 @@ List<TextSpan> _buildStyledTextSpans(AppNotification noti) {
 
 
 Widget _buildStyledNotiBox(
-  AppNotification noti,
-  BuildContext context,
-  Function(DateTime) onGoToCalendar,
-  void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
-) {
+    AppNotification noti,
+    BuildContext context,
+    Function(DateTime) onGoToCalendar,
+    void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
+    ) {
   Color bgColor = Color(0xF4F4F4F4);
   String? label;
   String? badgeText;
@@ -323,19 +349,19 @@ Widget _buildStyledNotiBox(
             if (noti.type == 'friend_request') {
               // '친구 신청' 알림 -> 친구 신청 목록으로 이동 (기존 동작)
               onNavigateToFriendsCallback(
-                tabIndex: 1, 
+                tabIndex: 1,
                 expandRequests: true,
               );
-            } else { 
+            } else {
               // '친구가 되었습니다' 및 기타 친구 알림 -> 친구 목록으로 이동
               onNavigateToFriendsCallback(
                 tabIndex: 0, // 친구 목록 탭
-                expandRequests: false, 
+                expandRequests: false,
               );
             }
             Navigator.of(context).pop();
           }
-          
+
           // TODO: 다른 '바로 가기' 액션이 있다면 여기에 추가
         },
         child: Row(
@@ -466,9 +492,9 @@ class _NotificationPageState extends State<NotificationPage> {
     if (_currentUser == null) return;
 
     final (dismissedIds, scheduledEvents, otherNotifications) = await (
-      _fetchDismissedNotificationIds(),
-      _fetchScheduledEvents(),
-      _fetchOtherNotifications(),
+    _fetchDismissedNotificationIds(),
+    _fetchScheduledEvents(),
+    _fetchOtherNotifications(),
     ).wait;
 
     await _cleanupDismissedIds(dismissedIds, scheduledEvents);
@@ -518,7 +544,7 @@ class _NotificationPageState extends State<NotificationPage> {
     if (_currentUser == null) return [];
     try {
       final userDoc =
-          await _firestore.collection('users').doc(_currentUser!.uid).get();
+      await _firestore.collection('users').doc(_currentUser!.uid).get();
       if (userDoc.exists &&
           userDoc.data()!.containsKey('dismissedNotificationIds')) {
         return List<String>.from(userDoc.data()!['dismissedNotificationIds']);
@@ -530,9 +556,9 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> _cleanupDismissedIds(
-    List<String> dismissedIds,
-    List<ScheduledEvent> allEvents,
-  ) async {
+      List<String> dismissedIds,
+      List<ScheduledEvent> allEvents,
+      ) async {
     if (_currentUser == null || dismissedIds.isEmpty) return;
 
     final eventsMap = {for (var e in allEvents) e.eventId: e};
@@ -581,9 +607,9 @@ class _NotificationPageState extends State<NotificationPage> {
           dateMap.forEach((dateString, dailyEventsMap) {
             final eventDate = DateTime.parse(dateString);
             (dailyEventsMap as Map<String, dynamic>).forEach((
-              eventId,
-              eventData,
-            ) {
+                eventId,
+                eventData,
+                ) {
               final title = eventData['title'] as String?;
               final isDone = eventData['isDone'] as bool? ?? false;
 
@@ -608,9 +634,9 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   List<AppNotification> _generateDDayNotifications(
-    List<ScheduledEvent> events,
-    List<String> dismissedIds,
-  ) {
+      List<ScheduledEvent> events,
+      List<String> dismissedIds,
+      ) {
     final List<AppNotification> ddayNotifications = [];
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -656,7 +682,7 @@ class _NotificationPageState extends State<NotificationPage> {
         ddayNotifications.add(notification);
       }
     }
-    
+
     ddayNotifications.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return ddayNotifications;
   }
@@ -674,8 +700,8 @@ class _NotificationPageState extends State<NotificationPage> {
   }
 
   Future<void> _dismissAllNotificationsInFirestore(
-    List<String> notificationIds,
-  ) async {
+      List<String> notificationIds,
+      ) async {
     if (_currentUser == null || notificationIds.isEmpty) return;
     final userDocRef = _firestore.collection('users').doc(_currentUser!.uid);
     try {
@@ -815,7 +841,7 @@ class _NotificationPageState extends State<NotificationPage> {
     final AppNotification removedItem = notiList.removeAt(index);
     _listKey.currentState?.removeItem(
       index,
-      (context, animation) => _buildRemovingItem(removedItem, animation),
+          (context, animation) => _buildRemovingItem(removedItem, animation),
       duration: const Duration(milliseconds: 180),
     );
 
@@ -884,14 +910,14 @@ class _NotificationPageState extends State<NotificationPage> {
       body: notiList.isEmpty
           ? Center(child: Text('알림이 없습니다.'))
           : AnimatedList(
-              key: _listKey,
-              initialItemCount: notiList.length,
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              itemBuilder: (context, index, animation) {
-                final noti = notiList[index];
-                return _buildAnimatedItem(noti, index, animation);
-              },
-            ),
+        key: _listKey,
+        initialItemCount: notiList.length,
+        padding: const EdgeInsets.symmetric(vertical: 8.0),
+        itemBuilder: (context, index, animation) {
+          final noti = notiList[index];
+          return _buildAnimatedItem(noti, index, animation);
+        },
+      ),
     );
   }
 
@@ -919,9 +945,9 @@ class _NotificationPageState extends State<NotificationPage> {
             child: Stack(
               children: [
                 _buildStyledNotiBox(
-                  noti, 
-                  context, 
-                  (date) => Navigator.of(context).pop(date),
+                  noti,
+                  context,
+                      (date) => Navigator.of(context).pop(date),
                   widget.onNavigateToFriends, // <- 이 부분을 추가!
                 ),
                 Positioned.fill(
@@ -981,9 +1007,9 @@ class _NotificationPageState extends State<NotificationPage> {
                 child: _buildStyledNotiBox(
                   noti,
                   context,
-                  (_) {},
+                      (_) {},
                   // 삭제 애니메이션 중에는 동작할 필요가 없으므로, 비어있는 함수를 전달합니다.
-                  ({int tabIndex = 0, bool expandRequests = false}) {}, 
+                      ({int tabIndex = 0, bool expandRequests = false}) {},
                 ),
               ),
             ),

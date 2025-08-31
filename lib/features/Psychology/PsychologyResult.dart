@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../auth/naverAndFirebaseAuth.dart';
 import 'package:new_project_1/features/Home/main_screen.dart';
+import 'package:new_project_1/features/Settings/firebase_title.dart';
+import '../Settings/TitleHandler.dart';
+import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
 // --- 데이터 모델 및 저장소 ---
 class Character {
@@ -97,7 +100,7 @@ class Character {
       color: Color(0xFF7887AD),
     ),
   };
-  
+
   // ID로 캐릭터 정보를 찾아주는 함수
   static Character getCharacterById(int id) {
     return _characterData[id] ?? _characterData[6]!;
@@ -179,6 +182,7 @@ class PsychologyResult extends StatelessWidget {
 
 class _SpeechBubble extends StatelessWidget {
   final String text;
+
   const _SpeechBubble({required this.text});
 
   @override
@@ -205,13 +209,11 @@ class _SpeechBubble extends StatelessWidget {
   }
 }
 
-
-
-
-
 // 하단 정보 컨테이너 위젯 // 하단 정보 컨테이너 위젯 (레이아웃이 수정된 버전)
 class _InfoContainer extends StatelessWidget {
   final Character character;
+
+
   const _InfoContainer({super.key, required this.character});
 
   @override
@@ -266,8 +268,13 @@ class _InfoContainer extends StatelessWidget {
                 onPressed: () async {
                   final authService = AuthService();
                   try {
-                    final userData =
-                        await authService.signInWithNaver(character.id);
+                    final userData = await authService.signInWithNaver(
+                      character.id,
+                    );
+                    // 심리테스트 타이틀 지급(firestore)
+                    await TitlesRemote.PsychologyTestCompletion();
+                    // 로컬 동기화
+                    await TitlesRemote.syncFirestoreTitlesToLocal();
                     if (!context.mounted) return;
                     Navigator.pushReplacement(
                       context,
@@ -327,16 +334,17 @@ class _InfoContainer extends StatelessWidget {
                   title: 'Keyword',
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: character.keywords
+                    children:
+                    character.keywords
                         .map(
                           (keyword) => Text(
-                            keyword,
-                            style: const TextStyle(
-                              fontSize: 15,
-                              height: 1.6,
-                            ),
-                          ),
-                        )
+                        keyword,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          height: 1.6,
+                        ),
+                      ),
+                    )
                         .toList(),
                   ),
                 ),
