@@ -293,7 +293,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       _loadCharactersFromFirestore().then((_) {
         _loadSelectedIdAndApply();
       });
+
+      loadSelectedTitles();
     }
+
     _loadSavedPsychologyResult();
     _loadUnlockedTitles();
   }
@@ -632,11 +635,61 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
+  // 선택한 타이틀을 Firestore에 저장
+  Future<void> saveSelectedTitles(List<String> picked) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .update({
+      'selectedTitles': picked,
+    });
+
+    print("✅ Firestore에 선택된 타이틀 저장 완료: $picked");
+  }
+
+  // 선택한 타이틀 로드
+  Future<void> loadSelectedTitles() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+    if (data != null && data.containsKey('selectedTitles')) {
+      setState(() {
+        selectedTitles = List<String>.from(data['selectedTitles']);
+      });
+      print("✅ Firestore에서 선택된 타이틀 불러오기 완료: $selectedTitles");
+    } else {
+      print("⚠️ Firestore에 선택된 타이틀 없음, 기본값 사용");
+    }
+  }
+
+
+
   /// 타이틀 선택 (2개만, TitleSelect 모달에서 선택 완료 시 설정)
-  void handleTitleSelect(List<String> picked) {
+  void handleTitleSelect (List<String> picked) async {
     setState(() {
       selectedTitles = picked;
     });
+
+    // 🔥 선택한 타이틀을 Firestore에 저장
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .update({
+        'selectedTitles': picked, // 🔥 선택된 타이틀 DB에 저장
+      });
+      print("✅ 선택된 타이틀 저장 완료: $picked");
+    }
   }
 
   @override
@@ -802,6 +855,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                               setState(() {
                                 selectedTitles = newTitles;
                               });
+                              // 🔥 Firestore에 선택된 타이틀 저장
+                              saveSelectedTitles(newTitles);
                             },
                           ),
                     );
