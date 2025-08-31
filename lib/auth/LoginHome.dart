@@ -5,7 +5,6 @@ import '../features/Psychology/PsychologyStart.dart'; //심리테스트 시작�
 import 'naverAndFirebaseAuth.dart';
 import 'package:new_project_1/features/Home/main_screen.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart';
-import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
 /// 클래스 : LoginScreen
 /// 목적 : 로그인 화면의 전체 UI를 구성하는 메인 위젯임.
@@ -258,11 +257,9 @@ class _BottomSection extends StatelessWidget {
               if (!context.mounted) return;
 
               if (userData["characterId"] == -1) {
-                // 회원가입 타이틀 지급 함수(firestore)
-                await TitlesRemote.handleNewUserTitle();
-                // 로컬 동기화
-                await TitlesRemote.syncFirestoreTitlesToLocal();
-
+                // 회원가입 타이틀 지급 함수
+                await handleNewUserTitle();
+                if (!context.mounted) return;
                 await Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(

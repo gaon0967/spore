@@ -10,7 +10,6 @@ import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
 import '../Settings/TitleHandler.dart';
-import '../Settings/firebase_title.dart' as TitlesRemote;
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
 │   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
@@ -44,7 +43,7 @@ class HomeCalendar extends StatefulWidget {
 // =========== 상태를 관리하고 화면을 다시 그리는 _HomeCalendarState 클래스 ===========
 class _HomeCalendarState extends State<HomeCalendar> {
   final GlobalKey<AnimatedListState> _listKey =
-  GlobalKey<AnimatedListState>(); //AnimatedList 위젯을 제어하기 위한 키
+      GlobalKey<AnimatedListState>(); //AnimatedList 위젯을 제어하기 위한 키
   DateTime _focusedDay = getToday(); //현재 화면에 보이는 날짜
   DateTime _selectedDay = getToday(); // 사용자가 직접 선택한 날짜
   bool _isSettingsPressed = false; // 설정 아이콘이 눌렸는지 여부 나타냄
@@ -59,7 +58,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   final User? _currentUser = FirebaseAuth.instance.currentUser;
 
   final Map<DateTime, List<Event>> _events =
-  {}; //날짜(DateTime)를 키로, 해당 날짜에 있는 일정(Event) 리스트를 값으로 갖는 Map
+      {}; //날짜(DateTime)를 키로, 해당 날짜에 있는 일정(Event) 리스트를 값으로 갖는 Map
 
   //============initState() :  캘린더 화면이 처음 열릴 때, Firestore 데이터베이스에 실시간 연결을 설정하고 자동 업데이트를 준비하는 역할 =================
   @override
@@ -71,77 +70,77 @@ class _HomeCalendarState extends State<HomeCalendar> {
           .doc(_currentUser!.uid)
           .snapshots()
           .listen((snapshot) {
-        if (!mounted) return;
+            if (!mounted) return;
 
-        final Map<DateTime, List<Event>> loadedEvents = {}; // 데이터 변환 (파싱)
+            final Map<DateTime, List<Event>> loadedEvents = {}; // 데이터 변환 (파싱)
 
-        if (snapshot.exists) {
-          // 서버에 데이터가 있으면
-          final data = snapshot.data();
-          if (data != null && data['date'] != null) {
-            final dateMap = data['date'] as Map<String, dynamic>;
+            if (snapshot.exists) {
+              // 서버에 데이터가 있으면
+              final data = snapshot.data();
+              if (data != null && data['date'] != null) {
+                final dateMap = data['date'] as Map<String, dynamic>;
 
-            dateMap.forEach((dateString, dailyEventsMap) {
-              //date 정보 덩어리를 날짜별로 쪼갠다
-              final year = int.parse(dateString.substring(0, 4));
-              final month = int.parse(dateString.substring(4, 6));
-              final day = int.parse(dateString.substring(6, 8));
-              final dateTime = DateTime.utc(year, month, day);
+                dateMap.forEach((dateString, dailyEventsMap) {
+                  //date 정보 덩어리를 날짜별로 쪼갠다
+                  final year = int.parse(dateString.substring(0, 4));
+                  final month = int.parse(dateString.substring(4, 6));
+                  final day = int.parse(dateString.substring(6, 8));
+                  final dateTime = DateTime.utc(year, month, day);
 
-              final events =
-              (dailyEventsMap as Map<String, dynamic>).values.map((
-                  eventData,
-                  ) {
-                // 각 날짜에 있는 일정들을 Event 객체로 변환
-                final startTimeParts =
-                (eventData['startTime'] as String).split(':');
-                final endTimeParts = (eventData['endTime'] as String)
-                    .split(':');
-                return Event(
-                  id: eventData['id'],
-                  title: eventData['title'],
-                  color: Color(eventData['color']),
-                  isCompleted: eventData['isDone'],
-                  startTime: TimeOfDay(
-                    hour: int.parse(startTimeParts[0]),
-                    minute: int.parse(startTimeParts[1]),
-                  ),
-                  endTime: TimeOfDay(
-                    hour: int.parse(endTimeParts[0]),
-                    minute: int.parse(endTimeParts[1]),
-                  ),
-                );
-              }).toList();
+                  final events =
+                      (dailyEventsMap as Map<String, dynamic>).values.map((
+                        eventData,
+                      ) {
+                        // 각 날짜에 있는 일정들을 Event 객체로 변환
+                        final startTimeParts =
+                            (eventData['startTime'] as String).split(':');
+                        final endTimeParts = (eventData['endTime'] as String)
+                            .split(':');
+                        return Event(
+                          id: eventData['id'],
+                          title: eventData['title'],
+                          color: Color(eventData['color']),
+                          isCompleted: eventData['isDone'],
+                          startTime: TimeOfDay(
+                            hour: int.parse(startTimeParts[0]),
+                            minute: int.parse(startTimeParts[1]),
+                          ),
+                          endTime: TimeOfDay(
+                            hour: int.parse(endTimeParts[0]),
+                            minute: int.parse(endTimeParts[1]),
+                          ),
+                        );
+                      }).toList();
 
-              events.sort((a, b) {
-                // 1순위: 시작 시간 (오름차순)
-                final aStart = a.startTime.hour * 60 + a.startTime.minute;
-                final bStart = b.startTime.hour * 60 + b.startTime.minute;
-                int startCompare = aStart.compareTo(bStart);
-                if (startCompare != 0) {
-                  return startCompare;
-                }
+                  events.sort((a, b) {
+                  // 1순위: 시작 시간 (오름차순)
+                  final aStart = a.startTime.hour * 60 + a.startTime.minute;
+                  final bStart = b.startTime.hour * 60 + b.startTime.minute;
+                  int startCompare = aStart.compareTo(bStart);
+                  if (startCompare != 0) {
+                      return startCompare;
+                  }
 
-                // 2순위: 종료 시간 (오름차순)
-                final aEnd = a.endTime.hour * 60 + a.endTime.minute;
-                final bEnd = b.endTime.hour * 60 + b.endTime.minute;
-                return aEnd.compareTo(bEnd);
-              });
-              loadedEvents[dateTime] =
-                  events; //깔끔하게 변환된 Event 객체들을 날짜별로 묶어 loadedEvents 라는 최종 결과물에 차곡차곡 정리
+                  // 2순위: 종료 시간 (오름차순)
+                  final aEnd = a.endTime.hour * 60 + a.endTime.minute;
+                  final bEnd = b.endTime.hour * 60 + b.endTime.minute;
+                  return aEnd.compareTo(bEnd);
+                });
+                  loadedEvents[dateTime] =
+                      events; //깔끔하게 변환된 Event 객체들을 날짜별로 묶어 loadedEvents 라는 최종 결과물에 차곡차곡 정리
+                });
+              }
+            }
+
+            setState(() {
+              // 화면 갱신 (UI 업데이트)
+              _events.clear();
+              _events.addAll(loadedEvents);
+              if (_isInitialLoad) {
+                _isInitialLoad = false;
+              }
             });
-          }
-        }
-
-        setState(() {
-          // 화면 갱신 (UI 업데이트)
-          _events.clear();
-          _events.addAll(loadedEvents);
-          if (_isInitialLoad) {
-            _isInitialLoad = false;
-          }
-        });
-      });
+          });
     }
   }
 
@@ -153,7 +152,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   }
 
   //================= 새로운 일정을 데이터베이스에 추가하거나 기존 일정을 수정(업데이트)하는 역할 ==========================================
-  void _addOrUpdateEvent(Event event, {bool isUpdating = false}) async {
+  void _addOrUpdateEvent(Event event, {bool isUpdating = false}) {
     if (_currentUser == null) return;
 
     // 새 이벤트인 경우 고유 ID 생성
@@ -170,9 +169,9 @@ class _HomeCalendarState extends State<HomeCalendar> {
       'color': event.color.value,
       'isDone': event.isCompleted,
       'startTime':
-      '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
+          '${event.startTime.hour.toString().padLeft(2, '0')}:${event.startTime.minute.toString().padLeft(2, '0')}',
       'endTime':
-      '${event.endTime.hour.toString().padLeft(2, '0')}:${event.endTime.minute.toString().padLeft(2, '0')}',
+          '${event.endTime.hour.toString().padLeft(2, '0')}:${event.endTime.minute.toString().padLeft(2, '0')}',
     };
 
     // 점(.) 표기법을 사용하여 특정 날짜의 맵에 일정을 추가하거나 덮어쓰기
@@ -259,10 +258,9 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
       // 투두리스트 개수 타이틀 지급
       final currentTodoCount = _getEventsForDay(day).length;
-      await TitlesRemote.handleTodoCount(
-        currentTodoCount,
-        onUpdate: () => setState(() {}),  // UI 갱신
-      );
+      handleTodoCountTitle(currentTodoCount, onUpdate: () {
+        setState(() {}); // UI 갱신
+      });
 
       _listKey.currentState?.insertItem(
         insertIndex,
@@ -272,7 +270,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
   }
 
   // 삭제 버튼 로직
-  void _removeItem(int index) async { // Firestore 연동을 위해 async로 변경(await 사용 위함)
+  void _removeItem(int index) {
     final day = DateTime.utc(
       _selectedDay.year,
       _selectedDay.month,
@@ -296,10 +294,10 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
     // 투두리스트 개수 타이틀 지급
     final currentTodoCount = _getEventsForDay(day).length;
-    await TitlesRemote.handleTodoCount(
-      currentTodoCount,
-      onUpdate: () => setState(() {}),  // UI 갱신
-    );
+    handleTodoCountTitle(currentTodoCount, onUpdate: () {
+      setState(() {}); // UI 갱신
+    });
+
   }
 
   Widget _buildEventContent(Event event, {int? index}) {
@@ -325,13 +323,13 @@ class _HomeCalendarState extends State<HomeCalendar> {
               style: TextStyle(
                 fontSize: screenWidth * 0.032,
                 color:
-                event.isCompleted
-                    ? const Color(0xFF626262)
-                    : const Color(0xFF4C4747),
+                    event.isCompleted
+                        ? const Color(0xFF626262)
+                        : const Color(0xFF4C4747),
                 decoration:
-                event.isCompleted
-                    ? TextDecoration.lineThrough
-                    : TextDecoration.none,
+                    event.isCompleted
+                        ? TextDecoration.lineThrough
+                        : TextDecoration.none,
               ),
             ),
             subtitle: Text(
@@ -342,37 +340,35 @@ class _HomeCalendarState extends State<HomeCalendar> {
               ),
             ),
             trailing: GestureDetector(
-              onTap: () async { // Firestore 연동을 위해 async로 변경(await 사용 위함)
+              onTap: () {
                 setState(() {
                   event.isCompleted = !event.isCompleted;
                 });
                 // isDone 상태 변경 시 Firestore에도 업데이트
                 _addOrUpdateEvent(event, isUpdating: true);
 
-                // 저장 직후 읽기 경합을 줄이기 위해 아주 짧게 지연 후 Firestore 기반 연속일 계산
-                await Future.delayed(const Duration(milliseconds: 150));
                 // 투두리스트 연속 성공 일수 기반 타이틀 갱신
-                await TitlesRemote.handleConsecutiveTodo();
-
-                setState(() {});
+                handleConsecutiveTodoSuccessTitle(_events, _selectedDay, onUpdate: () {
+                  setState(() {});
+                });
               },
               child:
-              event.isCompleted
-                  ? Text(
-                '✓',
-                style: TextStyle(
-                  fontSize: screenWidth * 0.04,
-                  color: const Color(0xFF6B6060),
-                ),
-              )
-                  : Container(
-                width: screenWidth * 0.035,
-                height: screenWidth * 0.035,
-                decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFF6B6060)),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
+                  event.isCompleted
+                      ? Text(
+                        '✓',
+                        style: TextStyle(
+                          fontSize: screenWidth * 0.04,
+                          color: const Color(0xFF6B6060),
+                        ),
+                      )
+                      : Container(
+                        width: screenWidth * 0.035,
+                        height: screenWidth * 0.035,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFF6B6060)),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
             ),
           ),
         ),
@@ -401,8 +397,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
   }
 
   Route _createSlidingRoute(
-      void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
-      ) {
+    void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
+  ) {
     return PageRouteBuilder(
       pageBuilder: (context, animation, secondaryAnimation) => NotificationPage(
         // 전달받은 콜백 함수를 NotificationPage에 넘겨줍니다.
@@ -437,7 +433,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                 // Column을 Row로 변경
                 child: Row(
                   mainAxisAlignment:
-                  MainAxisAlignment.start, // 정렬을 start(왼쪽)로 변경
+                      MainAxisAlignment.start, // 정렬을 start(왼쪽)로 변경
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     SizedBox(width: screenWidth * 0.085), // 왼쪽 여백 추가
@@ -468,10 +464,10 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
   // AnimatedList의 아이템을 만드는 헬퍼 함수
   Widget _buildAnimatedItem(
-      Event event,
-      int index,
-      Animation<double> animation,
-      ) {
+    Event event,
+    int index,
+    Animation<double> animation,
+  ) {
     final screenWidth = MediaQuery.of(context).size.width;
     return SizeTransition(
       sizeFactor: animation,
@@ -524,9 +520,9 @@ class _HomeCalendarState extends State<HomeCalendar> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       color:
-                      _pressedIndex == index
-                          ? Colors.black.withAlpha(32)
-                          : Colors.transparent,
+                          _pressedIndex == index
+                              ? Colors.black.withAlpha(32)
+                              : Colors.transparent,
                     ),
                   ),
                 ),
@@ -545,17 +541,17 @@ class _HomeCalendarState extends State<HomeCalendar> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children:
-      eventsToShow.map((event) {
-        return Container(
-          width: screenWidth * 0.0105, // 점의 너비
-          height: screenWidth * 0.0105, // 점의 높이
-          margin: const EdgeInsets.symmetric(horizontal: 1.0), // 점 사이의 간격
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: event.color, // 각 일정의 색상으로 점 색상 지정
-          ),
-        );
-      }).toList(),
+          eventsToShow.map((event) {
+            return Container(
+              width: screenWidth * 0.0105, // 점의 너비
+              height: screenWidth * 0.0105, // 점의 높이
+              margin: const EdgeInsets.symmetric(horizontal: 1.0), // 점 사이의 간격
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: event.color, // 각 일정의 색상으로 점 색상 지정
+              ),
+            );
+          }).toList(),
     );
   }
 
@@ -571,7 +567,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
     final selectedDate = _selectedDay;
     final selectedDay = selectedDate.day;
     final selectedEngWeekDay =
-    DateFormat('EEE', 'en').format(selectedDate).toUpperCase();
+        DateFormat('EEE', 'en').format(selectedDate).toUpperCase();
 
     final eventsForSelectedDay = _getEventsForDay(_selectedDay);
     eventsForSelectedDay.sort((a, b) {
@@ -671,19 +667,19 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                 onTapDown: (details) {
                                   setState(() {
                                     _isNotificationsPressed =
-                                    true; // 누르기 시작하면 true
+                                        true; // 누르기 시작하면 true
                                   });
                                 },
                                 onTapUp: (details) {
                                   setState(() {
                                     _isNotificationsPressed =
-                                    false; // 손가락을 떼면 false
+                                        false; // 손가락을 떼면 false
                                   });
                                 },
                                 onTapCancel: () {
                                   setState(() {
                                     _isNotificationsPressed =
-                                    false; // 터치가 취소되어도 false
+                                        false; // 터치가 취소되어도 false
                                   });
                                 },
                                 // --------------------------
@@ -721,7 +717,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                                 onTapCancel: () {
                                   setState(() {
                                     _isSettingsPressed =
-                                    false; // 터치가 취소되어도 false
+                                        false; // 터치가 취소되어도 false
                                   });
                                 },
                                 // --------------------------
@@ -1028,30 +1024,30 @@ class _HomeCalendarState extends State<HomeCalendar> {
                         SizedBox(height: screenWidth * 0.025),
                         Expanded(
                           child:
-                          (_isInitialLoad)
-                              ? const Center(
-                            child: CupertinoActivityIndicator(),
-                          ) // 초기 로딩 중일 때 로딩 아이콘 표시
-                              : (_isChangingDate)
-                              ? Container() // 날짜 변경 중일 때 빈 화면 표시
-                              : AnimatedList(
-                            key: _listKey,
-                            padding: EdgeInsets.zero,
-                            initialItemCount:
-                            eventsForSelectedDay.length,
-                            itemBuilder: (context, index, animation) {
-                              if (index >=
-                                  eventsForSelectedDay.length) {
-                                return const SizedBox.shrink();
-                              }
-                              final event = eventsForSelectedDay[index];
-                              return _buildAnimatedItem(
-                                event,
-                                index,
-                                animation,
-                              );
-                            },
-                          ),
+                              (_isInitialLoad)
+                                  ? const Center(
+                                    child: CupertinoActivityIndicator(),
+                                  ) // 초기 로딩 중일 때 로딩 아이콘 표시
+                                  : (_isChangingDate)
+                                  ? Container() // 날짜 변경 중일 때 빈 화면 표시
+                                  : AnimatedList(
+                                    key: _listKey,
+                                    padding: EdgeInsets.zero,
+                                    initialItemCount:
+                                        eventsForSelectedDay.length,
+                                    itemBuilder: (context, index, animation) {
+                                      if (index >=
+                                          eventsForSelectedDay.length) {
+                                        return const SizedBox.shrink();
+                                      }
+                                      final event = eventsForSelectedDay[index];
+                                      return _buildAnimatedItem(
+                                        event,
+                                        index,
+                                        animation,
+                                      );
+                                    },
+                                  ),
                         ),
                       ],
                     ),
@@ -1071,7 +1067,7 @@ class AddEventDialog extends StatefulWidget {
   final DateTime selectedDate;
   final Event? eventToEdit;
   const AddEventDialog({Key? key, required this.selectedDate, this.eventToEdit})
-      : super(key: key);
+    : super(key: key);
 
   @override
   _AddEventDialogState createState() => _AddEventDialogState();
@@ -1133,9 +1129,9 @@ class _AddEventDialogState extends State<AddEventDialog> {
   }
 
   Future<void> _pickTime(
-      BuildContext context, {
-        required bool isStartTime,
-      }) async {
+    BuildContext context, {
+    required bool isStartTime,
+  }) async {
     final initialTime = isStartTime ? _startTime : _endTime;
     final now = DateTime.now();
     DateTime tempPickedTime = DateTime(
@@ -1291,7 +1287,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
               _buildTimeRow(
                 '시작 시간',
                 _startTime,
-                    () => _pickTime(context, isStartTime: true),
+                () => _pickTime(context, isStartTime: true),
                 timeLabelFontSize,
                 timeValueFontSize,
                 _isStartTimeSelected,
@@ -1300,7 +1296,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
               _buildTimeRow(
                 '종료 시간',
                 _endTime,
-                    () => _pickTime(context, isStartTime: false),
+                () => _pickTime(context, isStartTime: false),
                 timeLabelFontSize,
                 timeValueFontSize,
                 _isEndTimeSelected,
@@ -1314,33 +1310,33 @@ class _AddEventDialogState extends State<AddEventDialog> {
                   mainAxisSpacing: screenWidth * 0.03, // 색상 원 간격
                   crossAxisSpacing: screenWidth * 0.03, // 색상 원 간격
                   physics:
-                  const NeverScrollableScrollPhysics(), // GridView가 부모의 스크롤을 방해하지 않도록
+                      const NeverScrollableScrollPhysics(), // GridView가 부모의 스크롤을 방해하지 않도록
                   children:
-                  _colorOptions.map((color) {
-                    return GestureDetector(
-                      onTap: () => setState(() => _selectedColor = color),
-                      child: Container(
-                        width: colorOptionSize, // 반응형 크기 적용
-                        height: colorOptionSize, // 반응형 크기 적용
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
-                          border:
-                          _selectedColor == color
-                              ? Border.all(
-                            color: Color.fromARGB(
-                              150,
-                              109,
-                              101,
-                              101,
-                            ), // 알파 값 150으로 변경
-                            width: screenWidth * 0.005,
-                          )
-                              : null, // 테두리 두께도 반응형
-                        ),
-                      ),
-                    );
-                  }).toList(),
+                      _colorOptions.map((color) {
+                        return GestureDetector(
+                          onTap: () => setState(() => _selectedColor = color),
+                          child: Container(
+                            width: colorOptionSize, // 반응형 크기 적용
+                            height: colorOptionSize, // 반응형 크기 적용
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border:
+                                  _selectedColor == color
+                                      ? Border.all(
+                                        color: Color.fromARGB(
+                                          150,
+                                          109,
+                                          101,
+                                          101,
+                                        ), // 알파 값 150으로 변경
+                                        width: screenWidth * 0.005,
+                                      )
+                                      : null, // 테두리 두께도 반응형
+                            ),
+                          ),
+                        );
+                      }).toList(),
                 ),
               ),
               SizedBox(height: spacingHeight * 3.2),
@@ -1375,13 +1371,13 @@ class _AddEventDialogState extends State<AddEventDialog> {
   }
 
   Widget _buildTimeRow(
-      String label,
-      TimeOfDay? time,
-      VoidCallback onPressed,
-      double labelSize,
-      double valueSize,
-      bool isSelected, // <--- 시간이 선택되었는지 여부를 받는 파라미터 추가
-      ) {
+    String label,
+    TimeOfDay? time,
+    VoidCallback onPressed,
+    double labelSize,
+    double valueSize,
+    bool isSelected, // <--- 시간이 선택되었는지 여부를 받는 파라미터 추가
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0),
       child: Row(
