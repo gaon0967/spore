@@ -27,13 +27,10 @@ Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
   if (newTitles.isEmpty) return;
   final docRef = await _userDoc();
   if (docRef == null) return;
-
-  // firestore 저장
   await docRef.set({
     'unlocked_titles': FieldValue.arrayUnion(newTitles),
     'updatedAt': FieldValue.serverTimestamp(),
   }, SetOptions(merge: true));
-
   await syncFirestoreTitlesToLocal();
 }
 
@@ -61,7 +58,6 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
 
   final currentTitles = await getUnlockedTitlesFromFirestore();
   final stats = UserStats(isNewUser: true, psychologyTestCount: 0);
-
   final title = allTitles.firstWhere(
         (t) => t.id == 'spore_family',
     orElse: () => TitleInfo(id: '', name: '', condition: (_) => false),

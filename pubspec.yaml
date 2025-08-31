@@ -98,6 +98,7 @@ flutter:
     - assets/images/TimeTable/add_icon.png
     - assets/images/TimeTable/menu_icon.png
 
+    - assets/images/Setting/chevron2.png
 
   fonts:
     - family: League Spartan

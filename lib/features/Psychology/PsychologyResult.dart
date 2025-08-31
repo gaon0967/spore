@@ -335,17 +335,17 @@ class _InfoContainer extends StatelessWidget {
                   content: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children:
-                    character.keywords
-                        .map(
-                          (keyword) => Text(
-                        keyword,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.6,
-                        ),
-                      ),
-                    )
-                        .toList(),
+                        character.keywords
+                            .map(
+                              (keyword) => Text(
+                                keyword,
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  height: 1.6,
+                                ),
+                              ),
+                            )
+                            .toList(),
                   ),
                 ),
               ),

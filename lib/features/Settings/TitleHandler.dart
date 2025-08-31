@@ -187,9 +187,9 @@ final allTitles = [
 /// 반환: Future<void>
 /// ------------------------------
 Future<void> addTitles(
-    List<TitleInfo> earnedTitles, {
-      Function? onUpdate,
-    }) async {
+  List<TitleInfo> earnedTitles, {
+  Function? onUpdate,
+}) async {
   final prefs = await SharedPreferences.getInstance();
   final unlocked = prefs.getStringList('unlocked_titles') ?? [];
   bool updated = false;
@@ -238,10 +238,10 @@ Future<void> _setUnlockedTitles(List<String> titles) async {
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> _filterAndSaveTitles(
-    UserStats stats,
-    List<TitleInfo> titlesToCheck, {
-      Function? onUpdate,
-    }) async {
+  UserStats stats,
+  List<TitleInfo> titlesToCheck, {
+  Function? onUpdate,
+}) async {
   final earnedTitles = titlesToCheck.where((t) => t.condition(stats)).toList();
 
   final unlocked = await _getUnlockedTitles();
@@ -292,12 +292,12 @@ Future<List<TitleInfo>> handlePsychologyTestCompletion({
   final stats = UserStats(psychologyTestCount: count);
 
   final psychologyTitles =
-  allTitles
-      .where(
-        (t) =>
-    t.id == 'spore_beginner' || t.id == 'spore_detailed_beginner',
-  )
-      .toList();
+      allTitles
+          .where(
+            (t) =>
+                t.id == 'spore_beginner' || t.id == 'spore_detailed_beginner',
+          )
+          .toList();
 
   return _filterAndSaveTitles(stats, psychologyTitles, onUpdate: onUpdate);
 }
@@ -324,9 +324,9 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleFriendCountChange(
-    int newCount, {
-      Function? onUpdate,
-    }) async {
+  int newCount, {
+  Function? onUpdate,
+}) async {
   final prefs = await SharedPreferences.getInstance();
   int psychologyCount = prefs.getInt('psychology_test_count') ?? 0;
 
@@ -336,7 +336,7 @@ Future<List<TitleInfo>> handleFriendCountChange(
   );
 
   final friendTitles =
-  allTitles.where((t) => t.id.startsWith('friend_')).toList();
+      allTitles.where((t) => t.id.startsWith('friend_')).toList();
 
   return _filterAndSaveTitles(stats, friendTitles, onUpdate: onUpdate);
 }
@@ -372,9 +372,9 @@ Future<List<TitleInfo>> handleProfileEditTitles({
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleFavoriteFriendTitle(
-    int favoriteCount, {
-      Function? onUpdate,
-    }) async {
+  int favoriteCount, {
+  Function? onUpdate,
+}) async {
   final prefs = await SharedPreferences.getInstance();
 
   // 현재 저장된 심리테스트 횟수나 기타 필요한 상태 읽기
@@ -387,14 +387,14 @@ Future<List<TitleInfo>> handleFavoriteFriendTitle(
 
   // 즐겨찾기 타이틀만 추출
   final favoriteTitles =
-  allTitles
-      .where(
-        (t) =>
-    t.id == 'favorite_one' ||
-        t.id == 'favorite_several' ||
-        t.id == 'favorite_capybara',
-  )
-      .toList();
+      allTitles
+          .where(
+            (t) =>
+                t.id == 'favorite_one' ||
+                t.id == 'favorite_several' ||
+                t.id == 'favorite_capybara',
+          )
+          .toList();
 
   return _filterAndSaveTitles(stats, favoriteTitles, onUpdate: onUpdate);
 }
@@ -407,9 +407,9 @@ Future<List<TitleInfo>> handleFavoriteFriendTitle(
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleTodoCountTitle(
-    int todoCount, {
-      Function? onUpdate,
-    }) async {
+  int todoCount, {
+  Function? onUpdate,
+}) async {
   final stats = UserStats(
     todoCount: todoCount,
     messageCount: 0,
@@ -417,15 +417,15 @@ Future<List<TitleInfo>> handleTodoCountTitle(
   );
 
   final todoTitles =
-  allTitles
-      .where(
-        (t) =>
-    t.id == 'todo_comfortable' ||
-        t.id == 'todo_human' ||
-        t.id == 'todo_god' ||
-        t.id == 'todo_killer',
-  )
-      .toList();
+      allTitles
+          .where(
+            (t) =>
+                t.id == 'todo_comfortable' ||
+                t.id == 'todo_human' ||
+                t.id == 'todo_god' ||
+                t.id == 'todo_killer',
+          )
+          .toList();
 
   return await _filterAndSaveTitles(stats, todoTitles, onUpdate: onUpdate);
 }
@@ -438,9 +438,9 @@ Future<List<TitleInfo>> handleTodoCountTitle(
 /// 반환: int - 연속 성공 일수
 /// ------------------------------
 int calculateConsecutiveSuccessDays(
-    Map<DateTime, List<Event>> events,
-    DateTime fromDate,
-    ) {
+  Map<DateTime, List<Event>> events,
+  DateTime fromDate,
+) {
   int count = 0;
   DateTime date = fromDate;
 
@@ -467,10 +467,10 @@ int calculateConsecutiveSuccessDays(
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitle(
-    Map<DateTime, List<Event>> events,
-    DateTime referenceDate, {
-      Function? onUpdate,
-    }) async {
+  Map<DateTime, List<Event>> events,
+  DateTime referenceDate, {
+  Function? onUpdate,
+}) async {
   final consecutiveDays = calculateConsecutiveSuccessDays(
     events,
     referenceDate,
@@ -482,7 +482,7 @@ Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitle(
   );
 
   final streakTitles =
-  allTitles.where((t) => t.id.startsWith('streak_')).toList();
+      allTitles.where((t) => t.id.startsWith('streak_')).toList();
 
   return await _filterAndSaveTitles(stats, streakTitles, onUpdate: onUpdate);
 }
@@ -544,3 +544,4 @@ Future<int> getTotalSchedule() async {
   // print('총 과목 개수: $totalSubjects');
   return totalSubjects;
 }
+

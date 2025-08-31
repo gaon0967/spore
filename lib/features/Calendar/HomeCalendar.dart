@@ -300,7 +300,6 @@ class _HomeCalendarState extends State<HomeCalendar> {
       currentTodoCount,
       onUpdate: () => setState(() {}),  // UI 갱신
     );
-
   }
 
   Widget _buildEventContent(Event event, {int? index}) {

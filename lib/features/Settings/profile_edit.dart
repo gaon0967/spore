@@ -10,6 +10,7 @@ import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart' hide handleProfileEditTitles;
 import 'package:new_project_1/features/Settings/firebase_title.dart' show handleProfileEditTitles;
+
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
 Future<List<int>> fetchUserCharacterIds(String userId) async {
   final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
@@ -795,14 +796,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       barrierDismissible: true, // 밖 터치 닫기
                       builder:
                           (_) => TitleSelect(
-                        selected: selectedTitles,
-                        unlocked: unlockedTitles,
-                        onSelect: (newTitles) {
-                          setState(() {
-                            selectedTitles = newTitles;
-                          });
-                        },
-                      ),
+                            selected: selectedTitles,
+                            unlocked: unlockedTitles,
+                            onSelect: (newTitles) {
+                              setState(() {
+                                selectedTitles = newTitles;
+                              });
+                            },
+                          ),
                     );
                   },
                   child: Row(
@@ -833,26 +834,26 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     spacing: 8,
                     runSpacing: 8,
                     children:
-                    selectedTitles.map((t) {
-                      return Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFf4ecd2),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          "# $t",
-                          style: const TextStyle(
-                            color: Color(0xFF504a4a),
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                        selectedTitles.map((t) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFf4ecd2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Text(
+                              "# $t",
+                              style: const TextStyle(
+                                color: Color(0xFF504a4a),
+                                fontWeight: FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                   )
                 else
                   Text(
