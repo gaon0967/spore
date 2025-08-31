@@ -41,7 +41,7 @@ Future<List<String>> getUnlockedTitlesFromFirestore() async {
   return list.cast<String>();
 }
 
-// Firestore에 타이틀 추가 (중복 제거)
+/// Firestore에 타이틀 추가 (중복 제거)
 Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
   if (newTitles.isEmpty) return;
   final docRef = await _userDoc();
@@ -50,11 +50,10 @@ Future<void> addUnlockedTitlesToFirestore(List<String> newTitles) async {
     'unlocked_titles': FieldValue.arrayUnion(newTitles),
     'updatedAt': FieldValue.serverTimestamp(),
   }, SetOptions(merge: true));
-  await syncFirestoreTitlesToLocal();
 }
 
-// 심리테스트 카운트 증가(1회, 2회 구분 위함)
-Future<int> incrementPsyCount() async {
+// 심리테스트 카운트 증가 (트랜잭션 보장)
+Future<int> incrementPsychologyTestCountInFirestore() async {
   final docRef = await _userDoc();
   if (docRef == null) return 0;
   return FirebaseFirestore.instance.runTransaction((txn) async {
@@ -69,13 +68,15 @@ Future<int> incrementPsyCount() async {
   });
 }
 
-// 회원가입 타이틀 추가
-// 로컬 → Firestore로 마이그레이션(회원가입 시)
-Future<void> handleNewUserTitle({Function? onUpdate}) async {
+
+
+// 로컬 → Firestore로 마이그레이션 (선택사항)
+Future<void> handleNewUserTitle() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
   final currentTitles = await getUnlockedTitlesFromFirestore();
+
   final stats = UserStats(isNewUser: true, psychologyTestCount: 0);
   final title = allTitles.firstWhere(
         (t) => t.id == 'spore_family',
@@ -93,16 +94,18 @@ Future<void> handleNewUserTitle({Function? onUpdate}) async {
     );
     
     await addUnlockedTitlesToFirestore([title.name]);
+    print('타이틀 획득: ${title.name}');
   }
+  print('회원가입 타이틀 저장 완료');
 }
 
-// 심리테스트 타이틀 추가
-Future<void> PsychologyTestCompletion() async {
+// 심리테스트 타이틀 처리
+Future<void> SavePsychologyTestCompletion() async {
   final user = FirebaseAuth.instance.currentUser;
   if (user == null) return;
 
   final currentTitles = await getUnlockedTitlesFromFirestore();
-  final count = await incrementPsyCount();
+  final count = await incrementPsychologyTestCountInFirestore();
 
   List<String> titleIds = [];
 
@@ -328,7 +331,5 @@ Future<void> migrateAllLocalTitlesToFirestoreOnce() async {
     return;
   }
 
-  // 마이그레이션 기록 저장
-  await addUnlockedTitlesToFirestore(localTitles);
-  await prefs.setBool(migratedKey, true);
+  print('심리테스트 타이틀 저장 완료');
 }

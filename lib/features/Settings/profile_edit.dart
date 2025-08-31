@@ -295,6 +295,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     }
     _loadSavedPsychologyResult();
     _loadUnlockedTitles();
+    loadSelectedTitles();
   }
 
   Future<void> _loadSelectedIdAndApply() async {
@@ -638,6 +639,42 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
+  // 선택한 타이틀을 Firestore에 저장
+  Future<void> saveSelectedTitles(List<String> picked) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .update({
+      'selectedTitles': picked,
+    });
+
+    print("✅ Firestore에 선택된 타이틀 저장 완료: $picked");
+  }
+
+  // 선택한 타이틀 로드
+  Future<void> loadSelectedTitles() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final doc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
+
+    final data = doc.data();
+    if (data != null && data.containsKey('selectedTitles')) {
+      setState(() {
+        selectedTitles = List<String>.from(data['selectedTitles']);
+      });
+      print("✅ Firestore에서 선택된 타이틀 불러오기 완료: $selectedTitles");
+    } else {
+      print("⚠️ Firestore에 선택된 타이틀 없음, 기본값 사용");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -801,6 +838,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           setState(() {
                             selectedTitles = newTitles;
                           });
+                          // 🔥 Firestore에 선택된 타이틀 저장
+                          saveSelectedTitles(newTitles);
                         },
                       ),
                     );

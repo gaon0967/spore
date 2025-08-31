@@ -79,18 +79,18 @@ class AuthService {
   /// 함수: loginOnlyWithNaver()
   /// 목적: 기존 회원만 Naver 소셜 로그인을 진행한다. DB에 유저가 없으면 에러를 발생시킨다.
   /**Future<Map<String, dynamic>> update_CharacterId() async {
-      try {
+    try {
 
       // 2. Firebase 함수 호출
       final HttpsCallable callable = FirebaseFunctions.instanceFor(
-      region: 'us-central1',
+        region: 'us-central1',
       ).httpsCallable('createCustomToken');
       final response = await callable.call({'accessToken': accessToken});
       final uid = response.data['uid'];
       final customToken = response.data['customToken'];
 
       if (customToken == null) {
-      throw Exception('No customToken returned from server.');
+        throw Exception('No customToken returned from server.');
       }
 
       // 3. Firebase Auth 로그인
@@ -102,26 +102,26 @@ class AuthService {
 
       // 5. 사용자 존재 여부 확인 후 결과 반환
       if (userDoc.exists) {
-      return userDoc.data() ?? {};
+        return userDoc.data() ?? {};
       } else {
-      await NaverLoginSDK.logout();
-      await FirebaseAuth.instance.signOut();
-      throw Exception('가입된 정보가 없습니다. 설문조사를 통해 먼저 회원가입을 진행해주세요.');
+        await NaverLoginSDK.logout();
+        await FirebaseAuth.instance.signOut();
+        throw Exception('가입된 정보가 없습니다. 설문조사를 통해 먼저 회원가입을 진행해주세요.');
       }
-      } catch (e) {
+    } catch (e) {
       rethrow;
-      }
-      }
-   **/
+    }
+  }
+**/
   /// 함수 : callFirebaseFunction()
   /// 목적 : 토큰, 프로파일을 firebase에 넘겨 유저가 없으면 생성한다. 유저의 정보가 담긴 Map을 return 한다.
   /// 반환타입 : Map<dynaic, dynamic>
   /// 예외 : 토큰이 없거나 프로파일이 없는 경우 발생
   Future<Map> _callFirebaseFunction(
-      String accessToken,
-      NaverLoginProfile profile,
-      int characterId,
-      ) async {
+    String accessToken,
+    NaverLoginProfile profile,
+    int characterId,
+  ) async {
     try {
       final HttpsCallable callable = FirebaseFunctions.instanceFor(
         region: 'us-central1',
@@ -154,7 +154,7 @@ class AuthService {
       /**
        * userRef에 문서Id가 uid인 값을 가져온다.
        * get() 의 값이 없으면 유저를 만듦.(회원가입)
-       *
+       * 
        */
 
       final userRef = _firestore.collection('users').doc(uid);
