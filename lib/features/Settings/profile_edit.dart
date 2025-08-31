@@ -8,7 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart';
+import 'package:new_project_1/features/Settings/TitleHandler.dart' hide handleProfileEditTitles;
+import 'package:new_project_1/features/Settings/firebase_title.dart' show handleProfileEditTitles;
 
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
 Future<List<int>> fetchUserCharacterIds(String userId) async {
@@ -66,7 +67,7 @@ class ThreeLinesInputFormatter extends TextInputFormatter {
     return newValue;
   }
 }
-  /// 클래스: ProfileEdit
+/// 클래스: ProfileEdit
 /// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
 /// 반환: StatefulWidget 인스턴스 반환
 /// 예외: 없음

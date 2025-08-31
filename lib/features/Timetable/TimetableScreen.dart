@@ -7,6 +7,7 @@ import 'course_model.dart';
 import 'TimetableList.dart';
 import 'ClassAdd.dart';
 import 'FriendTimetable.dart';
+import '../Settings/firebase_title.dart' as TitlesRemote;
 
 class TimetableScreen extends StatefulWidget {
   final String? tableName;
@@ -166,6 +167,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
     });
 
     await _loadCourses();
+    // Firestore 저장 완료 후 시간표 타이틀 지급
+    await TitlesRemote.handleScheduleTitlesFromFirestore(
+      onUpdate: () => setState(() {}),
+    );
   }
 
   Future<void> _deleteCourse(Course courseToDelete) async {
@@ -189,6 +194,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
     });
 
     await _loadCourses();
+    // Firestore 삭제 완료 후 시간표 타이틀 지급
+    await TitlesRemote.handleScheduleTitlesFromFirestore(
+      onUpdate: () => setState(() {}),
+    );
   }
   
   String formatTimeDouble(double time) {

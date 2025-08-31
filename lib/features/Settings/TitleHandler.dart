@@ -545,4 +545,3 @@ Future<int> getTotalSchedule() async {
   return totalSubjects;
 }
 
-

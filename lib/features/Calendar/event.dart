@@ -20,4 +20,3 @@ class Event {
     this.id,
   });
 }
-
