@@ -8,6 +8,8 @@ import 'ChatScreen.dart';
 import '../Calendar/Notification.dart' as CalendarNotification;
 import '../Settings/settings_screen.dart';
 import 'dart:math';
+import '../Settings/TitleHandler.dart';
+import '../Settings/firebase_title.dart' as TitlesRemote;
 
 // --- 데이터 모델 ---
 
@@ -52,21 +54,21 @@ class FriendRequest {
     // senderTags 필드가 존재하는지 확인하고, 타입에 따라 안전하게 파싱합니다.
     final senderTagsData = data['senderTags'];
     if (senderTagsData != null) {
-    if (senderTagsData is List) {
-    tags = List<String>.from(senderTagsData);
-    } else if (senderTagsData is Map) {
-    // Map일 경우, values만 가져와서 리스트로 변환 (DB 스냅샷과 유사한 처리)
-    tags = senderTagsData.values.map((e) => e.toString()).toList();
-    }
+      if (senderTagsData is List) {
+        tags = List<String>.from(senderTagsData);
+      } else if (senderTagsData is Map) {
+        // Map일 경우, values만 가져와서 리스트로 변환 (DB 스냅샷과 유사한 처리)
+        tags = senderTagsData.values.map((e) => e.toString()).toList();
+      }
     }
 
     return FriendRequest(
-    senderId: data['senderId'] ?? '',
-    receiverId: data['receiverId'] ?? '',
-    senderName: data['senderName'] ?? '',
-    senderTags: tags, // 안전하게 파싱된 tags 리스트를 사용
-    senderProfileImage: data['senderProfileImage'] ?? '',
-    timestamp: data['timestamp'] ?? Timestamp.now(),
+      senderId: data['senderId'] ?? '',
+      receiverId: data['receiverId'] ?? '',
+      senderName: data['senderName'] ?? '',
+      senderTags: tags, // 안전하게 파싱된 tags 리스트를 사용
+      senderProfileImage: data['senderProfileImage'] ?? '',
+      timestamp: data['timestamp'] ?? Timestamp.now(),
     );
   }
 }
@@ -129,7 +131,7 @@ class _FriendScreenState extends State<FriendScreen> {
   final Random _random = Random();
   final CalendarNotification.NotificationService _notificationService = CalendarNotification.NotificationService();
 
-  
+
   String? get currentUserId => _auth.currentUser?.uid;
 
   @override
@@ -216,12 +218,12 @@ class _FriendScreenState extends State<FriendScreen> {
         .orderBy('timestamp', descending: true)
         .snapshots()
         .map((snapshot) {
-        print('FriendScreen: Firestore에서 ${snapshot.docs.length}개의 친구 신청 문서를 찾았습니다.');
-        if (snapshot.docs.isNotEmpty) {
-          print('첫 번째 문서 데이터: ${snapshot.docs.first.data()}');
-        }
-        return snapshot.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList();
-      });
+      print('FriendScreen: Firestore에서 ${snapshot.docs.length}개의 친구 신청 문서를 찾았습니다.');
+      if (snapshot.docs.isNotEmpty) {
+        print('첫 번째 문서 데이터: ${snapshot.docs.first.data()}');
+      }
+      return snapshot.docs.map((doc) => FriendRequest.fromFirestore(doc)).toList();
+    });
   }
 
   // 보낸 친구 신청 스트림
@@ -326,6 +328,21 @@ class _FriendScreenState extends State<FriendScreen> {
 
       await batch.commit();
 
+      // 파이어베이스에서 최신 친구 목록 개수 가져오기
+      final newFriendsSnapshot = await _firestore
+          .collection('users')
+          .doc(currentUserId)
+          .collection('friends')
+          .where('blockStatus', isEqualTo: false)
+          .get();
+
+      final newFriendCount = newFriendsSnapshot.docs.length;
+      // 친구맺기 타이틀 지급
+      await TitlesRemote.handleFriendCount(
+        newFriendCount,
+        onUpdate: () => setState(() {}),
+      );
+
       final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
       final myName = currentUserDoc.data()?['name'] ?? 'Unknown';
       await _notificationService.createFriendAcceptedNotification(request.senderId, myName);
@@ -420,9 +437,36 @@ class _FriendScreenState extends State<FriendScreen> {
         'favorite': !friend.favorite,
         'updatedAt': FieldValue.serverTimestamp(),
       });
+
+      // 친구 즐겨찾기 타이틀 지급
+      final int favoriteCount = await _getFavoriteCount();
+      await TitlesRemote.handleFavoriteFriendTitleFirestore(
+        favoriteCount,
+        onUpdate: () => setState(() {}),
+      );
+
     } catch (e) {
       _showAlert('즐겨찾기 설정 중 오류가 발생했습니다: $e');
     }
+  }
+
+  // 즐겨찾기 친구 수를 파이어베이스에서 직접 가져오는 함수
+  Future<int> _getFavoriteCount() async {
+    // 현재 로그인한 사용자가 없다면 0을 반환
+    if (currentUserId == null) {
+      return 0;
+    }
+
+    // 'friends' 컬렉션에서 'favorite'가 true인 문서들을 모두 가져옴
+    final querySnapshot = await _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .collection('friends')
+        .where('favorite', isEqualTo: true)
+        .get();
+
+    // 가져온 문서들의 개수를 반환
+    return querySnapshot.docs.length;
   }
 
   // 친구 신청 취소
