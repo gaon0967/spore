@@ -21,6 +21,9 @@ Future<void> _handleTitleAcquisition(List<TitleInfo> newlyEarnedTitles) async {
   // Firestore에 저장
   final names = newlyEarnedTitles.map((t) => t.name).toList();
   await addUnlockedTitlesToFirestore(names);
+
+  // 로컬 동기화 실행
+  await syncFirestoreTitlesToLocal();
 }
 
 // Firestore에 연결된 사용자 문서 참조 반환
@@ -127,6 +130,8 @@ Future<void> PsychologyTestCompletion() async {
   if (newlyEarnedTitles.isNotEmpty) {
     await _handleTitleAcquisition(newlyEarnedTitles);
   }
+  // 로컬 동기화 강제 실행
+  await syncFirestoreTitlesToLocal();
 }
 
 // 친구 타이틀 추가

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../auth/naverAndFirebaseAuth.dart';
 import 'package:new_project_1/features/Home/main_screen.dart';
-import 'package:new_project_1/features/Settings/firebase_title.dart';
 import '../Settings/TitleHandler.dart';
 import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
@@ -271,10 +270,8 @@ class _InfoContainer extends StatelessWidget {
                     final userData = await authService.signInWithNaver(
                       character.id,
                     );
-                    // 심리테스트 타이틀 지급(firestore)
+                    // 심리테스트 타이틀 지급(firestore) - 로컬 동기화 포함
                     await TitlesRemote.PsychologyTestCompletion();
-                    // 로컬 동기화
-                    await TitlesRemote.syncFirestoreTitlesToLocal();
                     if (!context.mounted) return;
                     Navigator.pushReplacement(
                       context,
