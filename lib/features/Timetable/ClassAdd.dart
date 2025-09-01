@@ -203,9 +203,9 @@ class _ClassAddState extends State<ClassAdd> {
                     scrollDirection: Axis.horizontal,
                     itemCount: _colors.length,
                     itemBuilder: (context, index) =>
-                        _buildColorCircle(_colors[index]),
+                      _buildColorCircle(_colors[index]),
                     separatorBuilder: (context, index) =>
-                    const SizedBox(width: 12),
+                      const SizedBox(width: 12),
                   ),
                 ),
                 const SizedBox(height: 20),
@@ -285,7 +285,7 @@ class _ClassAddState extends State<ClassAdd> {
             Text(
               time != null
                   ? MaterialLocalizations.of(context)
-                  .formatTimeOfDay(time, alwaysUse24HourFormat: false)
+                      .formatTimeOfDay(time, alwaysUse24HourFormat: false)
                   : '시간 선택',
               style: const TextStyle(
                 fontSize: 16,
