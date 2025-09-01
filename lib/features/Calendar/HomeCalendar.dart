@@ -256,11 +256,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
         eventsForDay.insert(insertIndex, result);
       });
 
-      // 투두리스트 개수 타이틀 지급
-      final currentTodoCount = _getEventsForDay(day).length;
-      handleTodoCountTitle(currentTodoCount, onUpdate: () {
-        setState(() {}); // UI 갱신
-      });
+      // 투두리스트 개수 타이틀 지급 (Firestore 전체 개수 기준)
+      await TitlesRemote.handleTodoCountFromFirestore();
 
       _listKey.currentState?.insertItem(
         insertIndex,
@@ -292,12 +289,8 @@ class _HomeCalendarState extends State<HomeCalendar> {
     // 4. Firestore에서 데이터 삭제
     _deleteEvent(eventToRemove);
 
-    // 투두리스트 개수 타이틀 지급
-    final currentTodoCount = _getEventsForDay(day).length;
-    handleTodoCountTitle(currentTodoCount, onUpdate: () {
-      setState(() {}); // UI 갱신
-    });
-
+    // 투두리스트 개수 타이틀 지급 (Firestore 전체 개수 기준)
+    await TitlesRemote.handleTodoCountFromFirestore();
   }
 
   Widget _buildEventContent(Event event, {int? index}) {

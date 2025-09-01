@@ -8,8 +8,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart';
-
+import 'package:new_project_1/features/Settings/TitleHandler.dart' hide handleProfileEditTitles;
+import 'package:new_project_1/features/Settings/firebase_title.dart' show handleProfileEditTitles;
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기
 Future<List<int>> fetchUserCharacterIds(String userId) async {
   final doc = await FirebaseFirestore.instance.collection('users').doc(userId).get();
@@ -66,7 +66,7 @@ class ThreeLinesInputFormatter extends TextInputFormatter {
     return newValue;
   }
 }
-  /// 클래스: ProfileEdit
+/// 클래스: ProfileEdit
 /// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
 /// 반환: StatefulWidget 인스턴스 반환
 /// 예외: 없음
@@ -170,49 +170,49 @@ class _TitleSelectState extends State<TitleSelect> {
                   child: Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children:
-                    allTitles
-                        .where((t) => widget.unlocked.contains(t.name))
-                        .map((titleInfo) {
-                      final titleName = titleInfo.name;
-                      final isSelected = current.contains(titleName);
-                      return GestureDetector(
-                        onTap: () => handleToggle(titleName),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color:
-                            isSelected
-                                ? const Color(0xFFf4ecd2)
-                                : Colors.white,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color:
-                              isSelected
-                                  ? const Color(0xFF6a6a6a)
-                                  : Colors.grey.shade300,
-                              width: isSelected ? 1.5 : 1,
-                            ),
-                          ),
-                          child: Text(
-                            titleName,
-                            style: TextStyle(
-                              color:
-                              isSelected
-                                  ? const Color(0xFF413b3b)
-                                  : Colors.black87,
-                              fontWeight:
-                              isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.normal,
-                            ),
-                          ),
-                        ),
-                      );
-                    })
+                                             children:
+                     allTitles
+                         .where((t) => widget.unlocked.contains(t.name))
+                         .map((titleInfo) {
+                       final titleName = titleInfo.name;
+                       final isSelected = current.contains(titleName);
+                       return GestureDetector(
+                         onTap: () => handleToggle(titleName),
+                         child: Container(
+                           padding: const EdgeInsets.symmetric(
+                             horizontal: 16,
+                             vertical: 8,
+                           ),
+                           decoration: BoxDecoration(
+                             color:
+                             isSelected
+                                 ? const Color(0xFFf4ecd2)
+                                 : Colors.white,
+                             borderRadius: BorderRadius.circular(20),
+                             border: Border.all(
+                               color:
+                               isSelected
+                                   ? const Color(0xFF6a6a6a)
+                                   : Colors.grey.shade300,
+                               width: isSelected ? 1.5 : 1,
+                             ),
+                           ),
+                           child: Text(
+                             titleName,
+                             style: TextStyle(
+                               color:
+                               isSelected
+                                   ? const Color(0xFF413b3b)
+                                   : Colors.black87,
+                               fontWeight:
+                               isSelected
+                                   ? FontWeight.w700
+                                   : FontWeight.normal,
+                             ),
+                           ),
+                         ),
+                       );
+                     })
                         .toList(),
                   ),
                 ),
@@ -292,12 +292,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       _loadCharactersFromFirestore().then((_) {
         _loadSelectedIdAndApply();
       });
-
-      loadSelectedTitles();
     }
-
     _loadSavedPsychologyResult();
     _loadUnlockedTitles();
+    loadSelectedTitles();
   }
 
   Future<void> _loadSelectedIdAndApply() async {
@@ -634,6 +632,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
+  /// 타이틀 선택 (2개만, TitleSelect 모달에서 선택 완료 시 설정)
+  void handleTitleSelect(List<String> picked) {
+    setState(() {
+      selectedTitles = picked;
+    });
+  }
+
   // 선택한 타이틀을 Firestore에 저장
   Future<void> saveSelectedTitles(List<String> picked) async {
     final user = FirebaseAuth.instance.currentUser;
@@ -667,27 +672,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       print("✅ Firestore에서 선택된 타이틀 불러오기 완료: $selectedTitles");
     } else {
       print("⚠️ Firestore에 선택된 타이틀 없음, 기본값 사용");
-    }
-  }
-
-
-
-  /// 타이틀 선택 (2개만, TitleSelect 모달에서 선택 완료 시 설정)
-  void handleTitleSelect (List<String> picked) async {
-    setState(() {
-      selectedTitles = picked;
-    });
-
-    // 🔥 선택한 타이틀을 Firestore에 저장
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .update({
-        'selectedTitles': picked, // 🔥 선택된 타이틀 DB에 저장
-      });
-      print("✅ 선택된 타이틀 저장 완료: $picked");
     }
   }
 
@@ -848,16 +832,16 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       barrierDismissible: true, // 밖 터치 닫기
                       builder:
                           (_) => TitleSelect(
-                            selected: selectedTitles,
-                            unlocked: unlockedTitles,
-                            onSelect: (newTitles) {
-                              setState(() {
-                                selectedTitles = newTitles;
-                              });
-                              // 🔥 Firestore에 선택된 타이틀 저장
-                              saveSelectedTitles(newTitles);
-                            },
-                          ),
+                        selected: selectedTitles,
+                        unlocked: unlockedTitles,
+                        onSelect: (newTitles) {
+                          setState(() {
+                            selectedTitles = newTitles;
+                          });
+                          // 🔥 Firestore에 선택된 타이틀 저장
+                          saveSelectedTitles(newTitles);
+                        },
+                      ),
                     );
                   },
                   child: Row(
@@ -888,26 +872,26 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     spacing: 8,
                     runSpacing: 8,
                     children:
-                        selectedTitles.map((t) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFf4ecd2),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Text(
-                              "# $t",
-                              style: const TextStyle(
-                                color: Color(0xFF504a4a),
-                                fontWeight: FontWeight.w500,
-                                fontSize: 14,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                    selectedTitles.map((t) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFf4ecd2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Text(
+                          "# $t",
+                          style: const TextStyle(
+                            color: Color(0xFF504a4a),
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   )
                 else
                   Text(

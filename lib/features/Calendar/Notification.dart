@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/services.dart';
 import 'package:new_project_1/features/Friend/FriendScreen.dart';
+import 'package:new_project_1/features/Settings/profile_edit.dart';
 
 // --- 데이터 모델 클래스 (파일 상단에 위치) ---
 // [수정됨] AppNotification 모델에 친구 알림을 위한 type, senderId 추가 및 fromFirestore 팩토리 생성자 추가
@@ -30,6 +31,7 @@ class AppNotification {
   final DateTime? dueDate; // D-Day 알림용
   final String? type; // 알림 종류 (예: 'friend_request')
   final String? senderId; // 보낸 사람 ID
+  final String? titleName; // 타이틀 획득 알림용
 
   AppNotification({
     required this.id,
@@ -40,6 +42,7 @@ class AppNotification {
     this.dueDate,
     this.type,
     this.senderId,
+    this.titleName,
   });
 
   // Firestore 문서로부터 AppNotification 객체를 생성하는 팩토리 생성자
@@ -52,6 +55,7 @@ class AppNotification {
       timestamp: (data['timestamp'] as Timestamp? ?? Timestamp.now()).toDate(),
       type: data['type'],
       senderId: data['senderId'],
+      titleName: data['titleName'], // 타이틀 이름 필드 추가
     );
   }
 }
@@ -239,6 +243,45 @@ class NotificationService {
     });
   }
 
+  // 타이틀 획득 알림 생성
+  Future<void> createTitleAcquiredNotification(
+      String receiverId, String titleName) async {
+    if (receiverId.isEmpty) return;
+    
+    // 이미 해당 타이틀에 대한 알림이 있는지 확인
+    final existingNotifications = await _firestore
+        .collection('users')
+        .doc(receiverId)
+        .collection('notifications')
+        .where('type', isEqualTo: 'title_acquired')
+        .where('content', isEqualTo: '$titleName 타이틀을 획득했습니다!')
+        .get();
+    
+    // 이미 알림이 있으면 생성하지 않음
+    if (existingNotifications.docs.isNotEmpty) {
+      print('🔥 이미 $titleName 타이틀 알림이 존재합니다. 중복 알림 생성하지 않음.');
+      return;
+    }
+    
+         await _firestore
+         .collection('users')
+         .doc(receiverId)
+         .collection('notifications')
+         .add({
+       'title': '타이틀 획득 알림',
+       'content': '타이틀을 획득했습니다!',
+       'timestamp': FieldValue.serverTimestamp(),
+       'type': 'title_acquired',
+       'titleName': titleName, // 타이틀 이름을 별도 필드로 저장
+       'read': false,
+     });
+  }
+
+  // 현재 사용자에게 타이틀 획득 알림 생성 (테스트용)
+  Future<void> createTitleAcquiredNotificationForCurrentUser(String titleName) async {
+    if (currentUserId == null) return;
+    await createTitleAcquiredNotification(currentUserId!, titleName);
+  }
 }
 // -----------------------------------------
 
@@ -321,7 +364,8 @@ Widget _buildStyledNotiBox(
       height: screenWidth * 0.09,
     );
     rightText = '바로 가기'; // [수정] 모든 친구 알림에 '바로 가기'를 표시
-  } else if (noti.type == 'title' ||
+  } else if (noti.type == 'title_acquired' ||
+      noti.type == 'title' ||
       noti.title.contains('타이틀')) {
     label = '타이틀';
     iconWidget = Image.asset(
@@ -329,7 +373,12 @@ Widget _buildStyledNotiBox(
       width: screenWidth * 0.06,
       height: screenWidth * 0.06,
     );
-    badgeText = '언제든 놀자!';
+    if (noti.type == 'title_acquired') {
+      // 타이틀 획득 알림일 때는 배지에 실제 타이틀 이름을 표시
+      badgeText = noti.titleName ?? '새로운 타이틀';
+    } else {
+      badgeText = '언제든 놀자!';
+    }
     rightText = '바로 가기';
   }
 
@@ -361,7 +410,15 @@ Widget _buildStyledNotiBox(
             }
             Navigator.of(context).pop();
           }
-          
+          // 타이틀 획득 알림일 경우 프로필 변경 창으로 이동
+          else if (noti.type == 'title_acquired') {
+            Navigator.of(context).pop(); // 알림 페이지 닫기
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => const ProfileEdit(),
+              ),
+            );
+          }
           // TODO: 다른 '바로 가기' 액션이 있다면 여기에 추가
         },
         child: Row(
