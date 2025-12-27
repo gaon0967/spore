@@ -271,9 +271,13 @@ class _InfoContainer extends StatelessWidget {
                       character.id,
                     );
                     // 심리테스트 타이틀 지급(firestore) - 로컬 동기화 포함
+<<<<<<< HEAD
 
                     await TitlesRemote.SavePsychologyTestCompletion();
 
+=======
+                    await TitlesRemote.SavePsychologyTestCompletion();
+>>>>>>> 37e5ca4 (가령:SDK 버전 업그레이함, 삭제코드 안돌아가서 비동기 수정해둠.)
                     if (!context.mounted) return;
                     Navigator.pushReplacement(
                       context,

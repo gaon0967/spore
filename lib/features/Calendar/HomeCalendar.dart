@@ -10,10 +10,14 @@ import 'Notification.dart';
 import 'package:flutter/cupertino.dart';
 import 'dart:async';
 import '../Settings/TitleHandler.dart';
+<<<<<<< HEAD
 
 import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
 
+=======
+import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
+>>>>>>> 37e5ca4 (가령:SDK 버전 업그레이함, 삭제코드 안돌아가서 비동기 수정해둠.)
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
 │   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
@@ -272,12 +276,17 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
 
 
+<<<<<<< HEAD
 
   // 삭제 버튼 로직 (임시 수정 : 가령 밑에 처리된 함수가 비동 처리 되어 있어서 async 추가함 )
   void _removeItem(int index) async{
 
 
 
+=======
+  // 삭제 버튼 로직 (임시 수정 : 가령 밑에 처리된 함수가 비동 처리 되어 있어서 async 추가함 )
+  void _removeItem(int index) async{
+>>>>>>> 37e5ca4 (가령:SDK 버전 업그레이함, 삭제코드 안돌아가서 비동기 수정해둠.)
     final day = DateTime.utc(
       _selectedDay.year,
       _selectedDay.month,
