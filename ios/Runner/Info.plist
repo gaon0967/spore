@@ -49,5 +49,6 @@
 		<true/>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+
 	</dict>
 </plist>
