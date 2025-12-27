@@ -19,7 +19,9 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFFFFEF9),
       body: SafeArea(
+
         child : SingleChildScrollView(
+
         child: Column(
           children: [
             _TopSection(), //  상단 섹션
@@ -35,7 +37,10 @@ class LoginScreen extends StatelessWidget {
             SizedBox(height: screenHeight * 0.08), // 하단에 여백
           ],
         ),
+
         ),
+
+
       ),
     );
   }
