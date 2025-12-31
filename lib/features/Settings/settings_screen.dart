@@ -456,32 +456,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         final user = _auth.currentUser;
                                         if (user == null || !mounted) return;
 
-                                        Navigator.of(context).pop(); // 탈퇴 확인 다이얼로그 닫기
-                                        showDialog(context: context, barrierDismissible: false, builder: (context) => const Center(child: CircularProgressIndicator()));
-
+                                        // 2) 로딩 다이얼로그 표시 + dialogContext 저장
+                                        late BuildContext dialogContext;
+                                        showDialog(
+                                          context: context,
+                                          barrierDismissible: false,
+                                          builder: (ctx) {
+                                            dialogContext = ctx;
+                                            return const Center(child: CircularProgressIndicator());
+                                          },
+                                        );
                                         try {
+                                          // 3) 먼저 화면 전환해서 SettingsScreen dispose → Firestore listen 정리
+                                          if (mounted) {
+                                            Navigator.of(context).pushAndRemoveUntil(
+                                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                              (_) => false,
+                                            );
+                                          }
+
+                                          // 4) 서버 데이터 삭제
                                           await callDeleteUserAllData(user.uid);
-                                          await user.delete();
+
+                                          // 5) 로그아웃 (토큰/리스너 정리)
+                                          await FirebaseAuth.instance.signOut();
                                           await NaverLoginSDK.logout();
 
-                                          if (mounted) {
-                                            Navigator.pop(context); // 로딩 다이얼로그 닫기
-                                            Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                                  (route) => false,
-                                            );
+                                          // 6) 계정 삭제
+                                          await user.delete();
+                                        } catch (e, st) {
+                                            debugPrint('회원 탈퇴 오류: $e\n$st');
+                                            // 여기서 SnackBar를 띄우면 context가 LoginScreen으로 바뀌었을 수 있음.
+                                            // 안전하게는 LoginScreen에서 상태로 처리하거나, 전역 messengerKey를 쓰는게 좋음.
+                                          } finally {
+                                            // 7) 로딩 다이얼로그 닫기 (dialogContext로 닫아야 안전)
+                                            Navigator.of(dialogContext, rootNavigator: true).pop();
                                           }
-                                        } catch (e) {
-                                          if (mounted) {
-                                            Navigator.pop(context); // 로딩 다이얼로그 닫기
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              SnackBar(content: Text('회원 탈퇴 중 오류가 발생했습니다: $e')),
-                                            );
-                                          }
-                                          print('회원 탈퇴 오류: $e');
-                                        }
-                                      },
+                                        },
                                       child: Container(
                                         height: screenWidth * 0.114,
                                         alignment: Alignment.center,
@@ -508,17 +519,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-// 🔥 회원 탈퇴 시 모든 사용자 데이터를 삭제하는 Cloud Function 호출
 Future<void> callDeleteUserAllData(String uid) async {
+  final HttpsCallable callable =
+    FirebaseFunctions.instanceFor(region: 'us-central1')
+        .httpsCallable('deleteUserAllData');
+
   try {
-    // asia-northeast3 리전을 명시해주는 것이 좋습니다.
-    final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'asia-northeast3').httpsCallable('deleteUserAllData');
-    print("Cloud Function 'deleteUserAllData' 호출, UID: $uid");
     final response = await callable.call({'uid': uid});
     print('Function 결과: ${response.data}');
   } on FirebaseFunctionsException catch (e) {
     print('Functions 오류: ${e.code} - ${e.message}');
+    throw Exception('서버 데이터 삭제 실패');
   } catch (e) {
     print('일반 오류: $e');
+    throw Exception('알 수 없는 오류');
   }
 }
