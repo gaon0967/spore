@@ -21,6 +21,7 @@ Future<void> _handleTitleAcquisition(List<TitleInfo> newlyEarnedTitles) async {
   // Firestore에 저장
   final names = newlyEarnedTitles.map((t) => t.name).toList();
   await addUnlockedTitlesToFirestore(names);
+  await syncFirestoreTitlesToLocal();
 }
 
 // Firestore에 연결된 사용자 문서 참조 반환
