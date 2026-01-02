@@ -909,7 +909,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       bottomNavigationBar: SafeArea(
         top: false,
         minimum: EdgeInsets.only(
-          bottom: 24, // 👈 여기 숫자만 키우면 확실히 내려감 (24~40 추천)
+          bottom: 24,
         ),
         child: Padding(
           padding: EdgeInsets.symmetric(
