@@ -162,7 +162,7 @@ class _FriendScreenState extends State<FriendScreen> {
             friends.add(Friend(
               friendId: friendId,
               name: userData['name'] ?? '',
-              tags: List<String>.from(userData['title'] ?? []),
+              tags: List<String>.from(userData['selectedTitles'] ?? []),
               profileImage: userData['profileImage'] ?? '',
               favorite: friendData['favorite'] ?? false,
               blockStatus: friendData['blockStatus'] ?? false,
