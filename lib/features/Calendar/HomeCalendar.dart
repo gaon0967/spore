@@ -351,7 +351,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
                 _addOrUpdateEvent(event, isUpdating: true);
 
                 // 투두리스트 연속 성공 일수 기반 타이틀 갱신
-                handleConsecutiveTodoSuccessTitle(_events, _selectedDay, onUpdate: () {
+                TitlesRemote.handleConsecutiveTodoSuccessTitleFirestore(_events, _selectedDay, onUpdate: () {
                   setState(() {});
                 });
               },

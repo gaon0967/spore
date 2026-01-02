@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../Settings/TitleHandler.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart' as titles;
 import '../Calendar/Notification.dart';
+import '../Calendar/event.dart';
 
 // 공통 타이틀 획득 처리 함수 (알림 생성 + Firestore 저장)
 Future<void> _handleTitleAcquisition(List<TitleInfo> newlyEarnedTitles) async {
@@ -182,6 +183,21 @@ Future<List<TitleInfo>> ConstTodoCount(
   }
   
   return streak;
+}
+
+// 투두리스트 연속 성공 일수 기반 타이틀 처리
+Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitleFirestore(
+    Map<DateTime, List<Event>> events,
+    DateTime referenceDate, {
+      Function? onUpdate,
+    }) async {
+  final newlyEarned = await handleConsecutiveTodoSuccessTitle(events, referenceDate, onUpdate: onUpdate);
+  
+  if (newlyEarned.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarned);
+  }
+  
+  return newlyEarned;
 }
 // firestore에 저장된 일정으로 연속일수 계산
 Future<void> handleConsecutiveTodo() async {
