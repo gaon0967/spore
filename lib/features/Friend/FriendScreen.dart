@@ -707,25 +707,37 @@ class _FriendScreenState extends State<FriendScreen> {
                     }
                     return Column(
                       children: requests.map((request) {
-                        return _FriendTile(
-                          name: request.senderName,
-                          tags: request.senderTags,
-                          tileColor: const Color(0xFFE8F0FE),
-                          isFavorite: false,
-                          onFavoriteToggle: null,
-                          onTap: () {},
-                          tagBgColor: const Color(0xFFD0E4FF),
-                          tagTextColor: const Color(0xFF0066CC),
-                          trailingButtons: [
-                            TextButton(
-                              onPressed: () => acceptFriendRequest(request),
-                              child: const Text('수락', style: TextStyle(color: Colors.green)),
-                            ),
-                            TextButton(
-                              onPressed: () => _showConfirm('거절', () => rejectFriendRequest(request)),
-                              child: const Text('거절', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
+                        return FutureBuilder<DocumentSnapshot>(
+                          future: _firestore.collection('users').doc(request.senderId).get(),
+                          builder: (context, userSnapshot) {
+                            if (!userSnapshot.hasData) return const SizedBox();
+                            if (userSnapshot.hasError) return const SizedBox();
+                            final userData = userSnapshot.data!.data() as Map<String, dynamic>? ?? {};
+                            final senderTags = List<String>.from(userData['selectedTitles'] ?? []);
+                            final senderName = userData['name'] ?? request.senderName;
+
+                            return _FriendTile(
+                              name: senderName,
+                              tags: senderTags,
+                              tileColor: const Color(0xFFE8F0FE),
+                              isFavorite: false,
+                              onFavoriteToggle: null,
+                              onTap: () {},
+                              tagBgColor: const Color(0xFFD0E4FF),
+                              tagTextColor: const Color(0xFF0066CC),
+                              trailingButtons: [
+                                TextButton(
+                                  onPressed: () => acceptFriendRequest(request),
+                                  child: const Text('수락', style: TextStyle(color: Colors.green)),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      _showConfirm('거절', () => rejectFriendRequest(request)),
+                                  child: const Text('거절', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            );
+                          },
                         );
                       }).toList(),
                     );
@@ -758,13 +770,18 @@ class _FriendScreenState extends State<FriendScreen> {
                     }
                     return Column(
                       children: requests.map((request) {
-                        return FutureBuilder<String>(
-                          future: getReceiverNickName(request.receiverId),
+                        return FutureBuilder<DocumentSnapshot>(
+                          future: _firestore.collection('users').doc(request.receiverId).get(),
                           builder: (context, snapshot) {
-                            final receiverNickName = snapshot.data ?? '...';
+                            if (!snapshot.hasData) {
+                              return const CircularProgressIndicator();
+                            }
+                            final data = snapshot.data!.data() as Map<String, dynamic>;
+                            final tags = List<String>.from(data['selectedTitles'] ?? []);
+                            final receiverNickName = data['name'] ?? '알 수 없음';
                             return _FriendTile(
                               name: receiverNickName,
-                              tags: const [],
+                              tags: tags,
                               tileColor: const Color(0xFFFBF5EB),
                               isFavorite: false,
                               onFavoriteToggle: null,
