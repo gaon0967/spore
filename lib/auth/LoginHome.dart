@@ -19,13 +19,9 @@ class LoginScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Color(0xFFFFFEF9),
       body: SafeArea(
-<<<<<<< HEAD
 
         child : SingleChildScrollView(
 
-=======
-        child : SingleChildScrollView(
->>>>>>> 37e5ca4 (가령:SDK 버전 업그레이함, 삭제코드 안돌아가서 비동기 수정해둠.)
         child: Column(
           children: [
             _TopSection(), //  상단 섹션
@@ -41,14 +37,9 @@ class LoginScreen extends StatelessWidget {
             SizedBox(height: screenHeight * 0.08), // 하단에 여백
           ],
         ),
-<<<<<<< HEAD
 
         ),
 
-
-=======
-        ),
->>>>>>> 37e5ca4 (가령:SDK 버전 업그레이함, 삭제코드 안돌아가서 비동기 수정해둠.)
       ),
     );
   }
