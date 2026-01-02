@@ -132,6 +132,8 @@ Future<void> SavePsychologyTestCompletion() async {
   if (newlyEarnedTitles.isNotEmpty) {
     await _handleTitleAcquisition(newlyEarnedTitles);
   }
+  // 로컬 동기화 강제 실행
+  await syncFirestoreTitlesToLocal();
 }
 
 // 친구 타이틀 추가
