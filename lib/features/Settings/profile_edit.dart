@@ -906,6 +906,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           ],
         ),
       ),
+
       bottomNavigationBar: SafeArea(
         top: false,
         minimum: EdgeInsets.only(
