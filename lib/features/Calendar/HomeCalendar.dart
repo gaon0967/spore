@@ -13,7 +13,6 @@ import '../Settings/TitleHandler.dart';
 
 import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
 
-
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
 │   │   ├── 날짜 상태 관리: _selectedDay, _focusedDay
@@ -275,8 +274,6 @@ class _HomeCalendarState extends State<HomeCalendar> {
 
   // 삭제 버튼 로직 (임시 수정 : 가령 밑에 처리된 함수가 비동 처리 되어 있어서 async 추가함 )
   void _removeItem(int index) async{
-
-
 
     final day = DateTime.utc(
       _selectedDay.year,

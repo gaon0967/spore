@@ -351,14 +351,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           child: InkWell(
                                             borderRadius: const BorderRadius.only(bottomRight: Radius.circular(16)),
                                             onTap: () async {
-                                              // 🔥 Firebase Auth 로그아웃 및 네이버 로그아웃 동시 처리
                                               await _auth.signOut();
-                                              await NaverLoginSDK.logout();
+                                              // 네이버 SDK 로그아웃
+                                              NaverLoginSDK.logout();
+                                              await NaverLoginSDK.release();
+                                              // 로그인 화면으로 이동
                                               if (mounted) {
                                                 Navigator.pushAndRemoveUntil(
                                                   context,
                                                   MaterialPageRoute(builder: (context) => const LoginScreen()),
-                                                      (route) => false,
+                                                  (route) => false,
                                                 );
                                               }
                                             },
