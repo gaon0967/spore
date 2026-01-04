@@ -28,10 +28,10 @@ String getImagePathByCharacterId(int id) {
     case 2: return 'assets/images/Setting/chac3.png';
     case 3: return 'assets/images/Setting/chac2.png';
     case 4: return 'assets/images/Setting/chac5.png';
-    case 5: return 'assets/images/Setting/chac7.png';
+    case 5: return 'assets/images/Setting/chac6.png';
     case 6: return 'assets/images/Setting/chac8.png';
     case 7: return 'assets/images/Setting/chac1.png';
-    case 8: return 'assets/images/Setting/chac6.png';
+    case 8: return 'assets/images/Setting/chac7.png';
     default: return 'assets/images/profile.png';
   }
 }
