@@ -28,10 +28,10 @@ String getImagePathByCharacterId(int id) {
     case 2: return 'assets/images/Setting/chac3.png';
     case 3: return 'assets/images/Setting/chac2.png';
     case 4: return 'assets/images/Setting/chac5.png';
-    case 5: return 'assets/images/Setting/chac7.png';
+    case 5: return 'assets/images/Setting/chac6.png';
     case 6: return 'assets/images/Setting/chac8.png';
     case 7: return 'assets/images/Setting/chac1.png';
-    case 8: return 'assets/images/Setting/chac6.png';
+    case 8: return 'assets/images/Setting/chac7.png';
     default: return 'assets/images/profile.png';
   }
 }
@@ -906,32 +906,36 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           ],
         ),
       ),
-      bottomNavigationBar: Container(
-        color: Colors.white,
-        padding: EdgeInsets.only(
-          left: screenWidth * 0.06,
-          right: screenWidth * 0.06,
-          top: screenHeight * 0.15,
-          bottom: screenHeight * 0.03,
+
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: EdgeInsets.only(
+          bottom: 24,
         ),
-        child: SizedBox(
-          width: double.infinity,
-          height: screenHeight * 0.07,
-          child: ElevatedButton(
-            onPressed: _goToPsychologyTest,
-            style: ElevatedButton.styleFrom(
-              elevation: 0,
-              backgroundColor: const Color(0xFF6B6060),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              foregroundColor: Colors.black,
-              padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.04),
-            ),
-            child: Text(
-              '내 캐릭터 다시 찾기',
-              style: TextStyle(fontSize: screenWidth * 0.038,
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: screenWidth * 0.06,
+            vertical: 12,
+          ),
+          child: SizedBox(
+            height: screenHeight * 0.065,
+            child: ElevatedButton(
+              onPressed: _goToPsychologyTest,
+              style: ElevatedButton.styleFrom(
+                elevation: 0,
+                backgroundColor: const Color(0xFF6B6060),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                '내 캐릭터 다시 찾기',
+                style: TextStyle(
+                  fontSize: screenWidth * 0.038,
                   fontWeight: FontWeight.w600,
-                  color: Colors.white),
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ),
