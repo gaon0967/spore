@@ -490,21 +490,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   textAlign: TextAlign.center,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                 ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      '완료',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                )
+                const SizedBox(height: 24)
               ],
             ),
           ),
@@ -551,101 +537,148 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     }
   }
 
-  void _showEditIntroModal( ) {
-    final controller = TextEditingController(text: introText);
-    bool _isDialogShowing = false;
+  void _showEditIntroModal() {
+    final TextEditingController controller =
+    TextEditingController(text: introText);
+    final ScrollController scrollController = ScrollController();
+    final FocusNode focusNode = FocusNode();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (modalContext) {
-        final bottomInset = MediaQuery.of(modalContext).viewInsets.bottom;
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
 
-        Future<void> saveIntroText(String userId, String intro) async {
-          await FirebaseFirestore.instance.collection('users').doc(userId).set({
-            'intro': intro,
-          }, SetOptions(merge: true));
-        }
+        return GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth * 0.06,
+                  vertical: screenHeight * 0.02,
+                ),
+                child: StatefulBuilder(
+                  builder: (context, setModalState) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 헤더
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '한줄 소개 수정',
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.045,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () async {
+                                final text = controller.text.trim();
+                                await FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(userId)
+                                    .update({'intro': text});
+                                setState(() => introText = text);
+                                Navigator.pop(context);
+                                _showCompleteMessageDialog(
+                                    context, '한줄 소개 수정이 완료되었습니다.');
+                              },
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: screenWidth * 0.04,
+                                    vertical: screenHeight * 0.012),
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Text(
+                                  '완료',
+                                  style: TextStyle(
+                                    fontSize: screenWidth * 0.035,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
 
-        void finishIntroEdit() async {
-          final trimmed = controller.text.trim();
-          if (trimmed.isEmpty) {
-            if (!_isDialogShowing) {
-              _isDialogShowing = true;
-              Navigator.of(modalContext).pop();
-              _showCompleteMessageDialog(context, '한 글자 이상 입력해주세요.');
-              _isDialogShowing = false;
-            }
-            return;
-          }
+                        SizedBox(height: screenHeight * 0.015),
 
-          await saveIntroText(userId, trimmed);
+                        // TextField
+                        TextField(
+                          controller: controller,
+                          focusNode: focusNode,
+                          autofocus: true,
+                          scrollController: scrollController,
+                          maxLength: 50,
+                          maxLines: 3,
+                          keyboardType: TextInputType.multiline,
+                          inputFormatters: [ThreeLinesInputFormatter()],
+                          onChanged: (_) {
+                            setModalState(() {});
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              if (scrollController.hasClients) {
+                                scrollController.animateTo(
+                                  scrollController.position.maxScrollExtent,
+                                  duration: const Duration(milliseconds: 150),
+                                  curve: Curves.easeOut,
+                                );
+                              }
+                            });
+                          },
+                          decoration: InputDecoration(
+                            hintText: '한줄 소개를 입력하세요',
+                            filled: true,
+                            fillColor: const Color(0xFFF3F4F8),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            counterText: '',
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: screenWidth * 0.036,
+                              vertical: screenHeight * 0.012,
+                            ),
+                          ),
+                        ),
 
-          // 한줄 소개 타이틀 지급
-          await handleProfileEditTitles(
-              hasIntro: trimmed.isNotEmpty,
-              onUpdate: () {
-                setState(() {});
-              }
-          );
+                        SizedBox(height: screenHeight * 0.008),
 
-          // 타이틀 목록 갱신 (Firestore 동기화 후 로컬에서 다시 로드)
-          await _loadUnlockedTitles();
-
-          setState(() {
-            introText = trimmed;
-          });
-
-          Navigator.of(modalContext).pop();
-          _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
-        }
-        return Padding(
-          padding: EdgeInsets.only(
-              left: 16, right: 16, bottom: bottomInset + 16, top: 30),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  maxLength: 50,
-                  autofocus: true,
-                  maxLines: 3,
-                  minLines: 1,
-                  keyboardType: TextInputType.multiline,
-                  inputFormatters: [ThreeLinesInputFormatter()],
-                  decoration: InputDecoration(
-                    hintText: '한줄 소개를 입력하세요',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF3F4F8),
-                    contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                    counterText: '',
-                  ),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            '${controller.text.characters.length} / 50',
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.03,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: finishIntroEdit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30)),
-                  padding:
-                  const EdgeInsets.symmetric(vertical: 14, horizontal: 22),
-                ),
-                child: const Text(
-                  '완료',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },
@@ -714,8 +747,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('프로필 변경'),
-        leading: IconButton(
+          title: const Text(
+            '프로필 변경',
+            style: TextStyle(
+              fontFamily: 'GolosText',
+            ),
+          ),
+          leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
@@ -723,12 +761,16 @@ class _ProfileEditPageState extends State<ProfileEdit> {
         elevation: 0,
         foregroundColor: Colors.black,
       ),
+
       body: SingleChildScrollView(
         padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.06, vertical: screenHeight * 0.015),
+          horizontal: screenWidth * 0.06,
+          vertical: screenHeight * 0.015,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+
             Stack(
               alignment: Alignment.bottomRight,
               children: [
@@ -745,41 +787,43 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: StreamBuilder<DocumentSnapshot>(
-                        stream: FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(userId)
-                            .snapshots(),
-                        builder: (context, snapshot) {
-                          if (!snapshot.hasData) {
-                            return const Center(
-                                child: CircularProgressIndicator());
-                          }
-                          final data = snapshot.data!.data() as Map<String, dynamic>?;
-                          final charId = data?['characterId'] as int? ?? 0;
-                          final character = Character.getCharacterById(charId);
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userId)
+                          .snapshots(),
+                      builder: (context, snapshot) {
+                        if (!snapshot.hasData) {
+                          return const Center(
+                            child: CircularProgressIndicator(),
+                          );
+                        }
 
-                          if (character == null) {
-                            return Image.asset(
-                              'assets/images/profile.png',
-                              width: profileImageSize,
-                              height: profileImageSize,
-                              fit: BoxFit.cover,
-                            );
-                          }
+                        final data =
+                        snapshot.data!.data() as Map<String, dynamic>?;
+                        final charId = data?['characterId'] as int? ?? 0;
+                        final character =
+                        Character.getCharacterById(charId);
 
+                        if (character == null) {
                           return Image.asset(
-                            getImagePathByCharacterId(character.id),
-                            width: profileImageSize,
-                            height: profileImageSize,
+                            'assets/images/profile.png',
                             fit: BoxFit.cover,
                           );
                         }
+
+                        return Image.asset(
+                          getImagePathByCharacterId(character.id),
+                          fit: BoxFit.cover,
+                        );
+                      },
                     ),
                   ),
                 ),
               ],
             ),
+
             const SizedBox(height: 30),
+
             Container(
               width: boxWidth,
               height: screenHeight * 0.055,
@@ -792,15 +836,15 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 child: Text(
                   name,
                   style: TextStyle(fontSize: screenWidth * 0.038),
-                  textAlign: TextAlign.center,
                 ),
               ),
             ),
+
             const SizedBox(height: 20),
+
             Container(
               width: boxWidth,
-              padding: EdgeInsets.symmetric(
-                  horizontal: boxWidth * 0.05, vertical: 24),
+              padding: EdgeInsets.all(screenWidth * 0.04),
               decoration: BoxDecoration(
                 color: const Color(0xFFE8EEF0),
                 borderRadius: BorderRadius.circular(16),
@@ -812,76 +856,85 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        '한줄 소개 (50자 이내, 최대 3줄)',
+                        '한줄 소개 (50자 이내)',
                         style: TextStyle(
                           fontSize: screenWidth * 0.035,
                           color: const Color(0xFF807E7E),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
+
                       InkWell(
                         onTap: _showEditIntroModal,
                         borderRadius: BorderRadius.circular(20),
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
                           decoration: BoxDecoration(
-                              color: Colors.black,
-                              borderRadius: BorderRadius.circular(20)),
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
                           child: Text(
                             '수정',
-                            style: TextStyle(fontSize: screenWidth * 0.035,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w500),
+                            style: TextStyle(
+                              fontSize: screenWidth * 0.035,
+                              color: Colors.white,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 15),
-                  _introWithUnderline(introText, TextStyle(
-                      fontSize: screenWidth * 0.038, color: Colors.black87)),
+
+                  const SizedBox(height: 14),
+
+                  _introWithUnderline(
+                    introText,
+                    TextStyle(
+                      fontSize: screenWidth * 0.038,
+                      color: Colors.black87,
+                    ),
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: 15),
-            Divider(color: Color(0xFFC0BBBB), thickness: 1),
+            const Divider(color: Color(0xFFC0BBBB), thickness: 1),
             const SizedBox(height: 11),
 
-            // 타이틀 변경 UI
+            /// 타이틀 변경
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 타이틀 변경 버튼
                 GestureDetector(
                   onTap: () {
                     showDialog(
                       context: context,
-                      barrierDismissible: true, // 밖 터치 닫기
-                      builder:
-                          (_) => TitleSelect(
+                      barrierDismissible: true,
+                      builder: (_) => TitleSelect(
                         selected: selectedTitles,
                         unlocked: unlockedTitles,
                         onSelect: (newTitles) {
                           setState(() {
                             selectedTitles = newTitles;
                           });
-                          // 🔥 Firestore에 선택된 타이틀 저장
                           saveSelectedTitles(newTitles);
                         },
                       ),
                     );
                   },
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
                         "타이틀 변경",
                         style: TextStyle(
                           fontSize: screenWidth * 0.038,
                           fontWeight: FontWeight.w500,
-                          color: Color(0xFF807E7E),
+                          color: const Color(0xFF807E7E),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -893,15 +946,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     ],
                   ),
                 ),
+
                 const SizedBox(height: 15),
 
-                // 선택된 타이틀 표시
                 if (selectedTitles.isNotEmpty)
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children:
-                    selectedTitles.map((t) {
+                    children: selectedTitles.map((t) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -930,17 +982,15 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       color: Colors.grey,
                     ),
                   ),
-              ],
-            ),
-          ],
+                ]
+              ),
+            ],
+          ),
         ),
-      ),
-
+    /// 하단 버튼
       bottomNavigationBar: SafeArea(
         top: false,
-        minimum: EdgeInsets.only(
-          bottom: 24,
-        ),
+        minimum: const EdgeInsets.only(bottom: 24),
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: screenWidth * 0.06,
@@ -969,6 +1019,40 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           ),
         ),
       ),
+    );
+  }
+  Widget _introPreview(String text, double screenWidth) {
+    final lines = text.split('\n').take(3).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: lines.map((line) {
+        return Container(
+          width: double.infinity,
+          padding: EdgeInsets.only(
+            bottom: screenWidth * 0.008,
+          ),
+          margin: EdgeInsets.only(
+            bottom: screenWidth * 0.012,
+          ),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: const Color(0xFFC0BBBB),
+                width: screenWidth * 0.0025,
+              ),
+            ),
+          ),
+          child: Text(
+            line.isEmpty ? ' ' : line,
+            style: TextStyle(
+              fontSize: screenWidth * 0.038,
+              color: Colors.black87,
+              height: 1.4,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
