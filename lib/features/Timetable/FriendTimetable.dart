@@ -28,16 +28,34 @@ class _FriendTimetableState extends State<FriendTimetable> {
       _isLoading = true;
     });
     try {
-      final now = DateTime.now();
-      final currentYear = now.year.toString();
-      final currentSemester = (now.month >= 1 && now.month <= 6) ? '1학기' : '2학기';
-      final defaultTableName = "$currentYear년 $currentSemester";
+      // 가장 최근에 생성된 시간표 가져오기
+      final tableSnapshot = await FirebaseFirestore.instance
+          .collection('timetables')
+          .doc(widget.friendUid)
+          .collection('TableName')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .get();
+
+      if (tableSnapshot.docs.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _friendCourses = [];
+            _currentSemester = '시간표 없음';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final latestTable = tableSnapshot.docs.first;
+      final tableName = latestTable.id;
 
       final snapshot = await FirebaseFirestore.instance
           .collection('timetables')
           .doc(widget.friendUid)
           .collection('TableName')
-          .doc(defaultTableName)
+          .doc(tableName)
           .collection('classes')
           .get();
 
@@ -56,7 +74,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
       if (mounted) {
         setState(() {
           _friendCourses = allCourses;
-          _currentSemester = defaultTableName;
+          _currentSemester = tableName;
         });
       }
     } catch (e) {
@@ -79,7 +97,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -90,6 +108,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
         title: Text(
           widget.friendName,
           style: TextStyle(
+            fontFamily: 'Golos Text',
             color: Colors.black87,
             fontWeight: FontWeight.bold,
             fontSize: 22 * scale,
@@ -107,6 +126,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
                 child: Text(
                   _currentSemester,
                   style: TextStyle(
+                    fontFamily: 'Golos Text',
                     color: const Color(0xFF556283).withOpacity(0.8),
                     fontSize: 12 * scale,
                     fontWeight: FontWeight.w600,
@@ -176,7 +196,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
           child: Center(
             child: Text(
               days[i],
-              style: TextStyle(fontSize: 11 * scale, color: const Color(0xFF504A4A))
+              style: TextStyle(fontFamily: 'Golos Text', fontSize: 11 * scale, color: const Color(0xFF504A4A))
             ),
           ),
         )),
@@ -188,7 +208,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
           child: Center(
             child: Text(
               times[i],
-              style: TextStyle(fontSize: 11 * scale, color: const Color(0xFF504A4A))
+              style: TextStyle(fontFamily: 'Golos Text', fontSize: 11 * scale, color: const Color(0xFF504A4A))
             ),
           ),
         )),
@@ -220,11 +240,11 @@ class _FriendTimetableState extends State<FriendTimetable> {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              Text(course.title, style: TextStyle(fontSize: 13 * scale, fontWeight: FontWeight.w500, color: const Color(0xFF504A4A))),
+              Text(course.title, style: TextStyle(fontFamily: 'Golos Text', fontSize: 13 * scale, fontWeight: FontWeight.w500, color: const Color(0xFF504A4A))),
               const SizedBox(height: 2),
-              Text(course.professor, style: TextStyle(fontSize: 10 * scale, color: const Color(0xFF625B5B))),
+              Text(course.professor, style: TextStyle(fontFamily: 'Golos Text', fontSize: 10 * scale, color: const Color(0xFF625B5B))),
               const SizedBox(height: 2),
-              Text(course.room, style: TextStyle(fontSize: 10 * scale, color: const Color(0xFF625B5B))),
+              Text(course.room, style: TextStyle(fontFamily: 'Golos Text', fontSize: 10 * scale, color: const Color(0xFF625B5B))),
             ],
           ),
         ),
@@ -242,7 +262,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
         children: [
           Text(
             '강의 목록',
-            style: TextStyle(fontSize: 20 * scale, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: TextStyle(fontFamily: 'Golos Text', fontSize: 20 * scale, fontWeight: FontWeight.bold, color: Colors.black87),
           ),
           SizedBox(height: 12 * scale),
           ListView.builder(
@@ -262,7 +282,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
                     children: [
                       Text(
                         course.title,
-                        style: TextStyle(fontSize: 17 * scale, fontWeight: FontWeight.bold),
+                        style: TextStyle(fontFamily: 'Golos Text', fontSize: 17 * scale, fontWeight: FontWeight.bold),
                       ),
                       SizedBox(height: 10 * scale),
                       _buildDetailRow(icon: Icons.person_outline, text: course.professor, scale: scale),
@@ -290,7 +310,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
       children: [
         Icon(icon, size: 16 * scale, color: Colors.grey[700]),
         SizedBox(width: 8 * scale),
-        Text(text, style: TextStyle(fontSize: 14 * scale, color: Colors.grey[800])),
+        Text(text, style: TextStyle(fontFamily: 'Golos Text', fontSize: 14 * scale, color: Colors.grey[800])),
       ],
     );
   }

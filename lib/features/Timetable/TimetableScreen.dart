@@ -316,6 +316,7 @@ Widget _buildHeader() {
               Text(
                 '시간표',
                 style: TextStyle(
+                    fontFamily: 'Golos Text',
                     fontSize: screenWidth * 0.065,
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF504A4A)),
@@ -326,6 +327,7 @@ Widget _buildHeader() {
                 child: Text(
                   _currentTableName ?? '시간표 로딩 중...',
                   style: const TextStyle(
+                      fontFamily: 'Golos Text',
                       fontSize: 11.5,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF556283)),
@@ -512,7 +514,7 @@ Widget _buildHeader() {
           left: timeColWidth + (i * dayColWidth),
           width: dayColWidth,
           child: Center(
-            child: Text(days[i], style: const TextStyle(fontSize: 11, color: Color(0xFF504A4A),fontWeight: FontWeight.w500))
+            child: Text(days[i], style: const TextStyle(fontFamily: 'Golos Text', fontSize: 11, color: Color(0xFF504A4A),fontWeight: FontWeight.w500))
           ),
         )),
         
@@ -526,7 +528,7 @@ Widget _buildHeader() {
             alignment: Alignment.topRight,
             child: Padding(
               padding: const EdgeInsets.only(top: 2.0, right: 4.0),
-              child: Text(times[i], style: const TextStyle(fontSize: 11, color: Color(0xFF504A4A),fontWeight: FontWeight.w500)),
+              child: Text(times[i], style: const TextStyle(fontFamily: 'Golos Text', fontSize: 11, color: Color(0xFF504A4A),fontWeight: FontWeight.w500)),
             ),
           ),
         )),
@@ -558,11 +560,11 @@ Widget _buildHeader() {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(course.title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF504A4A)), overflow: TextOverflow.ellipsis, maxLines: 2,),
+                Text(course.title, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF504A4A)), overflow: TextOverflow.ellipsis, maxLines: 2,),
                 const SizedBox(height: 0.5),
-                Text(course.professor, style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w400, color: Color(0xFF625B5B)), overflow: TextOverflow.ellipsis),
+                Text(course.professor, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 10.5, fontWeight: FontWeight.w400, color: Color(0xFF625B5B)), overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 0.5),
-                Text(course.room, style: const TextStyle(fontSize: 10.5,fontWeight: FontWeight.w400, color: Color(0xFF625B5B)), overflow: TextOverflow.ellipsis),
+                Text(course.room, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 10.5,fontWeight: FontWeight.w400, color: Color(0xFF625B5B)), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
@@ -585,13 +587,13 @@ Widget _buildHeader() {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(course.title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(course.title, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
-            Text("교수: ${course.professor}", style: const TextStyle(fontSize: 16)),
-            Text("장소: ${course.room}", style: const TextStyle(fontSize: 16)),
+            Text("교수: ${course.professor}", style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16)),
+            Text("장소: ${course.room}", style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16)),
             Text(
               "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
-              style: const TextStyle(fontSize: 16),
+              style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16),
             ),
             const Divider(height: 24),
             GestureDetector(
@@ -600,7 +602,7 @@ Widget _buildHeader() {
                 _deleteCourse(course);
               },
               child: const Row(children: [
-                Icon(Icons.delete_outline, color: Colors.grey), SizedBox(width: 6), Text("삭제")
+                Icon(Icons.delete_outline, color: Colors.grey), SizedBox(width: 6), Text("삭제", style: TextStyle(fontFamily: 'Golos Text'))
               ]),
             ),
           ],
@@ -645,7 +647,7 @@ Widget _buildHeader() {
             ),
             child: const Text(
               '친구 시간표',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF504A4A)),
+              style: TextStyle(fontFamily: 'Golos Text', fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF504A4A)),
             ),
           ),
           const SizedBox(height: 14),
@@ -721,7 +723,7 @@ Widget _buildHeader() {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: const TextStyle(fontSize: 15.5, fontWeight: FontWeight.w500)),
+          Text(name, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 15.5, fontWeight: FontWeight.w500)),
           const Icon(Icons.arrow_forward_ios, size: 16),
         ],
       ),
