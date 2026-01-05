@@ -8,7 +8,8 @@ import 'ChatScreen.dart';
 import '../Calendar/Notification.dart' as CalendarNotification;
 import '../Settings/settings_screen.dart';
 import 'dart:math';
-import '../Settings/TitleHandler.dart';
+import '../Settings/TitleHandler.dart' hide handleFavoriteFriendTitle, handleFriendCountChange;
+import '../Settings/firebase_title.dart' show handleFavoriteFriendTitleFirestore, handleFriendCount;
 
 // --- 데이터 모델 ---
 
@@ -130,6 +131,7 @@ class _FriendScreenState extends State<FriendScreen> {
   final Random _random = Random();
   final CalendarNotification.NotificationService _notificationService = CalendarNotification.NotificationService();
 
+  int _lastFriendCount = 0; // 이전 친구 수를 저장하여 변경 감지
 
   String? get currentUserId => _auth.currentUser?.uid;
 
@@ -160,7 +162,7 @@ class _FriendScreenState extends State<FriendScreen> {
             friends.add(Friend(
               friendId: friendId,
               name: userData['name'] ?? '',
-              tags: List<String>.from(userData['title'] ?? []),
+              tags: List<String>.from(userData['selectedTitles'] ?? []),
               profileImage: userData['profileImage'] ?? '',
               favorite: friendData['favorite'] ?? false,
               blockStatus: friendData['blockStatus'] ?? false,
@@ -170,6 +172,17 @@ class _FriendScreenState extends State<FriendScreen> {
           print('친구 정보 로딩 오류: $e');
         }
       }
+      
+      // 친구 목록이 업데이트될 때마다 친구 수를 계산해서 타이틀 지급
+      final friendCount = friends.length;
+      
+      // 친구 수가 변경되었을 때마다 타이틀 체크 및 지급
+      // (이미 획득한 타이틀은 자동으로 유지됨 - handleFriendCount 내부 로직)
+      if (friendCount != _lastFriendCount) {
+        await handleFriendCount(friendCount);
+        _lastFriendCount = friendCount;
+      }
+      
       return friends;
     });
   }
@@ -327,16 +340,7 @@ class _FriendScreenState extends State<FriendScreen> {
 
       await batch.commit();
 
-      // 파이어베이스에서 최신 친구 목록 개수 가져오기
-      final newFriendsSnapshot = await _firestore
-          .collection('users')
-          .doc(currentUserId)
-          .collection('friends')
-          .where('blockStatus', isEqualTo: false)
-          .get();
-
-      final newFriendCount = newFriendsSnapshot.docs.length;
-      handleFriendCountChange(newFriendCount); // 친구맺기 타이틀 지급
+      // 친구 수락 완료 (친구 목록 스트림에서 자동으로 타이틀 지급)
 
       final currentUserDoc = await _firestore.collection('users').doc(currentUserId).get();
       final myName = currentUserDoc.data()?['name'] ?? 'Unknown';
@@ -409,6 +413,7 @@ class _FriendScreenState extends State<FriendScreen> {
           .collection('friends')
           .doc(friend.friendId)
           .delete();
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('${friend.name}님을 친구 목록에서 삭제했습니다.')),
@@ -435,7 +440,7 @@ class _FriendScreenState extends State<FriendScreen> {
 
       // 친구 즐겨찾기 타이틀 지급
       final int favoriteCount = await _getFavoriteCount();
-      await handleFavoriteFriendTitle(favoriteCount);
+      await handleFavoriteFriendTitleFirestore(favoriteCount);
 
     } catch (e) {
       _showAlert('즐겨찾기 설정 중 오류가 발생했습니다: $e');
@@ -702,25 +707,37 @@ class _FriendScreenState extends State<FriendScreen> {
                     }
                     return Column(
                       children: requests.map((request) {
-                        return _FriendTile(
-                          name: request.senderName,
-                          tags: request.senderTags,
-                          tileColor: const Color(0xFFE8F0FE),
-                          isFavorite: false,
-                          onFavoriteToggle: null,
-                          onTap: () {},
-                          tagBgColor: const Color(0xFFD0E4FF),
-                          tagTextColor: const Color(0xFF0066CC),
-                          trailingButtons: [
-                            TextButton(
-                              onPressed: () => acceptFriendRequest(request),
-                              child: const Text('수락', style: TextStyle(color: Colors.green)),
-                            ),
-                            TextButton(
-                              onPressed: () => _showConfirm('거절', () => rejectFriendRequest(request)),
-                              child: const Text('거절', style: TextStyle(color: Colors.red)),
-                            ),
-                          ],
+                        return FutureBuilder<DocumentSnapshot>(
+                          future: _firestore.collection('users').doc(request.senderId).get(),
+                          builder: (context, userSnapshot) {
+                            if (!userSnapshot.hasData) return const SizedBox();
+                            if (userSnapshot.hasError) return const SizedBox();
+                            final userData = userSnapshot.data!.data() as Map<String, dynamic>? ?? {};
+                            final senderTags = List<String>.from(userData['selectedTitles'] ?? []);
+                            final senderName = userData['name'] ?? request.senderName;
+
+                            return _FriendTile(
+                              name: senderName,
+                              tags: senderTags,
+                              tileColor: const Color(0xFFE8F0FE),
+                              isFavorite: false,
+                              onFavoriteToggle: null,
+                              onTap: () {},
+                              tagBgColor: const Color(0xFFD0E4FF),
+                              tagTextColor: const Color(0xFF0066CC),
+                              trailingButtons: [
+                                TextButton(
+                                  onPressed: () => acceptFriendRequest(request),
+                                  child: const Text('수락', style: TextStyle(color: Colors.green)),
+                                ),
+                                TextButton(
+                                  onPressed: () =>
+                                      _showConfirm('거절', () => rejectFriendRequest(request)),
+                                  child: const Text('거절', style: TextStyle(color: Colors.red)),
+                                ),
+                              ],
+                            );
+                          },
                         );
                       }).toList(),
                     );
@@ -753,13 +770,18 @@ class _FriendScreenState extends State<FriendScreen> {
                     }
                     return Column(
                       children: requests.map((request) {
-                        return FutureBuilder<String>(
-                          future: getReceiverNickName(request.receiverId),
+                        return FutureBuilder<DocumentSnapshot>(
+                          future: _firestore.collection('users').doc(request.receiverId).get(),
                           builder: (context, snapshot) {
-                            final receiverNickName = snapshot.data ?? '...';
+                            if (!snapshot.hasData) {
+                              return const CircularProgressIndicator();
+                            }
+                            final data = snapshot.data!.data() as Map<String, dynamic>;
+                            final tags = List<String>.from(data['selectedTitles'] ?? []);
+                            final receiverNickName = data['name'] ?? '알 수 없음';
                             return _FriendTile(
                               name: receiverNickName,
-                              tags: const [],
+                              tags: tags,
                               tileColor: const Color(0xFFFBF5EB),
                               isFavorite: false,
                               onFavoriteToggle: null,
