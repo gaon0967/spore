@@ -390,54 +390,80 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       barrierColor: Colors.black54,
       builder: (context) {
         final screenWidth = MediaQuery.of(context).size.width;
+
         return Center(
           child: Material(
             color: Colors.transparent,
             child: Container(
               width: screenWidth * 0.65,
-              padding: const EdgeInsets.only(top: 40, left: 24, right: 24, bottom: 20),
+              padding: const EdgeInsets.only(
+                top: 40,
+                left: 24,
+                right: 24,
+                bottom: 0,
+              ),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade400),
               ),
-              child: Builder(
-                builder: (dialogContext) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF535353),
-                        ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      message,
+                      maxLines: 1,
+                      softWrap: false,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF535353),
                       ),
-                      const SizedBox(height: 24),
-                      const Divider(thickness: 1, height: 1, color: Color(0xFFDDDDDD)),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(0),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+                  const Divider(thickness: 1, height: 1, color: Color(0xFFDDDDDD)),
+                  StatefulBuilder(
+                    builder: (context, setState) {
+                      bool isPressed = false;
+
+                      return GestureDetector(
+                        onTapDown: (_) => setState(() => isPressed = true),
+                        onTapUp: (_) {
+                          setState(() => isPressed = false);
+                          Navigator.of(context).pop();
+                        },
+                        onTapCancel: () => setState(() => isPressed = false),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 120),
+                          curve: Curves.easeOut,
+                          width: double.infinity,
+                          height: screenWidth * 0.12,
+                          color: isPressed
+                              ? Colors.black.withOpacity(0.05)
+                              : Colors.transparent,
+                          child: Center(
+                            child: AnimatedDefaultTextStyle(
+                              duration: const Duration(milliseconds: 120),
+                              style: TextStyle(
+                                fontSize: screenWidth * 0.04,
+                                fontWeight: FontWeight.w600,
+                                color: isPressed
+                                    ? Colors.black.withOpacity(0.7)
+                                    : Colors.black,
+                              ),
+                              child: const Text('확인'),
                             ),
                           ),
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text(
-                            '확인',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                          ),
                         ),
-                      ),
-                    ],
-                  );
-                },
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ),
