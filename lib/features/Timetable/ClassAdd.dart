@@ -45,7 +45,7 @@ class _ClassAddState extends State<ClassAdd> {
     super.dispose();
   }
 
-  /// ⭐️ 30분 단위, 오전/오후, 9~18시 선택되는 커스텀 시간 피커 함수
+  /// 30분 단위, 오전/오후, 9~18시 선택되는 커스텀 시간 피커 함수
   Future<TimeOfDay?> _showCupertino30MinutePicker(BuildContext context, TimeOfDay initial) async {
     DateTime picked = DateTime(2024, 1, 1, initial.hour, initial.minute - (initial.minute % 30));
     return await showModalBottomSheet<TimeOfDay>(
@@ -197,17 +197,7 @@ class _ClassAddState extends State<ClassAdd> {
                     ),
                   ),
                 const SizedBox(height: 20),
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _colors.length,
-                    itemBuilder: (context, index) =>
-                      _buildColorCircle(_colors[index]),
-                    separatorBuilder: (context, index) =>
-                      const SizedBox(width: 12),
-                  ),
-                ),
+                _buildColorPickerRow(),
                 const SizedBox(height: 20),
                 Row(
                   children: [
@@ -362,20 +352,29 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  Widget _buildColorCircle(Color color) {
-    bool isSelected = _selectedColor == color;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedColor = color),
-      child: Container(
-        width: 40,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: isSelected
-              ? Border.all(color: Colors.blueAccent, width: 3)
-              : null,
-        ),
-      ),
+  Widget _buildColorPickerRow() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final circleSize = screenWidth * 0.08;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: _colors.map((color) {
+        bool isSelected = _selectedColor == color;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedColor = color),
+          child: Container(
+            width: circleSize,
+            height: circleSize,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: isSelected
+                  ? Border.all(color: Colors.blueAccent, width: 3)
+                  : null,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

@@ -225,7 +225,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
   }
 
   Route<String> _createTimetableListRoute() {
-    // 👇 PageRouteBuilder에도 <String> 타입을 지정합니다.
+    // PageRouteBuilder에도 <String> 타입을 지정합니다.
     return PageRouteBuilder<String>(
       pageBuilder: (context, animation, secondaryAnimation) => TimetableList(),
       transitionDuration: const Duration(milliseconds: 600),
@@ -609,19 +609,27 @@ Widget _buildHeader() {
     );
   }
 
+
+
+
   Widget _buildFriendsSection() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return Container();
     }
 
+    final screenHeight = MediaQuery.of(context).size.height;
+    final buttonHeight = screenHeight * 0.055;
+    final separatorHeight = screenHeight * 0.008;
+    final sectionHeight = screenHeight * 0.2; // 친구 버튼 크기 
+
     return Container(
-      height: 220,
+      height: sectionHeight,
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 15, 20, 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        borderRadius: const BorderRadius.only(
+      decoration: const BoxDecoration(
+        color: Color(0xFFF0F0F0),
+        borderRadius: BorderRadius.only(
           topLeft: Radius.circular(25),
           topRight: Radius.circular(25),
         ),
@@ -671,20 +679,20 @@ Widget _buildHeader() {
                       future: FirebaseFirestore.instance.collection('users').doc(friendUid).get(),
                       builder: (context, userSnapshot) {
                         if (userSnapshot.connectionState == ConnectionState.waiting) {
-                          return _buildFriendButton(context, '로딩 중...', friendUid);
+                          return _buildFriendButton(context, '로딩 중...', friendUid, buttonHeight);
                         }
                         if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-                          return _buildFriendButton(context, '알 수 없는 친구', friendUid);
+                          return _buildFriendButton(context, '알 수 없는 친구', friendUid, buttonHeight);
                         }
 
                         final userData = userSnapshot.data!.data() as Map<String, dynamic>;
                         final friendName = userData['name'] ?? '이름 없음';
 
-                        return _buildFriendButton(context, friendName, friendUid);
+                        return _buildFriendButton(context, friendName, friendUid, buttonHeight);
                       },
                     );
                   },
-                  separatorBuilder: (context, index) => const SizedBox(height: 8),
+                  separatorBuilder: (context, index) => SizedBox(height: separatorHeight),
                 );
               },
             ),
@@ -694,7 +702,7 @@ Widget _buildHeader() {
     );
   }
 
-  Widget _buildFriendButton(BuildContext context, String name, String uid) {
+  Widget _buildFriendButton(BuildContext context, String name, String uid, double buttonHeight) {
     return ElevatedButton(
       onPressed: () {
         Navigator.push(
@@ -705,7 +713,7 @@ Widget _buildHeader() {
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5F5F5F),
         foregroundColor: const Color(0xFFFFFFF9),
-        minimumSize: const Size(double.infinity, 65),
+        minimumSize: Size(double.infinity, buttonHeight),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         padding: const EdgeInsets.symmetric(horizontal: 16),

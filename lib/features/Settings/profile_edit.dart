@@ -592,6 +592,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
               }
           );
 
+          // 타이틀 목록 갱신 (Firestore 동기화 후 로컬에서 다시 로드)
+          await _loadUnlockedTitles();
+
           setState(() {
             introText = trimmed;
           });
