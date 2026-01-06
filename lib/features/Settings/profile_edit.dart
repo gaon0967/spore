@@ -51,9 +51,6 @@ String getImagePathByCharacterId(int id) {
 
 /// 클래스: ThreeLinesInputFormatter
 /// 목적: TextField에서 사용자 입력을 실시간으로 포맷팅하여, 최대 3줄까지만 허용하고, 글자 수는 최대 50자로 제한.
-/// 반환: - formatEditUpdate 메서드는 이전 입력 상태와 새로운 입력 상태를 받아, 제한 조건(줄 수 3줄, 글자 수 50자)을 만족하는 새로운 입력 값을 반환.
-/// - 조건에 맞지 않는 입력은 이전 상태를 반환해 입력을 차단.
-/// 예외: 줄 수가 3줄을 초과하거나, 글자 수가 50자를 넘는 입력이 들어오면, 새로운 입력을 무시하고 이전 입력 상태를 반환하여 입력을 제한.
 class ThreeLinesInputFormatter extends TextInputFormatter {
   @override
   TextEditingValue formatEditUpdate(
@@ -84,9 +81,6 @@ class ThreeLinesInputFormatter extends TextInputFormatter {
 }
 
 /// 클래스: ProfileEdit
-/// 목적: 프로필 편집 화면을 구성하는 StatefulWidget
-/// 반환: StatefulWidget 인스턴스 반환
-/// 예외: 없음
 class ProfileEdit extends StatefulWidget {
   const ProfileEdit({super.key});
 
@@ -95,15 +89,10 @@ class ProfileEdit extends StatefulWidget {
 }
 
 /// 클래스: TitleSelect
-/// 목적: 사용자가 획득한 타이틀 중에서 최대 2개를 선택할 수 있도록 하는 UI 컴포넌트
-/// - 현재 선택된 타이틀 목록과 획득한 타이틀 목록을 받아서 표시
-/// - 사용자가 타이틀 버튼을 눌러 선택/해제할 수 있으며, 최대 2개까지만 선택 가능
-/// - 선택 완료 시 선택한 타이틀 리스트를 부모 위젯에 전달
-/// 반환: StatefulWidget 인스턴스 반환
 class TitleSelect extends StatefulWidget {
-  final List<String> selected; // 현재 선택한 2개
-  final List<String> unlocked; // 획득한 타이틀 목록
-  final void Function(List<String>) onSelect; // 선택 완료 시 부모로 전달
+  final List<String> selected;
+  final List<String> unlocked;
+  final void Function(List<String>) onSelect;
 
   const TitleSelect({
     Key? key,
@@ -117,11 +106,6 @@ class TitleSelect extends StatefulWidget {
 }
 
 /// 클래스: _TitleSelectState
-/// 목적: TitleSelect의 상태를 관리하며 UI 동작과 사용자 입력 처리
-/// - 사용자가 타이틀을 선택하거나 선택 해제할 때 상태를 업데이트
-/// - 선택된 타이틀이 2개를 넘지 않도록 제한
-/// - 완료 버튼을 누르면 선택한 타이틀을 부모 위젯에 알리고 모달을 닫음
-/// 반환: State<TitleSelect> 인스턴스 반환
 class _TitleSelectState extends State<TitleSelect> {
   late List<String> current;
 
@@ -131,8 +115,6 @@ class _TitleSelectState extends State<TitleSelect> {
     current = List.from(widget.selected);
   }
 
-  /// 타이틀 버튼 눌렀을 때 선택/해제 토글
-  /// 이미 선택된 타이틀이면 해제, 아니면 최대 2개까지 선택 가능
   void handleToggle(String title) {
     setState(() {
       if (current.contains(title)) {
@@ -145,24 +127,20 @@ class _TitleSelectState extends State<TitleSelect> {
 
   @override
   Widget build(BuildContext context) {
-    // 상단 상태바(노치) 영역을 침범하지 않도록 Padding 추가
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Material(
-      // 다이얼로그 안에서 텍스트 스타일이 깨지지 않게 Material로 감쌉니다.
       color: Colors.transparent,
       child: Container(
         width: double.infinity,
-        // 상단은 직각, 하단만 40으로 둥글게 처리하여 위에서 내려온 느낌을 줍니다.
         decoration: const BoxDecoration(
-          color: const Color(0xFFFEFEF9),
+          color: Color(0xFFFEFEF9),
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
         ),
         padding: EdgeInsets.fromLTRB(24, topPadding + 10, 24, 40),
         child: Column(
-          mainAxisSize: MainAxisSize.min, // 내용물만큼만 높이 차지
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. 헤더 (중앙 타이틀 + 우측 완료 버튼)
             Stack(
               alignment: Alignment.center,
               children: [
@@ -194,18 +172,16 @@ class _TitleSelectState extends State<TitleSelect> {
               ],
             ),
             const SizedBox(height: 10),
-
-            // 2. 설명글 (중앙 정렬)
             const Text(
               '타이틀 2가지를 지정해주세요.\n지정한 타이틀은 프로필에 표시됩니다.',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, 
-              color: const Color(0xFFA5A5A5),
-              height: 1.4),
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFFA5A5A5),
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 30),
-
-            // 3. 타이틀 버튼 목록
             Wrap(
               alignment: WrapAlignment.center,
               spacing: 13,
@@ -263,9 +239,6 @@ class _TitleSelectState extends State<TitleSelect> {
 }
 
 /// 클래스: _ProfileEditPageState
-/// 목적: ProfileEdit에서 상태 관리, Firestore와 데이터 연동, 닉네임 및 한줄 소개 편집 기능을 제공
-/// 반환: State<ProfileEdit> 인스턴스 반환
-/// 예외: Firestore 접근 실패 예외 처리 필요
 class _ProfileEditPageState extends State<ProfileEdit> {
   String name = "";
   String introText = "";
@@ -407,8 +380,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black54,
-      builder: (context) {
+      builder: (dialogContext) {
         final screenWidth = MediaQuery.of(context).size.width;
+
         return Center(
           child: Material(
             color: Colors.transparent,
@@ -425,50 +399,51 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: Colors.grey.shade400),
               ),
-              child: Builder(
-                builder: (dialogContext) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        message,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      message,
+                      maxLines: 1,
+                      softWrap: false,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF535353),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(
+                    thickness: 1,
+                    height: 1,
+                    color: Color(0xFFDDDDDD),
+                  ),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 44,
+                    child: TextButton(
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.black,
+                        padding: EdgeInsets.zero,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(0),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text(
+                        '확인',
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF535353),
                         ),
                       ),
-                      const SizedBox(height: 24),
-                      const Divider(
-                        thickness: 1,
-                        height: 1,
-                        color: Color(0xFFDDDDDD),
-                      ),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 44,
-                        child: TextButton(
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.black,
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(0),
-                            ),
-                          ),
-                          onPressed: () => Navigator.of(dialogContext).pop(),
-                          child: const Text(
-                            '확인',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  );
-                },
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -531,7 +506,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   Widget _introWithUnderline(String intro, TextStyle style) {
     List<String> lines = intro.isEmpty ? [] : intro.split('\n');
 
-    // 무조건 3줄 공간 확보
     while (lines.length < 3) {
       lines.add("");
     }
@@ -543,7 +517,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           displayLines.map((line) {
             return Container(
               width: double.infinity,
-              constraints: const BoxConstraints(minHeight: 32), // 줄 높이 조절
+              constraints: const BoxConstraints(minHeight: 32),
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
                 border: Border(
@@ -580,39 +554,24 @@ class _ProfileEditPageState extends State<ProfileEdit> {
 
   void _showEditIntroModal() {
     final controller = TextEditingController(text: introText);
-    bool _isDialogShowing = false;
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
     showModalBottomSheet(
-      backgroundColor: const Color(0xFFE8EEF0),
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (modalContext) {
         final bottomInset = MediaQuery.of(modalContext).viewInsets.bottom;
 
-        Future<void> saveIntroText(String userId, String intro) async {
-          await FirebaseFirestore.instance.collection('users').doc(userId).set({
-            'intro': intro,
-          }, SetOptions(merge: true));
-        }
-
-        void finishIntroEdit() async {
+        Future<void> finishIntroEdit() async {
           final trimmed = controller.text.trim();
-          if (trimmed.isEmpty) {
-            if (!_isDialogShowing) {
-              _isDialogShowing = true;
-              Navigator.of(modalContext).pop();
-              _showCompleteMessageDialog(context, '한 글자 이상 입력해주세요.');
-              _isDialogShowing = false;
-            }
-            return;
-          }
 
-          await saveIntroText(userId, trimmed);
+          // Firestore에 저장
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .update({'intro': trimmed});
 
           // 한줄 소개 타이틀 지급
           await handleProfileEditTitles(
@@ -630,63 +589,71 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           _showCompleteMessageDialog(context, '한줄 소개 수정이 완료되었습니다.');
         }
 
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            bottom: bottomInset + 16,
-            top: 30,
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  maxLength: 50,
-                  autofocus: true,
-                  maxLines: 3,
-                  minLines: 1,
-                  keyboardType: TextInputType.multiline,
-                  inputFormatters: [ThreeLinesInputFormatter()],
-                  decoration: InputDecoration(
-                    hintText: '한줄 소개를 입력하세요',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(30),
-                      borderSide: BorderSide.none,
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFE8EEF0),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    counterText: '',
-                  ),
-                ),
+        return GestureDetector(
+          onTap: () => FocusScope.of(modalContext).unfocus(),
+          child: AnimatedPadding(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOut,
+            padding: EdgeInsets.only(bottom: bottomInset),
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Color(0xFFE8EEF0),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: finishIntroEdit,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF848CA6),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+              padding: EdgeInsets.fromLTRB(16, 30, 16, bottomInset + 16),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: controller,
+                      maxLength: 50,
+                      autofocus: true,
+                      maxLines: 3,
+                      minLines: 1,
+                      keyboardType: TextInputType.multiline,
+                      inputFormatters: [ThreeLinesInputFormatter()],
+                      decoration: InputDecoration(
+                        hintText: '한줄 소개를 입력하세요',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(30),
+                          borderSide: BorderSide.none,
+                        ),
+                        filled: true,
+                        fillColor: const Color(0xFFE8EEF0),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        counterText: '',
+                      ),
+                    ),
                   ),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 14,
-                    horizontal: 22,
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: finishIntroEdit,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF848CA6),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 14,
+                        horizontal: 22,
+                      ),
+                    ),
+                    child: Text(
+                      '완료',
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.036,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                ),
-                child: Text(
-                  '완료',
-                  style: TextStyle(
-                    fontSize: screenWidth * 0.036,
-                    color: Colors.white,
-                  ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         );
       },
@@ -702,14 +669,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     });
   }
 
-  /// 타이틀 선택 (2개만, TitleSelect 모달에서 선택 완료 시 설정)
   void handleTitleSelect(List<String> picked) {
     setState(() {
       selectedTitles = picked;
     });
   }
 
-  // 선택한 타이틀을 Firestore에 저장
   Future<void> saveSelectedTitles(List<String> picked) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -721,7 +686,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     print("Firestore에 선택된 타이틀 저장 완료: $picked");
   }
 
-  // 선택한 타이틀 로드
   Future<void> loadSelectedTitles() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
@@ -753,24 +717,22 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
       appBar: AppBar(
-        // 1. 뒤로가기 화살표 이미지로 교체
         titleSpacing: 0,
         leading: IconButton(
           icon: Image.asset(
-            'assets/images/Setting/go.png', // 화살표 이미지 경로
+            'assets/images/Setting/go.png',
             width: screenWidth * 0.045,
             height: screenWidth * 0.045,
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        // 2. 프로필 변경 글꼴 및 스타일 수정
         title: Text(
           '프로필 변경',
           style: TextStyle(
             fontSize: screenWidth * 0.047,
             fontFamily: 'Golos Text',
             fontWeight: FontWeight.w700,
-            color: Color(0xFF504A4A),
+            color: const Color(0xFF504A4A),
           ),
         ),
         centerTitle: false,
@@ -853,7 +815,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   style: TextStyle(
                     fontFamily: 'Golos Text',
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF635A5A),
+                    color: const Color(0xFF635A5A),
                     fontSize: screenWidth * 0.045,
                   ),
                   textAlign: TextAlign.center,
@@ -863,7 +825,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
             const SizedBox(height: 22),
             Container(
               width: boxWidth,
-              constraints: const BoxConstraints(minHeight: 170), // 적절한 박스 높이 유지
+              constraints: const BoxConstraints(minHeight: 170),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 15),
               decoration: BoxDecoration(
                 color: const Color(0xFFE8EEF0),
@@ -874,7 +836,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 타이틀 (가장 상단)
                       Text(
                         '한줄 소개 (50자 이내)',
                         style: TextStyle(
@@ -884,8 +845,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         ),
                       ),
                       const SizedBox(height: 8),
-
-                      // 줄노트 영역
                       _introWithUnderline(
                         introText,
                         TextStyle(
@@ -894,13 +853,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           color: const Color(0xFF635A5A),
                         ),
                       ),
-
-                      // 1. 핵심: 줄 영역과 버튼이 겹치지 않게 하단 여백 확보
                       const SizedBox(height: 55),
                     ],
                   ),
-
-                  // 2. 수정 버튼을 우측 하단 구석에 배치
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -930,30 +885,21 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ],
               ),
             ),
-
             const SizedBox(height: 15),
-            Divider(color: Color(0xFFC0BBBB), thickness: 1),
+            const Divider(color: Color(0xFFC0BBBB), thickness: 1),
             const SizedBox(height: 11),
-
-            // 타이틀 변경 UI
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 타이틀 변경 버튼
                 GestureDetector(
                   onTap: () {
                     showGeneralDialog(
                       context: context,
-                      barrierDismissible: true, // 배경 터치 시 닫기
+                      barrierDismissible: true,
                       barrierLabel: '',
-                      barrierColor: Colors.black.withOpacity(
-                        0.5,
-                      ), // 배경 어두워지는 정도
-                      transitionDuration: const Duration(
-                        milliseconds: 450,
-                      ), // 내려오는 속도
+                      barrierColor: Colors.black.withOpacity(0.5),
+                      transitionDuration: const Duration(milliseconds: 450),
                       pageBuilder: (context, anim1, anim2) {
-                        // 위에서 아래로 정렬되도록 Alignment 설정
                         return Align(
                           alignment: Alignment.topCenter,
                           child: TitleSelect(
@@ -968,7 +914,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           ),
                         );
                       },
-                      // 위에서 아래로 내려오는 애니메이션 설정
                       transitionBuilder: (context, anim1, anim2, child) {
                         return SlideTransition(
                           position: Tween(
@@ -981,14 +926,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     );
                   },
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       Text(
                         "타이틀 변경",
                         style: TextStyle(
                           fontSize: screenWidth * 0.039,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF807E7E),
+                          color: const Color(0xFF807E7E),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -1001,8 +945,6 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   ),
                 ),
                 const SizedBox(height: 15),
-
-                // 선택된 타이틀 표시
                 if (selectedTitles.isNotEmpty)
                   Wrap(
                     spacing: 14,
@@ -1021,7 +963,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                             child: Text(
                               "# $t",
                               style: TextStyle(
-                                color: Color(0xFF504a4a),
+                                color: const Color(0xFF504a4a),
                                 fontWeight: FontWeight.w500,
                                 fontSize: screenWidth * 0.038,
                               ),

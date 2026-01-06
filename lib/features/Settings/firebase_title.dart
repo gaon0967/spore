@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../Settings/TitleHandler.dart';
 import 'package:new_project_1/features/Settings/TitleHandler.dart' as titles;
 import '../Calendar/Notification.dart';
+import '../Calendar/event.dart';
 
 // 공통 타이틀 획득 처리 함수 (알림 생성 + Firestore 저장)
 Future<void> _handleTitleAcquisition(List<TitleInfo> newlyEarnedTitles) async {
@@ -21,9 +22,10 @@ Future<void> _handleTitleAcquisition(List<TitleInfo> newlyEarnedTitles) async {
   // Firestore에 저장
   final names = newlyEarnedTitles.map((t) => t.name).toList();
   await addUnlockedTitlesToFirestore(names);
-
-  // 로컬 동기화 실행
   await syncFirestoreTitlesToLocal();
+  
+  // 로컬에만 있는 다른 타이틀들도 함께 Firestore로 동기화
+  await syncLocalTitlesToFirestore();
 }
 
 // Firestore에 연결된 사용자 문서 참조 반환
@@ -187,6 +189,21 @@ Future<List<TitleInfo>> ConstTodoCount(
   
   return streak;
 }
+
+// 투두리스트 연속 성공 일수 기반 타이틀 처리
+Future<List<TitleInfo>> handleConsecutiveTodoSuccessTitleFirestore(
+    Map<DateTime, List<Event>> events,
+    DateTime referenceDate, {
+      Function? onUpdate,
+    }) async {
+  final newlyEarned = await handleConsecutiveTodoSuccessTitle(events, referenceDate, onUpdate: onUpdate);
+  
+  if (newlyEarned.isNotEmpty) {
+    await _handleTitleAcquisition(newlyEarned);
+  }
+  
+  return newlyEarned;
+}
 // firestore에 저장된 일정으로 연속일수 계산
 Future<void> handleConsecutiveTodo() async {
   final user = FirebaseAuth.instance.currentUser;
@@ -337,4 +354,25 @@ Future<void> migrateAllLocalTitlesToFirestoreOnce() async {
   }
 
   print('심리테스트 타이틀 저장 완료');
+}
+
+// 로컬에만 있는 타이틀을 Firestore로 동기화하는 함수
+Future<void> syncLocalTitlesToFirestore() async {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user == null) return;
+
+  final prefs = await SharedPreferences.getInstance();
+  final localTitles = prefs.getStringList('unlocked_titles') ?? [];
+  
+  if (localTitles.isEmpty) return;
+
+  final remoteTitles = await getUnlockedTitlesFromFirestore();
+  
+  // 로컬에만 있는 타이틀 찾기
+  final titlesToSync = localTitles.where((title) => !remoteTitles.contains(title)).toList();
+  
+  if (titlesToSync.isNotEmpty) {
+    await addUnlockedTitlesToFirestore(titlesToSync);
+    print('로컬 타이틀을 Firestore로 동기화 완료: $titlesToSync');
+  }
 }

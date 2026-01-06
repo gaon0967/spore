@@ -45,14 +45,18 @@ class _ClassAddState extends State<ClassAdd> {
     super.dispose();
   }
 
-  /// ⭐️ 30분 단위, 오전/오후, 9~18시 선택되는 커스텀 시간 피커 함수
+  /// 30분 단위, 오전/오후, 9~18시 선택되는 커스텀 시간 피커 함수
   Future<TimeOfDay?> _showCupertino30MinutePicker(BuildContext context, TimeOfDay initial) async {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final pickerHeight = screenHeight * 0.35;
+
     DateTime picked = DateTime(2024, 1, 1, initial.hour, initial.minute - (initial.minute % 30));
     return await showModalBottomSheet<TimeOfDay>(
       context: context,
       builder: (_) {
         return SizedBox(
-          height: 300,
+          height: pickerHeight,
           child: Column(
             children: [
               Expanded(
@@ -69,7 +73,7 @@ class _ClassAddState extends State<ClassAdd> {
                 ),
               ),
               CupertinoButton(
-                child: const Text('확인'),
+                child: Text('확인', style: TextStyle(fontFamily: 'Golos Text', fontSize: screenWidth * 0.04)),
                 onPressed: () {
                   Navigator.pop(
                     context,
@@ -130,16 +134,25 @@ class _ClassAddState extends State<ClassAdd> {
 
   @override
   Widget build(BuildContext context) {
-    final horizontalPadding = MediaQuery.of(context).size.width * 0.06;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final horizontalPadding = screenWidth * 0.06;
+    final verticalPadding = screenHeight * 0.028;
+    final smallSpacing = screenHeight * 0.014;
+    final mediumSpacing = screenHeight * 0.022;
+    final buttonPadding = screenHeight * 0.016;
+    final borderRadius = screenWidth * 0.03;
+    final fontSize = screenWidth * 0.04;
+
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(screenWidth * 0.04)),
       backgroundColor: Colors.white,
       elevation: 0,
       child: SingleChildScrollView(
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
-            vertical: 24.0,
+            vertical: verticalPadding,
           ),
           child: Form(
             key: _formKey,
@@ -150,23 +163,27 @@ class _ClassAddState extends State<ClassAdd> {
                 _buildTextField(
                   controller: _courseNameController,
                   hintText: '수업명',
+                  screenWidth: screenWidth,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: smallSpacing),
                 _buildTextField(
                   controller: _professorController,
                   hintText: '교수',
+                  screenWidth: screenWidth,
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: smallSpacing),
                 _buildTextField(
                   controller: _locationController,
                   hintText: '장소',
+                  screenWidth: screenWidth,
                 ),
-                const SizedBox(height: 20),
-                _buildDayPicker(),
-                const SizedBox(height: 20),
+                SizedBox(height: mediumSpacing),
+                _buildDayPicker(screenWidth),
+                SizedBox(height: mediumSpacing),
                 _buildTimePickerRow(
                   label: '시작 시간',
                   time: _startTime,
+                  screenWidth: screenWidth,
                   onTap: () async {
                     final picked = await _showCupertino30MinutePicker(
                       context,
@@ -175,10 +192,11 @@ class _ClassAddState extends State<ClassAdd> {
                     if (picked != null) setState(() => _startTime = picked);
                   },
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: smallSpacing),
                 _buildTimePickerRow(
                   label: '종료 시간',
                   time: _endTime,
+                  screenWidth: screenWidth,
                   onTap: () async {
                     final picked = await _showCupertino30MinutePicker(
                       context,
@@ -189,26 +207,16 @@ class _ClassAddState extends State<ClassAdd> {
                 ),
                 if (_timeErrorText != null)
                   Padding(
-                    padding: const EdgeInsets.only(top: 8.0),
+                    padding: EdgeInsets.only(top: screenHeight * 0.01),
                     child: Text(
                       _timeErrorText!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12),
+                      style: TextStyle(fontFamily: 'Golos Text', color: Colors.red, fontSize: screenWidth * 0.03),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 40,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _colors.length,
-                    itemBuilder: (context, index) =>
-                      _buildColorCircle(_colors[index]),
-                    separatorBuilder: (context, index) =>
-                      const SizedBox(width: 12),
-                  ),
-                ),
-                const SizedBox(height: 20),
+                SizedBox(height: mediumSpacing),
+                _buildColorPickerRow(),
+                SizedBox(height: mediumSpacing),
                 Row(
                   children: [
                     Expanded(
@@ -216,37 +224,39 @@ class _ClassAddState extends State<ClassAdd> {
                         onPressed: _validateAndSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF4A4A4A),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: buttonPadding),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(borderRadius),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           '추가 +',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontFamily: 'Golos Text',
+                            fontSize: fontSize,
                             fontWeight: FontWeight.bold,
                             color: Colors.white,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: screenWidth * 0.025),
                     Expanded(
                       child: TextButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: TextButton.styleFrom(
                           foregroundColor: Colors.grey[600],
-                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          padding: EdgeInsets.symmetric(vertical: buttonPadding),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(borderRadius),
                             side: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
-                        child: const Text(
+                        child: Text(
                           '닫기',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontFamily: 'Golos Text',
+                            fontSize: fontSize,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -266,29 +276,35 @@ class _ClassAddState extends State<ClassAdd> {
     required String label,
     TimeOfDay? time,
     required VoidCallback onTap,
+    required double screenWidth,
   }) {
+    final fontSize = screenWidth * 0.04;
+    final padding = screenWidth * 0.04;
+    final borderRadius = screenWidth * 0.03;
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding * 0.9),
         decoration: BoxDecoration(
           color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(borderRadius),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               label,
-              style: const TextStyle(fontSize: 16, color: Colors.black54),
+              style: TextStyle(fontFamily: 'Golos Text', fontSize: fontSize, color: Colors.black54),
             ),
             Text(
               time != null
                   ? MaterialLocalizations.of(context)
                       .formatTimeOfDay(time, alwaysUse24HourFormat: false)
                   : '시간 선택',
-              style: const TextStyle(
-                fontSize: 16,
+              style: TextStyle(
+                fontFamily: 'Golos Text',
+                fontSize: fontSize,
                 fontWeight: FontWeight.w500,
                 color: Colors.black87,
               ),
@@ -299,7 +315,12 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  Widget _buildDayPicker() {
+  Widget _buildDayPicker(double screenWidth) {
+    final fontSize = screenWidth * 0.038;
+    final verticalPadding = screenWidth * 0.02;
+    final margin = screenWidth * 0.01;
+    final borderRadius = screenWidth * 0.02;
+
     return Row(
       children: _days.asMap().entries.map((entry) {
         final day = entry.value;
@@ -309,18 +330,20 @@ class _ClassAddState extends State<ClassAdd> {
             onTap: () => setState(() => _selectedDay = day),
             child: Container(
               margin: EdgeInsets.only(
-                left: entry.key == 0 ? 0 : 4,
-                right: entry.key == _days.length - 1 ? 0 : 4,
+                left: entry.key == 0 ? 0 : margin,
+                right: entry.key == _days.length - 1 ? 0 : margin,
               ),
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: EdgeInsets.symmetric(vertical: verticalPadding),
               decoration: BoxDecoration(
                 color: isSelected ? Colors.blueAccent : Colors.grey[200],
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(borderRadius),
               ),
               child: Center(
                 child: Text(
                   day,
                   style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: fontSize,
                     color: isSelected ? Colors.white : Colors.black,
                     fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -336,21 +359,27 @@ class _ClassAddState extends State<ClassAdd> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
+    required double screenWidth,
   }) {
+    final fontSize = screenWidth * 0.04;
+    final padding = screenWidth * 0.04;
+    final borderRadius = screenWidth * 0.03;
+
     return TextFormField(
       controller: controller,
+      style: TextStyle(fontFamily: 'Golos Text', fontSize: fontSize),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: TextStyle(color: Colors.grey[400]),
+        hintStyle: TextStyle(fontFamily: 'Golos Text', color: Colors.grey[400], fontSize: fontSize),
         filled: true,
-        fillColor: const Color(0xFFF5F5F5),
+        fillColor: const Color.fromARGB(255, 255, 255, 255),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(borderRadius),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: padding,
+          vertical: padding * 0.9,
         ),
       ),
       validator: (value) {
@@ -362,20 +391,29 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  Widget _buildColorCircle(Color color) {
-    bool isSelected = _selectedColor == color;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedColor = color),
-      child: Container(
-        width: 40,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          border: isSelected
-              ? Border.all(color: Colors.blueAccent, width: 3)
-              : null,
-        ),
-      ),
+  Widget _buildColorPickerRow() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final circleSize = screenWidth * 0.08;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: _colors.map((color) {
+        bool isSelected = _selectedColor == color;
+        return GestureDetector(
+          onTap: () => setState(() => _selectedColor = color),
+          child: Container(
+            width: circleSize,
+            height: circleSize,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+              border: isSelected
+                  ? Border.all(color: Colors.blueAccent, width: 3)
+                  : null,
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }

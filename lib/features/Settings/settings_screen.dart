@@ -7,6 +7,7 @@ import 'package:naver_login_sdk/naver_login_sdk.dart';
 import 'package:new_project_1/features/Calendar/Notification.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 친구 관리 화면
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:math' as math;
 
 /// ==============================
@@ -824,8 +825,20 @@ Future<void> callDeleteUserAllData(String uid) async {
   ).httpsCallable('deleteUserAllData');
 
   try {
+    // asia-northeast3 리전을 명시해주는 것이 좋습니다.
+    final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1').httpsCallable('deleteUserAllData');
+    print("Cloud Function 'deleteUserAllData' 호출, UID: $uid");
     final response = await callable.call({'uid': uid});
     print('Function 결과: ${response.data}');
+    // Cloud Function 성공 → 로컬 타이틀 정리
+    final prefs = await SharedPreferences.getInstance();
+    final keys = prefs.getKeys();
+
+    for (final key in keys) {
+      if (key.contains("title") || key.contains("titles")) {
+        await prefs.remove(key);
+      }
+      }
   } on FirebaseFunctionsException catch (e) {
     print('Functions 오류: ${e.code} - ${e.message}');
     throw Exception('서버 데이터 삭제 실패');
