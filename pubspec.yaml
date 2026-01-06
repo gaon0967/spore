@@ -78,6 +78,7 @@ flutter:
     - assets/images/PsychologyTest/Shape/Rectangle2-4.png
 
     - assets/images/PsychologyTest/Shape/Ellipse.png
+    - assets/images/PsychologyTest/Shape/bar.png
     - assets/images/PsychologyTest/Shape/Polygon.png
     - assets/images/PsychologyTest/Shape/Star.png
     
