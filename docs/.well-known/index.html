@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spore - 친구와 함께하는 시간표 공유 앱</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+        }
+        
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        nav {
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 1rem;
+        }
+        
+        nav a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            margin: 0 0.5rem;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        
+        nav a:hover {
+            background: #f0f0f0;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        
+        section {
+            margin-bottom: 3rem;
+        }
+        
+        h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .feature-card {
+            background: #f9f9f9;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature-card h3 {
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        
+        footer {
+            background: #333;
+            color: white;
+            text-align: center;
+            padding: 2rem 1rem;
+            margin-top: 3rem;
+        }
+        
+        .contact {
+            background: #f0f0f0;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+        }
+        
+        .contact a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .coming-soon {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            margin: 2rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🌱 Spore</h1>
+        <p>친구와 함께하는 스마트 시간표 공유 서비스</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#about">소개</a></li>
+            <li><a href="#features">주요 기능</a></li>
+            <li><a href="#privacy">개인정보 처리방침</a></li>
+            <li><a href="#contact">문의</a></li>
+        </ul>
+    </nav>
+
+    <div class="container">
+        <div class="coming-soon">
+            <h2 style="color: white; border: none;">🚀 Coming Soon</h2>
+            <p>Spore는 곧 출시됩니다. 조금만 기다려주세요!</p>
+        </div>
+
+        <section id="about">
+            <h2>Spore란?</h2>
+            <p>
+                Spore는 친구들과 시간표를 공유하고, 함께할 수 있는 시간을 쉽게 찾을 수 있도록 도와주는 스마트 앱입니다.
+                심리 테스트를 통해 나와 잘 맞는 친구를 추천받고, 서로의 일정을 공유하며 더 즐거운 캠퍼스 라이프를 만들어보세요.
+            </p>
+        </section>
+
+        <section id="features">
+            <h2>주요 기능</h2>
+            <div class="features">
+                <div class="feature-card">
+                    <h3>📅 시간표 공유</h3>
+                    <p>친구들과 시간표를 공유하고 함께할 수 있는 시간을 한눈에 확인하세요.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎭 심리 테스트</h3>
+                    <p>재미있는 심리 테스트로 나만의 타이틀을 받고, 비슷한 성향의 친구를 만나보세요.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>👥 친구 추천</h3>
+                    <p>나와 잘 맞는 친구를 AI가 추천해드립니다. 새로운 인연을 만들어보세요.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔐 안전한 서비스</h3>
+                    <p>네이버 소셜 로그인으로 간편하게 시작하고, 개인정보는 안전하게 보호됩니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="privacy">
+            <h2>개인정보 처리방침</h2>
+            <p>
+                Spore는 개인정보보호법에 따라 이용자의 개인정보를 안전하게 보호합니다.
+            </p>
+            <p style="margin-top: 1rem;">
+                <strong>시행일자:</strong> 2026년 1월 31일<br>
+                <strong>버전:</strong> v1.0
+            </p>
+            <p style="margin-top: 1rem;">
+                상세한 개인정보 처리방침은 앱 출시 후 앱 내에서 확인하실 수 있습니다.
+            </p>
+            <div style="margin-top: 2rem; padding: 1rem; background: #f9f9f9; border-left: 4px solid #667eea;">
+                <h3>수집하는 개인정보</h3>
+                <ul style="margin-left: 2rem; margin-top: 0.5rem;">
+                    <li>네이버 로그인 정보 (ID, 이름, 이메일, 휴대전화번호)</li>
+                    <li>프로필 정보 (사진, 한줄소개)</li>
+                    <li>시간표 정보 (사용자가 직접 입력)</li>
+                    <li>심리 테스트 결과</li>
+                </ul>
+                <p style="margin-top: 1rem;">
+                    ※ 모든 정보는 서비스 제공 목적으로만 사용되며, 사용자의 동의 없이 제3자에게 제공되지 않습니다.
+                </p>
+            </div>
+        </section>
+
+        <section id="contact">
+            <h2>문의하기</h2>
+            <div class="contact">
+                <p><strong>이메일:</strong> <a href="mailto:support@tigana.app">support@tigana.app</a></p>
+                <p style="margin-top: 0.5rem;">
+                    개인정보 관련 문의, 서비스 이용 문의 등 언제든지 연락주세요.
+                </p>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <p>© 2026 Spore. All rights reserved.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+            본 서비스는 개인정보보호법을 준수합니다.
+        </p>
+    </footer>
+</body>
+</html>
