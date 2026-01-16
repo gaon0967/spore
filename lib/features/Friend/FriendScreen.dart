@@ -1030,21 +1030,42 @@ class _FriendScreenState extends State<FriendScreen> {
   }
 
   Widget _buildRecommendationSlider() {
-  return StreamBuilder<List<RecommendedUser>>(
-    stream: _recommendedStream,
-    builder: (context, snapshot) {
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
-      final recommendedUsers = snapshot.data ?? [];
+    // 현재 사용자의 recommend 설정을 먼저 확인___ 이번에 추가한거 가령 (1/15)
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(currentUserId).snapshots(),
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
 
-      if (recommendedUsers.isEmpty) {
-        return const Center(
-          child: Text('추천할 친구가 없습니다.', style: TextStyle(color: Colors.grey)),
-        );
-      }
+        // 현재 사용자의 recommend 값 확인 (기본값: true)
+        bool isRecommendEnabled = true;
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+          isRecommendEnabled = userData?['recommend'] ?? true;
+        }
 
-      return Column(
+        // recommend가 false이면 비활성화 메시지 표시
+        if (!isRecommendEnabled) {
+          return _buildDisabledRecommendationCard();
+        }
+
+        // recommend가 true이면 기존 추천 친구 목록 표시
+        return StreamBuilder<List<RecommendedUser>>(
+          stream: _recommendedStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            final recommendedUsers = snapshot.data ?? [];
+
+            if (recommendedUsers.isEmpty) {
+              return const Center(
+                child: Text('추천할 친구가 없습니다.', style: TextStyle(color: Colors.grey)),
+              );
+            }
+
+            return Column(
         children: [
           const SizedBox(height: 30),
 
@@ -1213,11 +1234,78 @@ class _FriendScreenState extends State<FriendScreen> {
               ],
             ),
           ),
-        ],
-      );
-    },
-  );
-}
+            ],
+          );
+          },
+        );
+      },
+    );
+  }
+
+  // 추천 친구 비활성화 상태 UI (1/16)
+
+  Widget _buildDisabledRecommendationCard() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 반응형 크기 계산 (기준: 290x414)
+        final double cardWidth = constraints.maxWidth * 0.75;
+        final double cardHeight = cardWidth * (414 / 290);
+        final double innerBoxSize = cardWidth * (230 / 290);
+
+        // 반응형 값들
+        final double outerRadius = cardWidth * (24 / 290);
+        final double innerRadius = cardWidth * (20 / 290);
+        final double fontSize = cardWidth * (15 / 290);
+        final double textSpacing = cardWidth * (4 / 290);
+
+        return Center(
+          child: Container(
+            width: cardWidth,
+            height: cardHeight,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9F6EC),
+              borderRadius: BorderRadius.circular(outerRadius),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: innerBoxSize,
+                  height: innerBoxSize,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(innerRadius),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '추천친구가 비활성화 상태입니다.',
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          color: const Color(0xFF6B6B6B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      SizedBox(height: textSpacing),
+                      Text(
+                        '설정에서 활성화 할 수 있습니다.',
+                        style: TextStyle(
+                          fontSize: fontSize,
+                          color: const Color(0xFF6B6B6B),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   String getImagePathByCharacterId(int id) {
     switch (id) {
