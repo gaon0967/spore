@@ -238,10 +238,10 @@ Future<void> _setUnlockedTitles(List<String> titles) async {
 /// 반환: Future<List<TitleInfo>> - 새로 획득한 타이틀 목록
 /// ------------------------------
 Future<List<TitleInfo>> _filterAndSaveTitles(
-    UserStats stats,
-    List<TitleInfo> titlesToCheck, {
-      Function? onUpdate,
-    }) async {
+  UserStats stats,
+  List<TitleInfo> titlesToCheck, {
+  Function? onUpdate,
+}) async {
   final earnedTitles = titlesToCheck.where((t) => t.condition(stats)).toList();
 
   final unlocked = await _getUnlockedTitles();
@@ -257,7 +257,25 @@ Future<List<TitleInfo>> _filterAndSaveTitles(
   }
 
   if (updated) {
+    // 1. 로컬 저장 (기존 로직)
     await _setUnlockedTitles(unlocked);
+    
+    // 2. 서버(Firestore) 저장 (추가된 로직)
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({
+          'unlocked_titles': unlocked, // 추천 친구 화면에서 읽어가는 필드명과 일치시켜야 함
+        });
+        print('Firestore 타이틀 업데이트 성공');
+      } catch (e) {
+        print('Firestore 타이틀 업데이트 실패: $e');
+      }
+    }
+
     if (onUpdate != null) onUpdate();
   }
 

@@ -3,10 +3,10 @@ import 'PsychologyResult.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 // --- 테스트 질문 화면 ---
-/// 클래스 : PsychologyQuestion  
-/// 목적 : 심리 테스트 질문을 하나씩 보여주고, 사용자의 선택을 받아 점수를 누적한 후 결과로 이동  
-/// 여기서 점수는 1~8번에 계수 정렬처럼 누적됨. 
-/// 반환타입 : StatefulWidget  
+/// 클래스 : PsychologyQuestion
+/// 목적 : 심리 테스트 질문을 하나씩 보여주고, 사용자의 선택을 받아 점수를 누적한 후 결과로 이동
+/// 여기서 점수는 1~8번에 계수 정렬처럼 누적됨.
+/// 반환타입 : StatefulWidget
 /// 예외 : 없음
 class PsychologyQuestion extends StatefulWidget {
   const PsychologyQuestion({super.key});
@@ -14,9 +14,6 @@ class PsychologyQuestion extends StatefulWidget {
   @override
   State<PsychologyQuestion> createState() => _PsychologyQuestionState();
 }
-
-
-
 
 class _PsychologyQuestionState extends State<PsychologyQuestion> {
   // --- 제공해주신 새로운 질문 및 점수 데이터 ---
@@ -49,7 +46,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
       'question': 'Q4. 쉬는 시간, 나는?',
       'answers': [
         {'text': '취미를 즐기거나\n혼자 논다.', 'score': 3},
-        {'text': '친구들과 수다를 떤다.', 'score': 5},
+        {'text': '친구들과\n 수다를 떤다.', 'score': 5},
         {'text': '일단 눕는다...\n생각은 나중에 한다.', 'score': 2},
       ],
     },
@@ -73,8 +70,8 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
       'question': 'Q7. 인간관계 스타일은?',
       'answers': [
         {'text': '깊은 관계 몇 명이면\n충분하다.', 'score': 3},
-        {'text': '먼저 다가가는 타입이다.', 'score': 4},
-        {'text': '누군가에게 힘이\n되어주는 스타일.', 'score': 1},
+        {'text': '먼저\n 다가가는 타입이다.', 'score': 4},
+        {'text': '누군가에게 힘이\n되어주는 스타일', 'score': 1},
       ],
     },
     {
@@ -88,9 +85,9 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     {
       'question': 'Q9. 혼자 있는 걸 좋아하는 이유는?',
       'answers': [
-        {'text': '자유로워!\n눈치도 안 봐도 돼서.', 'score': 3},
-        {'text': '생각 정리할\n 시간이 되니까.', 'score': 6},
-        {'text': '멍 때리는 게\n 힐링이라서.', 'score': 2},
+        {'text': '자유로워!\n눈치도 안 봐도 돼서', 'score': 3},
+        {'text': '생각 정리할\n 시간이 되니까', 'score': 6},
+        {'text': '멍 때리는 게\n 힐링이라서', 'score': 2},
       ],
     },
     {
@@ -120,9 +117,9 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     {
       'question': 'Q13. 당신에게 가까운 스타일은?',
       'answers': [
-        {'text': '무슨 일이든 믿고\n맡기는 스타일.', 'score': 1},
-        {'text': '항상 새로운 걸 찾는\n스타일.', 'score': 7},
-        {'text': '깊게 생각하고\n도전하는 스타일.', 'score': 8},
+        {'text': '무슨 일이든 믿고\n맡기는 스타일', 'score': 1},
+        {'text': '항상 새로운 걸 찾는\n스타일', 'score': 7},
+        {'text': '깊게 생각하고\n도전하는 스타일', 'score': 8},
       ],
     },
     {
@@ -208,7 +205,6 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -218,39 +214,42 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     final answers = questionData['answers'] as List<Map<String, dynamic>>;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFFFFEF9), // 앱 전체 배경색 통일
       body: SafeArea(
         child: Padding(
-          padding:  EdgeInsets.symmetric(horizontal:horizontalPadding),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-               SizedBox(height: size.height * 0.03),
+              SizedBox(height: size.height * 0.05), // 최상단 여백 줄임
               _TestProgressBar(
                 currentStep: _currentQuestionIndex + 1,
                 totalSteps: _questions.length,
               ),
-               SizedBox(height: size.height * 0.05),
+              SizedBox(height: size.height * 0.03), // 질문과의 간격
               Text(
-                questionData['question'],
+                // 만약 'Q1. '을 제거하고 싶다면 아래처럼 replace를 사용할 수 있습니다.
+                questionData['question'].toString().replaceAll(
+                  RegExp(r'Q\d+\. '),
+                  '',
+                ),
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                fontSize: size.width * 0.048,
-                fontWeight: FontWeight.bold,
-                height: 1.45,
-              
-              
-              ),
-              ),
-                Expanded(
-              child: _AnswerOptions(
-                answers: answers,
-                onAnswerSelected: (index) {
-                  _answerQuestion(index, answers[index]['score'] as int);
-                },
-                selectedAnswerIndex: _selectedAnswerIndex,
+                  fontSize: size.width * 0.049, // 글자 크기 약간 확대
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF3B3737),
+                  height: 1.45,
                 ),
               ),
-              
+              Expanded(
+                child: _AnswerOptions(
+                  answers: answers,
+                  onAnswerSelected: (index) {
+                    _answerQuestion(index, answers[index]['score'] as int);
+                  },
+                  selectedAnswerIndex: _selectedAnswerIndex,
+                ),
+              ),
             ],
           ),
         ),
@@ -259,11 +258,9 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
   }
 }
 
-
-
-/// 클래스 : _TestProgressBar  
-/// 목적 : 현재 진행 중인 질문 단계 수를 상단에 숫자로 1/15 표시  
-/// 반환타입 : StatelessWidget  
+/// 클래스 : _TestProgressBar
+/// 목적 : 현재 진행 중인 질문 단계 수를 상단에 숫자로 1/15 표시
+/// 반환타입 : StatelessWidget
 /// 예외 : 없음
 
 class _TestProgressBar extends StatelessWidget {
@@ -276,32 +273,73 @@ class _TestProgressBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     double progress = currentStep / totalSteps;
+
     return Column(
       children: [
-        LinearProgressIndicator(
-          value: progress,
-          backgroundColor: Colors.grey[200],
-          color: const Color(0xFFC59A9A),
-          minHeight:  size.height * 0.012,
-          borderRadius: BorderRadius.circular(4),
+        // --- 1. 네모난 외곽 테두리가 있는 프로그레스 바 ---
+        Container(
+          width: double.infinity,
+          height: 9, // 바의 두께
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFBED), // 바의 빈 배경색
+            // 검은색에 가까운 진한 회색 테두리
+            border: Border.all(color: const Color(0xFF797979), width: 1),
+            borderRadius: BorderRadius.circular(0), 
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                children: [
+                  // 1-1. 실제로 차오르는 게이지 (네모난 형태)
+                  FractionallySizedBox(
+                    widthFactor: progress,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFBF8181),
+                      ),
+                    ),
+                  ),
+                  // 1-2. 진행 지점의 수직 구분선 (2번 사진 포인트)
+                  Positioned(
+                    left: (constraints.maxWidth * progress) - 0.6,
+                    child: Container(
+                      width: 1.2, // 테두리 두께와 맞춤
+                      height: 14,
+                      color: const Color(0xFF3B3737),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
-         SizedBox(height:size.height * 0.01),
-        Text(
-          '$currentStep / $totalSteps',
-          style:  TextStyle(fontSize: size.width * 0.04, fontWeight: FontWeight.bold),
+        
+        SizedBox(height: size.height * 0.03),
+
+        // --- 2. 진행 단계 표시 버블 ---
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEDE9BC), // 2번 사진의 연노란색
+            borderRadius: BorderRadius.circular(25), // 버블은 둥글게 유지
+          ),
+          child: Text(
+            '$currentStep / $totalSteps',
+            style: TextStyle(
+              fontSize: size.width * 0.042,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF504A4A),
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
-
-
-
-
-/// 클래스 : _AnswerOptions  
-/// 목적 : 질문의 답변들을 커스텀 도형 버튼 형태로  3개 씩 표시   
-/// 반환타입 : StatelessWidget  
+/// 클래스 : _AnswerOptions
+/// 목적 : 질문의 답변들을 커스텀 도형 버튼 형태로  3개 씩 표시
+/// 반환타입 : StatelessWidget
 /// 예외 : 예외 처리 없음 (+ 질문 갯수가 3개씩이 아닐 경우가 생기면 추후 예외 처리할 예정. )
 class _AnswerOptions extends StatelessWidget {
   final List<Map<String, dynamic>> answers;
@@ -309,7 +347,6 @@ class _AnswerOptions extends StatelessWidget {
   final int? selectedAnswerIndex;
 
   const _AnswerOptions({
-    
     required this.answers,
     required this.onAnswerSelected,
     this.selectedAnswerIndex,
@@ -323,19 +360,17 @@ class _AnswerOptions extends StatelessWidget {
       _ShapeType.triangle,
     ];
 
- 
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Stack(
-      fit: StackFit.expand, 
+      fit: StackFit.expand,
       children: <Widget>[
         // 답변 1 - 구름 (오른쪽 위)
         if (answers.isNotEmpty)
           Align(
-            //y 값 작게하면 위로 x 값 크게 하면 오른 쪽으로 
-            alignment: const Alignment(1.1, -0.8), // 0.9,-08
+            //y 값 작게하면 위로 x 값 크게 하면 오른 쪽으로
+            alignment: const Alignment(1.3, -0.7), // 0.9,-08
             child: SizedBox(
-            
               width: screenWidth * 0.6,
               child: _AnswerShape(
                 text: answers[0]['text'] as String,
@@ -347,36 +382,34 @@ class _AnswerOptions extends StatelessWidget {
           ),
 
         if (answers.length > 1)
-      Align(
-       
-    alignment: const Alignment(-1.5, -0.2), //-1.5 ,0.1
-    child: Container(
-      width: screenWidth * 0.5,
-      child: _AnswerShape(
-        text: answers[1]['text'] as String,
-        shapeType: shapeMapping[1],
-        isSelected: selectedAnswerIndex == 1,
-        onTap: () => onAnswerSelected(1),
-      ),
-    ),
-  ),
+          Align(
+            alignment: const Alignment(-1.5, 0.1), //-1.5 ,0.1
+            child: Container(
+              width: screenWidth * 0.5,
+              child: _AnswerShape(
+                text: answers[1]['text'] as String,
+                shapeType: shapeMapping[1],
+                isSelected: selectedAnswerIndex == 1,
+                onTap: () => onAnswerSelected(1),
+              ),
+            ),
+          ),
 
-          
         // 답변 3 - 삼각형 (오른쪽 아래)
         if (answers.length > 2)
           Align(
-            alignment: const Alignment(1.1, 0.5), // 1.1,0.9
+            alignment: const Alignment(1.3, 0.55), // 1.1,0.9
             child: Transform.rotate(
-              angle: 0.1, // 이 값 고정 
-               child: Container(
-              width: screenWidth * 0.6, //0.6
-              child: _AnswerShape(
-                text: answers[2]['text'] as String,
-                shapeType: shapeMapping[2],
-                isSelected: selectedAnswerIndex == 2,
-                onTap: () => onAnswerSelected(2),
+              angle: -0.02, // 이 값 고정
+              child: Container(
+                width: screenWidth * 0.6, //0.6
+                child: _AnswerShape(
+                  text: answers[2]['text'] as String,
+                  shapeType: shapeMapping[2],
+                  isSelected: selectedAnswerIndex == 2,
+                  onTap: () => onAnswerSelected(2),
+                ),
               ),
-               ),
             ),
           ),
       ],
@@ -384,16 +417,11 @@ class _AnswerOptions extends StatelessWidget {
   }
 }
 
-
-
 enum _ShapeType { cloud, circle, triangle }
 
-
-
-
-/// 클래스 : _AnswerShape  
-/// 목적 : 각 도형형 버튼, 이미지 위치잡기   
-/// 반환타입 : StatelessWidget  
+/// 클래스 : _AnswerShape
+/// 목적 : 각 도형형 버튼, 이미지 위치잡기
+/// 반환타입 : StatelessWidget
 /// 예외 : 예외 처리 안함. (+ 추후 이미지 경로 관련해서 코드 수정할 예정. )
 class _AnswerShape extends StatelessWidget {
   final String text;
@@ -411,40 +439,42 @@ class _AnswerShape extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     String imagePath;
     double shapeWidth;
 
     double textContainerWidth;
     EdgeInsets textPadding;
 
-  switch (shapeType) {
-    case _ShapeType.cloud: // Star
-      imagePath = 'assets/images/PsychologyTest/Shape/Star.png';
-      //shapeWidth = 276;
-      shapeWidth =size.width * 0.7;
-      textContainerWidth = shapeWidth * 0.65;
-      textPadding = EdgeInsets.symmetric(horizontal: size.width * 0.04);
-      break;
+    switch (shapeType) {
+      case _ShapeType.cloud: // Star
+        imagePath = 'assets/images/PsychologyTest/Shape/Star.png';
+        //shapeWidth = 276;
+        shapeWidth = size.width * 0.7;
+        textContainerWidth = shapeWidth * 0.65;
+        textPadding = EdgeInsets.only(top: 15, left: 5, right: 5);
+        break;
 
-
-    case _ShapeType.circle: //Ellipse
-      imagePath = 'assets/images/PsychologyTest/Shape/Ellipse.png';
-      //shapeWidth = 284;
-      shapeWidth =size.width * 0.72;
-      textContainerWidth = shapeWidth * 0.7;
-      textPadding = EdgeInsets.symmetric(horizontal: size.width * 0.04);
-      break;
-    case _ShapeType.triangle: // Polygon
-      imagePath = 'assets/images/PsychologyTest/Shape/Polygon.png';
-      //shapeWidth = 277;
-      shapeWidth = size.width * 0.7;
-      textContainerWidth = shapeWidth * 0.55;
-      textPadding = EdgeInsets.fromLTRB(
-      size.width * 0.02, size.height * 0.02, size.width * 0.02, 0);
-      break;
-  }
-
+      case _ShapeType.circle: //Ellipse
+        imagePath = 'assets/images/PsychologyTest/Shape/Ellipse.png';
+        //shapeWidth = 284;
+        shapeWidth = size.width * 0.72;
+        textContainerWidth = shapeWidth * 0.7;
+        textPadding = EdgeInsets.only(top: 0, left: 0, right: 25);
+        break;
+      case _ShapeType.triangle: // Polygon
+        imagePath = 'assets/images/PsychologyTest/Shape/Polygon.png';
+        //shapeWidth = 277;
+        shapeWidth = size.width * 0.7;
+        textContainerWidth = shapeWidth * 0.65;
+        textPadding = EdgeInsets.fromLTRB(
+          size.width * 0.02,
+          size.height * 0.02,
+          size.width * 0.085,
+          0,
+        );
+        break;
+    }
 
     return GestureDetector(
       onTap: onTap,
@@ -454,60 +484,59 @@ class _AnswerShape extends StatelessWidget {
           Image.asset(
             imagePath,
             width: shapeWidth.clamp(120, 350).toDouble(),
-             fit: BoxFit.contain,
-            color: isSelected ? const Color(0xFF6E8B66) : null, // 선택했을때 초록색으로 바꾸는 부분. 
+            fit: BoxFit.contain,
+            color:
+                isSelected
+                    ? const Color(0xFF6E8B66)
+                    : null, // 선택했을때 초록색으로 바꾸는 부분.
             colorBlendMode: isSelected ? BlendMode.modulate : null,
           ),
           isSelected
               ? const Icon(Icons.check, color: Colors.white, size: 50)
-               : SizedBox(
-                  width: textContainerWidth,
-                  child: Padding(
-                    padding: textPadding,
-                    child: AutoSizeText(
-                      text,
-                      textAlign: TextAlign.center,
-                      minFontSize: 10,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: (size.width * 0.04).clamp(12, 18).toDouble(),
-                        color: const Color(0xFF504A4A),
-                        height: 1.3,
-                      ),
+              : SizedBox(
+                width: textContainerWidth,
+                child: Padding(
+                  padding: textPadding,
+                  child: AutoSizeText(
+                    text,
+                    textAlign: TextAlign.center,
+                    minFontSize: 10,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: (size.width * 0.038).clamp(12, 18).toDouble(),
+                      color: const Color(0xFF504A4A),
+                      height: 1.3,
                     ),
                   ),
                 ),
+              ),
         ],
       ),
     );
   }
 }
 
-
-
-
-/// 클래스 : TestLoadingScreen  
-/// 목적 : 최종 점수를 기반으로  PsychologyResult로 3초 후 자동 이동하는 기능 구현  
-/// 반환타입 : StatefulWidget  
-/// 예외 :예외 처리 없음. 
+/// 클래스 : TestLoadingScreen
+/// 목적 : 최종 점수를 기반으로  PsychologyResult로 3초 후 자동 이동하는 기능 구현
+/// 반환타입 : StatefulWidget
+/// 예외 :예외 처리 없음.
 class TestLoadingScreen extends StatefulWidget {
   // 질문 화면에서 넘어온 최종 결과 ID를 받을 변수 추가
   final int resultId;
 
-  // 생성자에서 resultId를 필수로 받도록 수정함. 
+  // 생성자에서 resultId를 필수로 받도록 수정함.
   const TestLoadingScreen({super.key, required this.resultId});
 
   @override
   State<TestLoadingScreen> createState() => _TestLoadingScreenState();
 }
 
-
-// 클래스 : _TestLoadingScreenState  
-/// 목적 : 로딩 애니메이션을 보여준 뒤, 일정 시간 후 PsychologyResult로 자동 전환  
-/// 반환타입 : State<TestLoadingScreen>  
-/// 예외 :  
+// 클래스 : _TestLoadingScreenState
+/// 목적 : 로딩 애니메이션을 보여준 뒤, 일정 시간 후 PsychologyResult로 자동 전환
+/// 반환타입 : State<TestLoadingScreen>
+/// 예외 :
 /// -아직 비동기 부분 예외 처리 아직 구현 안함 !!!!!!!!!!!
-///   - context가 `unmounted` 상태일 경우 Navigator 에러 발생 가능성 → `if (mounted)` 조건으로 방지  
+///   - context가 `unmounted` 상태일 경우 Navigator 에러 발생 가능성 → `if (mounted)` 조건으로 방지
 ///   - 이미지 asset 경로가 잘못된 경우 → `errorBuilder`를 통해 기본 아이콘으로 대체 처리
 class _TestLoadingScreenState extends State<TestLoadingScreen> {
   @override
@@ -544,17 +573,27 @@ class _TestLoadingScreenState extends State<TestLoadingScreen> {
               //height: 80,
               width: size.width * 0.18,
               height: size.width * 0.18,
-               errorBuilder: (context, error, stackTrace) {
-                  return  Icon(Icons.find_in_page_outlined, size: size.width * 0.18, color: Colors.grey);
-               },
+              errorBuilder: (context, error, stackTrace) {
+                return Icon(
+                  Icons.find_in_page_outlined,
+                  size: size.width * 0.18,
+                  color: Colors.grey,
+                );
+              },
             ),
-             SizedBox(height: size.height * 0.03),
-             Text('어울리는 캐릭터 찾는 중...', style: TextStyle(fontSize: size.width * 0.048)),
-             SizedBox(height: size.height * 0.03),
+            SizedBox(height: size.height * 0.03),
+            Text(
+              '어울리는 캐릭터 찾는 중...',
+              style: TextStyle(fontSize: size.width * 0.048),
+            ),
+            SizedBox(height: size.height * 0.03),
             Padding(
-              padding:  EdgeInsets.symmetric(horizontal: size.width * 0.15),
+              padding: EdgeInsets.symmetric(horizontal: size.width * 0.15),
               child: LinearProgressIndicator(
-                  backgroundColor: Colors.grey[200], color: Colors.grey[600],minHeight: size.height * 0.012,),
+                backgroundColor: Colors.grey[200],
+                color: Colors.grey[600],
+                minHeight: size.height * 0.012,
+              ),
             ),
           ],
         ),

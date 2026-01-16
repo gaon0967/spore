@@ -61,7 +61,7 @@ class AppNotification {
 }
 // -----------------------------------------
 
-// --- [추가됨] Firebase 통신을 담당하는 서비스 클래스 ---
+// --- Firebase 통신을 담당하는 서비스 클래스 ---
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -79,9 +79,9 @@ class NotificationService {
       return;
     }
 
-    // 🔑 알림 꺼져 있으면 아예 생성 안 함
+    //알림 꺼져 있으면 아예 생성 안 함
     final receiverDoc =
-    await _firestore.collection('users').doc(receiverId).get();
+        await _firestore.collection('users').doc(receiverId).get();
     final enabled = receiverDoc.data()?['notificationsEnabled'] ?? true;
     if (!enabled) {
       print("알림 꺼짐 상태 → 알림 생성 안 함");
@@ -94,28 +94,32 @@ class NotificationService {
           .doc(receiverId)
           .collection('notifications')
           .add({
-        'title': title,
-        'content': content,
-        'timestamp': FieldValue.serverTimestamp(),
-        'senderId': senderId,
-        'type': type,
-        'read': false,
-      });
+            'title': title,
+            'content': content,
+            'timestamp': FieldValue.serverTimestamp(),
+            'senderId': senderId,
+            'type': type,
+            'read': false,
+          });
     } catch (e) {
       print('알림 생성 오류: $e');
     }
   }
 
   // 친구 신청 알림 생성 함수 (에러의 원인이 된 함수)
-  Future<void> createFriendRequestNotification(String receiverId, String senderName) async {
+  Future<void> createFriendRequestNotification(
+    String receiverId,
+    String senderName,
+  ) async {
     await createNotification(
       receiverId: receiverId,
       title: '친구 알림',
       content: '$senderName 님이 친구신청을 보냈습니다.',
       senderId: currentUserId,
-      type: 'friend_request'
+      type: 'friend_request',
     );
   }
+
   // 친구 신청 수락 처리
   Future<void> acceptFriendRequest(String senderId) async {
     if (currentUserId == null) return;
@@ -133,17 +137,28 @@ class NotificationService {
           .doc(senderId)
           .collection('friends')
           .doc(currentUserId);
-      batch.set(myFriendsRef, {'friendId': senderId, 'favorite': false, 'blockStatus': false, 'createdAt': FieldValue.serverTimestamp()});
-      batch.set(theirFriendsRef, {'friendId': currentUserId, 'favorite': false, 'blockStatus': false, 'createdAt': FieldValue.serverTimestamp()});
+      batch.set(myFriendsRef, {
+        'friendId': senderId,
+        'favorite': false,
+        'blockStatus': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      batch.set(theirFriendsRef, {
+        'friendId': currentUserId,
+        'favorite': false,
+        'blockStatus': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
 
       // 친구 요청 알림 삭제
-      final notificationQuery = await _firestore
-          .collection('users')
-          .doc(currentUserId)
-          .collection('notifications')
-          .where('senderId', isEqualTo: senderId)
-          .where('type', isEqualTo: 'friend_request')
-          .get();
+      final notificationQuery =
+          await _firestore
+              .collection('users')
+              .doc(currentUserId)
+              .collection('notifications')
+              .where('senderId', isEqualTo: senderId)
+              .where('type', isEqualTo: 'friend_request')
+              .get();
       for (var doc in notificationQuery.docs) {
         batch.delete(doc.reference);
       }
@@ -167,13 +182,14 @@ class NotificationService {
     try {
       final batch = _firestore.batch();
       // 친구 요청 알림만 삭제
-      final notificationQuery = await _firestore
-          .collection('users')
-          .doc(currentUserId)
-          .collection('notifications')
-          .where('senderId', isEqualTo: senderId)
-          .where('type', isEqualTo: 'friend_request')
-          .get();
+      final notificationQuery =
+          await _firestore
+              .collection('users')
+              .doc(currentUserId)
+              .collection('notifications')
+              .where('senderId', isEqualTo: senderId)
+              .where('type', isEqualTo: 'friend_request')
+              .get();
       for (var doc in notificationQuery.docs) {
         batch.delete(doc.reference);
       }
@@ -186,20 +202,22 @@ class NotificationService {
 
   // 친구 수락 알림 생성
   Future<void> createFriendAcceptedNotification(
-      String receiverId, String accepterName) async {
+    String receiverId,
+    String accepterName,
+  ) async {
     if (receiverId.isEmpty) return;
     await _firestore
         .collection('users')
         .doc(receiverId)
         .collection('notifications')
         .add({
-      'title': '친구 알림',
-      'content': '$accepterName 님과 친구가 되었습니다.',
-      'timestamp': FieldValue.serverTimestamp(),
-      'senderId': currentUserId,
-      'type': 'friend_accepted',
-      'read': false,
-    });
+          'title': '친구 알림',
+          'content': '$accepterName 님과 친구가 되었습니다.',
+          'timestamp': FieldValue.serverTimestamp(),
+          'senderId': currentUserId,
+          'type': 'friend_accepted',
+          'read': false,
+        });
   }
 
   // 알림 한 개 삭제
@@ -217,11 +235,12 @@ class NotificationService {
   Future<void> deleteAllNotifications() async {
     if (currentUserId == null) return;
     final batch = _firestore.batch();
-    final notifications = await _firestore
-        .collection('users')
-        .doc(currentUserId)
-        .collection('notifications')
-        .get();
+    final notifications =
+        await _firestore
+            .collection('users')
+            .doc(currentUserId)
+            .collection('notifications')
+            .get();
     for (var doc in notifications.docs) {
       batch.delete(doc.reference);
     }
@@ -231,7 +250,8 @@ class NotificationService {
   // 유저의 알림 허용 여부 확인
   Future<bool> isNotificationEnabled() async {
     if (currentUserId == null) return false;
-    final userDoc = await _firestore.collection('users').doc(currentUserId).get();
+    final userDoc =
+        await _firestore.collection('users').doc(currentUserId).get();
     return userDoc.data()?['notificationsEnabled'] ?? true; // 기본값 true
   }
 
@@ -245,40 +265,45 @@ class NotificationService {
 
   // 타이틀 획득 알림 생성
   Future<void> createTitleAcquiredNotification(
-      String receiverId, String titleName) async {
+    String receiverId,
+    String titleName,
+  ) async {
     if (receiverId.isEmpty) return;
-    
+
     // 이미 해당 타이틀에 대한 알림이 있는지 확인
-    final existingNotifications = await _firestore
-        .collection('users')
-        .doc(receiverId)
-        .collection('notifications')
-        .where('type', isEqualTo: 'title_acquired')
-        .where('content', isEqualTo: '$titleName 타이틀을 획득했습니다!')
-        .get();
-    
+    final existingNotifications =
+        await _firestore
+            .collection('users')
+            .doc(receiverId)
+            .collection('notifications')
+            .where('type', isEqualTo: 'title_acquired')
+            .where('content', isEqualTo: '$titleName 타이틀을 획득했습니다!')
+            .get();
+
     // 이미 알림이 있으면 생성하지 않음
     if (existingNotifications.docs.isNotEmpty) {
       print('🔥 이미 $titleName 타이틀 알림이 존재합니다. 중복 알림 생성하지 않음.');
       return;
     }
-    
-         await _firestore
-         .collection('users')
-         .doc(receiverId)
-         .collection('notifications')
-         .add({
-       'title': '타이틀 획득 알림',
-       'content': '타이틀을 획득했습니다!',
-       'timestamp': FieldValue.serverTimestamp(),
-       'type': 'title_acquired',
-       'titleName': titleName, // 타이틀 이름을 별도 필드로 저장
-       'read': false,
-     });
+
+    await _firestore
+        .collection('users')
+        .doc(receiverId)
+        .collection('notifications')
+        .add({
+          'title': '타이틀 획득 알림',
+          'content': '타이틀을 획득했습니다!',
+          'timestamp': FieldValue.serverTimestamp(),
+          'type': 'title_acquired',
+          'titleName': titleName, // 타이틀 이름을 별도 필드로 저장
+          'read': false,
+        });
   }
 
   // 현재 사용자에게 타이틀 획득 알림 생성 (테스트용)
-  Future<void> createTitleAcquiredNotificationForCurrentUser(String titleName) async {
+  Future<void> createTitleAcquiredNotificationForCurrentUser(
+    String titleName,
+  ) async {
     if (currentUserId == null) return;
     await createTitleAcquiredNotification(currentUserId!, titleName);
   }
@@ -329,12 +354,12 @@ List<TextSpan> _buildStyledTextSpans(AppNotification noti) {
   return [TextSpan(text: noti.content, style: baseStyle)];
 }
 
-
 Widget _buildStyledNotiBox(
   AppNotification noti,
   BuildContext context,
   Function(DateTime) onGoToCalendar,
-  void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
+  void Function({int tabIndex, bool expandRequests})
+  onNavigateToFriendsCallback,
 ) {
   Color bgColor = Color(0xF4F4F4F4);
   String? label;
@@ -355,8 +380,8 @@ Widget _buildStyledNotiBox(
       height: screenWidth * 0.06,
     );
     rightText = '바로 가기';
-  } else if (noti.type?.startsWith('friend_') ??
-      noti.title.contains('친구')) { // [수정] type이 'friend_'로 시작하는 모든 알림(friend_request, friend_accepted 등)을 이 조건문에서 처리합니다.
+  } else if (noti.type?.startsWith('friend_') ?? noti.title.contains('친구')) {
+    // [수정] type이 'friend_'로 시작하는 모든 알림(friend_request, friend_accepted 등)을 이 조건문에서 처리합니다.
     label = '친구';
     iconWidget = Image.asset(
       'assets/images/Notification/friend.png',
@@ -394,18 +419,16 @@ Widget _buildStyledNotiBox(
             onGoToCalendar(noti.dueDate!);
           }
           // 친구 관련 알림일 경우
-          else if (noti.type?.startsWith('friend_') ?? noti.title.contains('친구')) {
+          else if (noti.type?.startsWith('friend_') ??
+              noti.title.contains('친구')) {
             if (noti.type == 'friend_request') {
               // '친구 신청' 알림 -> 친구 신청 목록으로 이동 (기존 동작)
-              onNavigateToFriendsCallback(
-                tabIndex: 1, 
-                expandRequests: true,
-              );
-            } else { 
+              onNavigateToFriendsCallback(tabIndex: 1, expandRequests: true);
+            } else {
               // '친구가 되었습니다' 및 기타 친구 알림 -> 친구 목록으로 이동
               onNavigateToFriendsCallback(
                 tabIndex: 0, // 친구 목록 탭
-                expandRequests: false, 
+                expandRequests: false,
               );
             }
             Navigator.of(context).pop();
@@ -414,9 +437,7 @@ Widget _buildStyledNotiBox(
           else if (noti.type == 'title_acquired') {
             Navigator.of(context).pop(); // 알림 페이지 닫기
             Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => const ProfileEdit(),
-              ),
+              MaterialPageRoute(builder: (context) => const ProfileEdit()),
             );
           }
           // TODO: 다른 '바로 가기' 액션이 있다면 여기에 추가
@@ -484,9 +505,7 @@ Widget _buildStyledNotiBox(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text.rich(
-                        TextSpan(
-                          children: _buildStyledTextSpans(noti),
-                        ),
+                        TextSpan(children: _buildStyledTextSpans(noti)),
                       ),
                       if (badgeText != null)
                         Container(
@@ -548,11 +567,12 @@ class _NotificationPageState extends State<NotificationPage> {
   Future<void> _loadNotifications() async {
     if (_currentUser == null) return;
 
-    final (dismissedIds, scheduledEvents, otherNotifications) = await (
-      _fetchDismissedNotificationIds(),
-      _fetchScheduledEvents(),
-      _fetchOtherNotifications(),
-    ).wait;
+    final (dismissedIds, scheduledEvents, otherNotifications) =
+        await (
+          _fetchDismissedNotificationIds(),
+          _fetchScheduledEvents(),
+          _fetchOtherNotifications(),
+        ).wait;
 
     await _cleanupDismissedIds(dismissedIds, scheduledEvents);
 
@@ -565,11 +585,13 @@ class _NotificationPageState extends State<NotificationPage> {
     allPotentialNotifications.addAll(otherNotifications);
 
     final now = DateTime.now();
-    final visibleNotifications = allPotentialNotifications.where((noti) {
-      final hasArrived = noti.timestamp.isBefore(now);
-      final notDismissed = !dismissedIds.contains(noti.id);
-      return hasArrived && (noti.id.startsWith('dday_') ? notDismissed : true);
-    }).toList();
+    final visibleNotifications =
+        allPotentialNotifications.where((noti) {
+          final hasArrived = noti.timestamp.isBefore(now);
+          final notDismissed = !dismissedIds.contains(noti.id);
+          return hasArrived &&
+              (noti.id.startsWith('dday_') ? notDismissed : true);
+        }).toList();
 
     visibleNotifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
 
@@ -583,11 +605,12 @@ class _NotificationPageState extends State<NotificationPage> {
   Future<List<AppNotification>> _fetchOtherNotifications() async {
     if (_currentUser == null) return [];
     try {
-      final snapshot = await _firestore
-          .collection('users')
-          .doc(_currentUser!.uid)
-          .collection('notifications')
-          .get();
+      final snapshot =
+          await _firestore
+              .collection('users')
+              .doc(_currentUser!.uid)
+              .collection('notifications')
+              .get();
       return snapshot.docs
           .map((doc) => AppNotification.fromFirestore(doc))
           .toList();
@@ -716,15 +739,35 @@ class _NotificationPageState extends State<NotificationPage> {
 
       if (eventDate.isAtSameMomentAs(today)) {
         content = "오늘";
-        notificationTimestamp = DateTime(today.year, today.month, today.day, 7, 0);
-
-      } else if (eventDate.isAtSameMomentAs(today.add(const Duration(days: 1)))) {
+        notificationTimestamp = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          7,
+          0,
+        );
+      } else if (eventDate.isAtSameMomentAs(
+        today.add(const Duration(days: 1)),
+      )) {
         content = "까지 1일 남았습니다.";
-        notificationTimestamp = DateTime(today.year, today.month, today.day, 19, 0);
-
-      } else if (eventDate.isAtSameMomentAs(today.add(const Duration(days: 7)))) {
+        notificationTimestamp = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          19,
+          0,
+        );
+      } else if (eventDate.isAtSameMomentAs(
+        today.add(const Duration(days: 7)),
+      )) {
         content = "까지 7일 남았습니다.";
-        notificationTimestamp = DateTime(today.year, today.month, today.day, 21, 0);
+        notificationTimestamp = DateTime(
+          today.year,
+          today.month,
+          today.day,
+          21,
+          0,
+        );
       }
 
       if (content != null && notificationTimestamp != null) {
@@ -739,7 +782,7 @@ class _NotificationPageState extends State<NotificationPage> {
         ddayNotifications.add(notification);
       }
     }
-    
+
     ddayNotifications.sort((a, b) => a.timestamp.compareTo(b.timestamp));
     return ddayNotifications;
   }
@@ -843,10 +886,11 @@ class _NotificationPageState extends State<NotificationPage> {
                     Expanded(
                       child: TextButton(
                         onPressed: () async {
-                          final dDayIdsToDismiss = notiList
-                              .where((noti) => noti.id.startsWith('dday_'))
-                              .map((noti) => noti.id)
-                              .toList();
+                          final dDayIdsToDismiss =
+                              notiList
+                                  .where((noti) => noti.id.startsWith('dday_'))
+                                  .map((noti) => noti.id)
+                                  .toList();
 
                           if (dDayIdsToDismiss.isNotEmpty) {
                             await _dismissAllNotificationsInFirestore(
@@ -964,35 +1008,48 @@ class _NotificationPageState extends State<NotificationPage> {
           ),
         ],
       ),
-      body: notiList.isEmpty
-          ? Center(child: Text('알림이 없습니다.'))
-          : AnimatedList(
-              key: _listKey,
-              initialItemCount: notiList.length,
-              padding: const EdgeInsets.symmetric(vertical: 8.0),
-              itemBuilder: (context, index, animation) {
-                final noti = notiList[index];
-                return _buildAnimatedItem(noti, index, animation);
-              },
-            ),
+      body:
+          notiList.isEmpty
+              ? Center(child: Text('알림이 없습니다.'))
+              : AnimatedList(
+                key: _listKey,
+                initialItemCount: notiList.length,
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                itemBuilder: (context, index, animation) {
+                  final noti = notiList[index];
+                  return _buildAnimatedItem(noti, index, animation);
+                },
+              ),
     );
   }
 
-  Widget _buildAnimatedItem(AppNotification noti, int idx, Animation<double> animation) {
+  Widget _buildAnimatedItem(
+    AppNotification noti,
+    int idx,
+    Animation<double> animation,
+  ) {
     // [수정] 친구 요청 수락/거절 콜백 로직 전체를 삭제합니다.
     // 이 로직은 이제 '바로 가기'를 통해 이동한 다른 페이지에서 처리되어야 합니다.
 
     return SizeTransition(
       sizeFactor: animation,
       child: Container(
-        margin: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.05, vertical: 6),
+        margin: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.05,
+          vertical: 6,
+        ),
         child: Slidable(
           key: ValueKey(noti.id),
           endActionPane: ActionPane(
             motion: const DrawerMotion(),
             extentRatio: 0.25,
             children: [
-              SlidableAction(onPressed: (_) => _removeItem(idx), backgroundColor: const Color(0xFFFFFEF9), foregroundColor: const Color(0xFF979797), label: '삭제'),
+              SlidableAction(
+                onPressed: (_) => _removeItem(idx),
+                backgroundColor: const Color(0xFFFFFEF9),
+                foregroundColor: const Color(0xFF979797),
+                label: '삭제',
+              ),
             ],
           ),
           child: Listener(
@@ -1002,8 +1059,8 @@ class _NotificationPageState extends State<NotificationPage> {
             child: Stack(
               children: [
                 _buildStyledNotiBox(
-                  noti, 
-                  context, 
+                  noti,
+                  context,
                   (date) => Navigator.of(context).pop(date),
                   widget.onNavigateToFriends, // <- 이 부분을 추가!
                 ),
@@ -1014,7 +1071,10 @@ class _NotificationPageState extends State<NotificationPage> {
                       curve: Curves.easeOut,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(25),
-                        color: _pressedIndex == idx ? Colors.black.withAlpha(32) : Colors.transparent,
+                        color:
+                            _pressedIndex == idx
+                                ? Colors.black.withAlpha(32)
+                                : Colors.transparent,
                       ),
                     ),
                   ),
@@ -1066,7 +1126,7 @@ class _NotificationPageState extends State<NotificationPage> {
                   context,
                   (_) {},
                   // 삭제 애니메이션 중에는 동작할 필요가 없으므로, 비어있는 함수를 전달합니다.
-                  ({int tabIndex = 0, bool expandRequests = false}) {}, 
+                  ({int tabIndex = 0, bool expandRequests = false}) {},
                 ),
               ),
             ),
