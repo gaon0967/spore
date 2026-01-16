@@ -813,140 +813,233 @@ class _FriendScreenState extends State<FriendScreen> {
   }
 
   Widget _buildRecommendationSlider() {
-    return StreamBuilder<List<RecommendedUser>>(
-      stream: recommendedUsersStream,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+    // 현재 사용자의 recommend 설정을 먼저 확인
+    return StreamBuilder<DocumentSnapshot>(
+      stream: _firestore.collection('users').doc(currentUserId).snapshots(),
+      builder: (context, userSnapshot) {
+        if (userSnapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) {
-          return Center(child: Text('오류: ${snapshot.error}'));
+
+        // 현재 사용자의 recommend 값 확인 (기본값: true)
+        bool isRecommendEnabled = true;
+        if (userSnapshot.hasData && userSnapshot.data!.exists) {
+          final userData = userSnapshot.data!.data() as Map<String, dynamic>?;
+          isRecommendEnabled = userData?['recommend'] ?? true;
         }
-        final recommendedUsers = snapshot.data ?? [];
-        if (recommendedUsers.isEmpty) {
-          return const Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('추천할 친구가 없습니다', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.w500)),
-                SizedBox(height: 8),
-                Text('새로운 친구들이 곧 추천될 예정입니다!', style: TextStyle(fontSize: 14, color: Colors.grey)),
-              ],
-            ),
-          );
-        }
-        return Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('추천 친구', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  IconButton(
-                    onPressed: _refreshRecommendations,
-                    icon: const Icon(Icons.refresh, color: Colors.grey),
-                    tooltip: '새로운 추천 친구 보기',
+
+        // recommend가 false이면 비활성화 메시지 표시
+        if (!isRecommendEnabled) {
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              // 반응형 크기 계산 (기준: 290x414)
+              final double cardWidth = constraints.maxWidth * 0.75;
+              final double cardHeight = cardWidth * (414 / 290);
+              final double innerBoxSize = cardWidth * (230 / 290);
+
+              // 반응형 값들
+              final double outerRadius = cardWidth * (24 / 290);
+              final double innerRadius = cardWidth * (20 / 290);
+              final double fontSize = cardWidth * (15 / 290);
+              final double textSpacing = cardWidth * (4 / 290);
+
+              return Center(
+                child: Container(
+                  width: cardWidth,
+                  height: cardHeight,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F6EC),
+                    borderRadius: BorderRadius.circular(outerRadius),
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async => _refreshRecommendations(),
-                child: PageView.builder(
-                  controller: PageController(viewportFraction: 0.85),
-                  itemCount: recommendedUsers.length,
-                  itemBuilder: (context, i) {
-                    final user = recommendedUsers[i];
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 8),
-                      child: Container(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: innerBoxSize,
+                        height: innerBoxSize,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF7EFE6),
-                          borderRadius: BorderRadius.circular(20),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(innerRadius),
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Container(
-                              width: 110,
-                              height: 110,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.brown[100]!, width: 3),
-                                color: Colors.white,
-                              ),
-                              child: ClipOval(
-                                child: user.profileImage.isNotEmpty
-                                    ? Image.network(user.profileImage, fit: BoxFit.cover)
-                                    : const Icon(Icons.person, size: 60, color: Colors.grey),
+                            Text(
+                              '추천친구가 비활성화 상태입니다.',
+                              style: TextStyle(
+                                fontSize: fontSize,
+                                color: const Color(0xFF6B6B6B),
+                                fontWeight: FontWeight.w500,
                               ),
                             ),
-                            const SizedBox(height: 12),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Image.asset('assets/images/friendScreen/star_on.png', width: 20, height: 20),
-                                const SizedBox(width: 6),
-                                Text(user.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.brown)),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 4,
-                              children: user.tags.map((tag) => Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(color: Colors.yellow.shade100, borderRadius: BorderRadius.circular(8)),
-                                child: Text('#$tag', style: const TextStyle(fontSize: 13, color: Colors.brown)),
-                              )).toList(),
-                            ),
-                            const SizedBox(height: 12),
-                            Container(
-                              margin: const EdgeInsets.symmetric(horizontal: 16),
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10)),
-                              child: Text(user.bio.isNotEmpty ? user.bio : '안녕하세요!', textAlign: TextAlign.center, style: const TextStyle(fontSize: 15)),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton(
-                              onPressed: () => sendFriendRequestByEmail(user.email),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.grey.shade800,
-                                shape: const StadiumBorder(),
-                                minimumSize: const Size(140, 44),
+                            SizedBox(height: textSpacing),
+                            Text(
+                              '설정에서 활성화 할 수 있습니다.',
+                              style: TextStyle(
+                                fontSize: fontSize,
+                                color: const Color(0xFF6B6B6B),
+                                fontWeight: FontWeight.w500,
                               ),
-                              child: const Text('친구 신청', style: TextStyle(color: Colors.white)),
                             ),
                           ],
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-            ),
-            if (recommendedUsers.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('옆으로 스와이프 하세요', style: TextStyle(color: Colors.grey)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.refresh, size: 16, color: Colors.grey),
-                  const SizedBox(width: 4),
-                  GestureDetector(
-                    onTap: _refreshRecommendations,
-                    child: const Text('새로고침', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline)),
+                    ],
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-            ],
-          ],
+                ),
+              );
+            },
+          );
+        }
+
+        // recommend가 true이면 기존 추천 친구 목록 표시
+        return StreamBuilder<List<RecommendedUser>>(
+          stream: recommendedUsersStream,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('오류: ${snapshot.error}'));
+            }
+            final recommendedUsers = snapshot.data ?? [];
+
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+
+                // 반응형 값 계산 (기준: 화면 너비 390)
+                final double baseUnit = screenWidth / 390;
+
+                if (recommendedUsers.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline, size: 64 * baseUnit, color: Colors.grey),
+                        SizedBox(height: 16 * baseUnit),
+                        Text('추천할 친구가 없습니다', style: TextStyle(fontSize: 18 * baseUnit, color: Colors.grey, fontWeight: FontWeight.w500)),
+                        SizedBox(height: 8 * baseUnit),
+                        Text('새로운 친구들이 곧 추천될 예정입니다!', style: TextStyle(fontSize: 14 * baseUnit, color: Colors.grey)),
+                      ],
+                    ),
+                  );
+                }
+
+                return Column(
+                  children: [
+                    Padding(
+                      padding: EdgeInsets.all(16 * baseUnit),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('추천 친구', style: TextStyle(fontSize: 20 * baseUnit, fontWeight: FontWeight.bold)),
+                          IconButton(
+                            onPressed: _refreshRecommendations,
+                            icon: const Icon(Icons.refresh, color: Colors.grey),
+                            tooltip: '새로운 추천 친구 보기',
+                          ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: RefreshIndicator(
+                        onRefresh: () async => _refreshRecommendations(),
+                        child: PageView.builder(
+                          controller: PageController(viewportFraction: 0.85),
+                          itemCount: recommendedUsers.length,
+                          itemBuilder: (context, i) {
+                            final user = recommendedUsers[i];
+                            return Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24 * baseUnit, horizontal: 8 * baseUnit),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF7EFE6),
+                                  borderRadius: BorderRadius.circular(20 * baseUnit),
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 110 * baseUnit,
+                                      height: 110 * baseUnit,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        border: Border.all(color: Colors.brown[100]!, width: 3 * baseUnit),
+                                        color: Colors.white,
+                                      ),
+                                      child: ClipOval(
+                                        child: user.profileImage.isNotEmpty
+                                            ? Image.network(user.profileImage, fit: BoxFit.cover)
+                                            : Icon(Icons.person, size: 60 * baseUnit, color: Colors.grey),
+                                      ),
+                                    ),
+                                    SizedBox(height: 12 * baseUnit),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Image.asset('assets/images/friendScreen/star_on.png', width: 20 * baseUnit, height: 20 * baseUnit),
+                                        SizedBox(width: 6 * baseUnit),
+                                        Text(user.name, style: TextStyle(fontSize: 20 * baseUnit, fontWeight: FontWeight.bold, color: Colors.brown)),
+                                      ],
+                                    ),
+                                    SizedBox(height: 8 * baseUnit),
+                                    Wrap(
+                                      spacing: 8 * baseUnit,
+                                      runSpacing: 4 * baseUnit,
+                                      children: user.tags.map((tag) => Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 10 * baseUnit, vertical: 4 * baseUnit),
+                                        decoration: BoxDecoration(color: Colors.yellow.shade100, borderRadius: BorderRadius.circular(8 * baseUnit)),
+                                        child: Text('#$tag', style: TextStyle(fontSize: 13 * baseUnit, color: Colors.brown)),
+                                      )).toList(),
+                                    ),
+                                    SizedBox(height: 12 * baseUnit),
+                                    Container(
+                                      margin: EdgeInsets.symmetric(horizontal: 16 * baseUnit),
+                                      padding: EdgeInsets.symmetric(horizontal: 16 * baseUnit, vertical: 14 * baseUnit),
+                                      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(10 * baseUnit)),
+                                      child: Text(user.bio.isNotEmpty ? user.bio : '안녕하세요!', textAlign: TextAlign.center, style: TextStyle(fontSize: 15 * baseUnit)),
+                                    ),
+                                    SizedBox(height: 16 * baseUnit),
+                                    ElevatedButton(
+                                      onPressed: () => sendFriendRequestByEmail(user.email),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.grey.shade800,
+                                        shape: const StadiumBorder(),
+                                        minimumSize: Size(140 * baseUnit, 44 * baseUnit),
+                                      ),
+                                      child: Text('친구 신청', style: TextStyle(color: Colors.white, fontSize: 14 * baseUnit)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                    if (recommendedUsers.isNotEmpty) ...[
+                      SizedBox(height: 8 * baseUnit),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text('옆으로 스와이프 하세요', style: TextStyle(color: Colors.grey, fontSize: 14 * baseUnit)),
+                          SizedBox(width: 8 * baseUnit),
+                          Icon(Icons.refresh, size: 16 * baseUnit, color: Colors.grey),
+                          SizedBox(width: 4 * baseUnit),
+                          GestureDetector(
+                            onTap: _refreshRecommendations,
+                            child: Text('새로고침', style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontSize: 14 * baseUnit)),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 16 * baseUnit),
+                    ],
+                  ],
+                );
+              },
+            );
+          },
         );
       },
     );
