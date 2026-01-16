@@ -1,3 +1,13 @@
+import java.util.Properties
+import java.io.FileInputStream
+
+val keystorePropertiesFile = rootProject.projectDir.resolve("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
@@ -33,11 +43,27 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+    create("release") {
+        keyAlias = keystoreProperties.getProperty("keyAlias") 
+        keyPassword = keystoreProperties.getProperty("keyPassword")
+        storePassword = keystoreProperties.getProperty("storePassword")
+        
+        val stFile = keystoreProperties.getProperty("storeFile")
+        if (stFile != null) {
+            // 이 코드가 app 폴더 안에 있는 uploadKey.jks를 찾게 됩니다.
+            storeFile = file(stFile)
+        }
+    }
+}
+
     buildTypes {
-        release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+        getByName("release") {
+            
+            signingConfig = signingConfigs.getByName("release")
+            
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 }
