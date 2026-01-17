@@ -110,13 +110,23 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
       List<Course> allCourses = [];
       for (var doc in snapshot.docs) {
-        final dayId = doc.id;
+        final dayId = doc.id; // monday, tuesday 등
         final data = doc.data();
         if (data['subjects'] == null) continue;
 
         final List<dynamic> subjectsList = data['subjects'];
-        for (var subjectData in subjectsList) {
-          allCourses.add(Course.fromMap(subjectData as Map<String, dynamic>, dayId));
+        
+        // 중요: 배열(List) 구조이므로 index를 ID 대용으로 사용하거나, 
+        // Course 모델에서 자체 생성한 uuid를 id로 사용해야 합니다.
+        for (int i = 0; i < subjectsList.length; i++) {
+          final subjectData = subjectsList[i] as Map<String, dynamic>;
+          
+          // 여기서 courseId 대신 데이터 내부의 고유 ID를 사용합니다.
+          allCourses.add(Course.fromMap(
+            subjectData, 
+            dayId, 
+            subjectData['id'] ?? i.toString(), // ID가 없으면 인덱스라도 전달
+          ));
         }
       }
 
@@ -129,11 +139,61 @@ class _TimetableScreenState extends State<TimetableScreen> {
     } catch (e) {
       print("수업 로딩 실패: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('시간표를 불러오는 중 오류가 발생했습니다.')),
-        );
         setState(() => _isLoading = false);
       }
+    }
+  }
+
+  // Firebase 업데이트 함수 (저장 구조인 classes 컬렉션에 맞게 수정)
+  Future<void> updateCourseInFirebase({
+    required String semesterName, 
+    required Course oldCourse,    
+    required Course newCourse,    
+  }) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    String oldDayId = dayNames[oldCourse.day];
+    String newDayId = dayNames[newCourse.day];
+
+    final baseRef = FirebaseFirestore.instance
+        .collection('timetables')
+        .doc(uid)
+        .collection('TableName')
+        .doc(semesterName)
+        .collection('classes');
+
+    try {
+      if (oldDayId == newDayId) {
+        // 1. 요일이 같은 경우: 배열에서 기존 것 지우고 새 것 추가
+        final docRef = baseRef.doc(oldDayId);
+        await FirebaseFirestore.instance.runTransaction((transaction) async {
+          transaction.update(docRef, {
+            'subjects': FieldValue.arrayRemove([oldCourse.toMap()]),
+          });
+          transaction.update(docRef, {
+            'subjects': FieldValue.arrayUnion([newCourse.toMap()]),
+          });
+        });
+      } else {
+        // 2. 요일이 바뀐 경우: 이전 요일 문서에서 삭제, 새 요일 문서에 추가
+        await baseRef.doc(oldDayId).update({
+          'subjects': FieldValue.arrayRemove([oldCourse.toMap()]),
+        });
+        
+        final newDocRef = baseRef.doc(newDayId);
+        final newDocSnapshot = await newDocRef.get();
+        if (!newDocSnapshot.exists) {
+          await newDocRef.set({'subjects': [newCourse.toMap()]});
+        } else {
+          await newDocRef.update({
+            'subjects': FieldValue.arrayUnion([newCourse.toMap()]),
+          });
+        }
+      }
+    } catch (e) {
+      print("Firebase 업데이트 에러: $e");
     }
   }
 
@@ -167,6 +227,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
     await _loadCourses();
   }
+
+
 
   Future<void> _deleteCourse(Course courseToDelete) async {
     if (_currentTableName == null) return;
@@ -210,19 +272,127 @@ class _TimetableScreenState extends State<TimetableScreen> {
   }
 
   Future<bool> _showConflictDialog(Course conflictingCourse) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('시간 중복'),
-        content: Text("'${conflictingCourse.title}' 강의와 시간이 겹칩니다. 기존 강의를 삭제하고 추가하시겠습니까?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('아니오')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('예')),
-        ],
+  final screenWidth = MediaQuery.of(context).size.width;
+  final double scale = screenWidth / 430;
+
+  final result = await showDialog<bool>(
+    context: context,
+    builder: (context) => Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(horizontal: 40 * scale),
+      child: Container(
+        width: 298 * scale, // CSS Rectangle 45 & 137 참조
+        height: 179 * scale,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFFFF9), // CSS background: #FFFFF9
+          borderRadius: BorderRadius.circular(10), // border-radius: 10px
+          border: Border.all(color: const Color(0xFFE5E5E5), width: 1), // border: 1px solid #E5E5E5
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.06), // rgba(0, 0, 0, 0.06)
+              offset: const Offset(1, 2),
+              blurRadius: 4,
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            // 텍스트 영역 (상단)
+            Expanded(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 20 * scale),
+                alignment: Alignment.center,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '시간 중복',
+                      style: TextStyle(
+                        fontFamily: 'Golos Text',
+                        fontSize: 17 * scale,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF716969),
+                      ),
+                    ),
+                    SizedBox(height: 10 * scale),
+                    Text(
+                      "'${conflictingCourse.title}' 강의와 시간이 겹칩니다.\n기존 강의를 삭제하고 추가하시겠습니까?",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Golos Text',
+                        fontSize: 14 * scale,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                        color: const Color(0xFF716969), // CSS color: #716969
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            // 하단 버튼 영역 (Subtract 영역 참고)
+            Container(
+              height: 47 * scale, // CSS height: 47px
+              decoration: const BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  // 아니오 버튼
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(false),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        alignment: Alignment.center,
+                        decoration: const BoxDecoration(
+                          border: Border(
+                            right: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                          ),
+                        ),
+                        child: Text(
+                          '아니오',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontSize: 16 * scale,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF635E5E), // CSS color: #635E5E
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 예 버튼 (CSS 상의 '네')
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.of(context).pop(true),
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        alignment: Alignment.center,
+                        child: Text(
+                          '예',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontSize: 16 * scale,
+                            fontWeight: FontWeight.w400,
+                            color: const Color(0xFF2F3BDC), // CSS color: #2F3BDC
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
-    );
-    return result ?? false;
-  }
+    ),
+  );
+  return result ?? false;
+}
 
   Route<String> _createTimetableListRoute() {
     // PageRouteBuilder에도 <String> 타입을 지정합니다.
@@ -301,6 +471,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
   
 Widget _buildHeader() {
   final screenWidth = MediaQuery.of(context).size.width;
+  final scale = MediaQuery.of(context).size.width / 430.0;
 
   return SizedBox(
     height: 80,
@@ -321,14 +492,14 @@ Widget _buildHeader() {
                     fontWeight: FontWeight.bold,
                     color: const Color(0xFF504A4A)),
               ),
-              const SizedBox(height: 1),
+              const SizedBox(height: 4),
               Padding(
                 padding: const EdgeInsets.only(left: 4.0), // 이 값을 조절해 오른쪽으로 얼마나 이동할지 정합니다.
                 child: Text(
                   _currentTableName ?? '시간표 로딩 중...',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontFamily: 'Golos Text',
-                      fontSize: 11.5,
+                      fontSize: scale * 13,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF556283)),
                   overflow: TextOverflow.ellipsis,
@@ -547,7 +718,7 @@ Widget _buildHeader() {
       top: top + 0.5,
       left: left + 0.5,
       child: GestureDetector(
-        onTap: () => _showCourseDetailModal(context, course),
+        onTap: () => _showCourseDetailModal(context, course,_currentTableName ?? ''),
         child: Container(
           width: width - 0.5,
           height: height - 0.5,
@@ -573,43 +744,125 @@ Widget _buildHeader() {
     );
   }
 
-  void _showCourseDetailModal(BuildContext context, Course course) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: const BoxDecoration(
-          color: Color(0xFFFFFFF9),
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(course.title, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text("교수: ${course.professor}", style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16)),
-            Text("장소: ${course.room}", style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16)),
-            Text(
-              "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
-              style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16),
-            ),
-            const Divider(height: 24),
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-                _deleteCourse(course);
-              },
-              child: const Row(children: [
-                Icon(Icons.delete_outline, color: Colors.grey), SizedBox(width: 6), Text("삭제", style: TextStyle(fontFamily: 'Golos Text'))
-              ]),
-            ),
-          ],
+  void _showCourseDetailModal(BuildContext context, Course course,String semesterName) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final double scale = screenWidth / 430;
+
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) => Container(
+      padding: EdgeInsets.fromLTRB(24 * scale, 24 * scale, 24 * scale, 20 * scale),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFFF9),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
         ),
       ),
-    );
-  }
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 1. 수업 제목
+          Text(
+            course.title,
+            style: TextStyle(
+              fontFamily: 'Golos Text',
+              fontSize: 20 * scale,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF504A4A),
+            ),
+          ),
+          SizedBox(height: 8 * scale),
+
+          // 2. 상세 정보 (교수, 장소, 시간)
+          Text(
+            "교수: ${course.professor}",
+            style: TextStyle(fontFamily: 'Golos Text', fontSize: 15 * scale, color: const Color(0xFF675F5F)),
+          ),
+          Text(
+            "장소: ${course.room}",
+            style: TextStyle(fontFamily: 'Golos Text', fontSize: 15 * scale, color: const Color(0xFF675F5F)),
+          ),
+          Text(
+            "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
+            style: TextStyle(fontFamily: 'Golos Text', fontSize: 15 * scale, color: const Color(0xFF675F5F)),
+          ),
+          
+          SizedBox(height: 8 * scale),
+
+          // 3. 하단 버튼 영역 (좌: 삭제 이미지, 우: 수정 버튼)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // [좌측 하단] 삭제 버튼 (이미지)
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  _deleteCourse(course);
+                },
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0), // 터치 영역 확보
+                  child: Image.asset(
+                    'assets/images/mainpage/delete.png',
+                    width: 24 * scale,
+                    height: 24 * scale,
+                    color: const Color(0xFF675F5F), // 삭제 버튼 느낌을 위해 붉은 계열 추천
+                  ),
+                ),
+              ),
+
+              // [우측 하단] 수정 버튼
+              GestureDetector(
+                onTap: () async {
+                  Navigator.pop(context); // 시트 닫기
+                  
+                  final updatedCourse = await showDialog<Course>(
+                    context: context,
+                    builder: (context) => ClassAdd(course: course),
+                  );
+
+                  if (updatedCourse != null) {
+                    // 에러 났던 부분을 인자로 받은 semesterName으로 교체합니다.
+                    await updateCourseInFirebase(
+                      semesterName: semesterName, 
+                      oldCourse: course, 
+                      newCourse: updatedCourse,
+                    );
+
+                    setState(() {
+                      // Firebase 업데이트 후 화면을 다시 그립니다.
+                      _loadCourses(); 
+                    });
+                  }
+                },
+                child: Container(
+                  width: 65 * scale,
+                  height: 38 * scale,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF504A4A),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    "수정",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Golos Text',
+                      fontSize: 14 * scale,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
 
 
 

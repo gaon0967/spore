@@ -539,17 +539,15 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   }
 
   Future<void> _goToPsychologyTest() async {
-    final result = await Navigator.of(context).push<List<int>>(
-      MaterialPageRoute(builder: (context) => const PsychologyQuestion()),
+    // '내 캐릭터 다시 찾기' 버튼이므로 isReTest를 true로 전달합니다.
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const PsychologyQuestion(isReTest: true),
+      ),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        psychologyResultIds = result;
-      });
-      _applyPsychologyResult(result);
-      _savePsychologyResult(result);
-    }
+    // PsychologyResult에서 Navigator.pushAndRemoveUntil(MainScreen)을 수행하므로
+    // 이 이후의 코드는 실행되지 않거나 홈 화면으로 덮어씌워집니다.
   }
 
   void _showEditIntroModal() {

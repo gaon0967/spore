@@ -411,8 +411,8 @@ Widget _buildStyledNotiBox(
   Widget? actionArea;
   if (rightText != null) {
     actionArea = Positioned(
-      bottom: 0,
-      right: 0,
+      bottom: -12,
+      right: 8,
       child: GestureDetector(
         onTap: () {
           if (noti.title.contains("D-Day") && noti.dueDate != null) {
@@ -468,12 +468,20 @@ Widget _buildStyledNotiBox(
   }
 
   return Container(
-    padding: EdgeInsets.all(screenWidth * 0.031),
+    padding: EdgeInsets.fromLTRB(
+      screenWidth * 0.031, 
+      screenWidth * 0.031, 
+      screenWidth * 0.031, 
+      // [핵심 수정] 하단 패딩을 25px 정도로 넉넉히 주어 버튼이 내려올 공간을 만듭니다.
+      0 
+    ),
     decoration: BoxDecoration(
       color: bgColor,
       borderRadius: BorderRadius.circular(25),
     ),
     child: Stack(
+      // [핵심 수정 2] Positioned 위젯이 Container의 범위를 살짝 벗어나도 보이게 설정합니다.
+      clipBehavior: Clip.none, 
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -509,7 +517,7 @@ Widget _buildStyledNotiBox(
                       ),
                       if (badgeText != null)
                         Container(
-                          margin: EdgeInsets.only(left: screenWidth * 0.025),
+                          margin: EdgeInsets.only(left: 8, top: 2),
                           padding: EdgeInsets.symmetric(
                             horizontal: 8,
                             vertical: 1,
@@ -531,6 +539,7 @@ Widget _buildStyledNotiBox(
                         ),
                     ],
                   ),
+                  SizedBox(height: 10),
                 ],
               ),
             ),

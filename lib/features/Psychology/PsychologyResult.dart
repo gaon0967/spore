@@ -110,63 +110,177 @@ class Character {
 
 class PsychologyResult extends StatelessWidget {
   final int resultId;
+  final bool isReTest;
+  const PsychologyResult({super.key, required this.resultId, this.isReTest = false});
+  
+@override
+  Widget build(BuildContext context) {
+    final Character character = Character.getCharacterById(resultId);
+    final size = MediaQuery.of(context).size;
+    
+    // STEP 1과 동일한 디자인 기준 너비 (예: 411px) 및 배율 계산
+    const double designWidth = 411.0; 
+    final double scale = size.width / designWidth;
 
-  const PsychologyResult({super.key, required this.resultId});
+    return Scaffold(
+      backgroundColor: const Color(0xFFFFFEF9),
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    SizedBox(height: size.height * 0.06),
+                    // --- STEP 2: 재검사가 아닐 때만 STEP 1과 동일한 스타일로 표시 ---
+                    if (!isReTest) ...[
+                      Padding(
+                        padding: EdgeInsets.only(top: 20 * scale), // STEP 1과 동일한 top 위치
+                        child: SizedBox(
+                          width: 205 * scale,
+                          child: Center(
+                            child: Text(
+                              'STEP 2',
+                              style: TextStyle(
+                                fontFamily: 'GolosText',
+                                fontWeight: FontWeight.w500,
+                                fontSize: 18.5 * scale,
+                                color: const Color(0xFF555555), // STEP 1과 동일 색상
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                    ] else ...[
+                       // 재검사일 때는 상단 여백만 살짝 줌
+                       SizedBox(height: size.height * 0.06),
+                    ],
+
+                    const Text(
+                      '난 어떤 유형의 사람일까? -',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF5F5F5F),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    
+                    _SpeechBubble(text: character.speech),
+                    
+                    SizedBox(height: size.height * 0.01),
+                    
+                    // 캐릭터 이미지 + 블러 그림자 영역
+                    Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // 바닥 그림자 (Ellipse 15) - 위로 올리고 블러 대폭 강화
+                        Positioned(
+                          bottom: 25, // 그림자 위치를 더 위로 올림
+                          child: Container(
+                            width: 167,
+                            height: 56,
+                            decoration: BoxDecoration(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFEEEEEE).withOpacity(0.9),
+                                  blurRadius: 30, // 블러 처리 추가
+                                  spreadRadius: 10,
+                                ),
+                              ],
+                              color: const Color(0xFFEEEEEE).withOpacity(0.5),
+                              borderRadius: BorderRadius.all(Radius.elliptical(167, 56)),
+                            ),
+                          ),
+                        ),
+                        Image.asset(
+                          character.imagePath,
+                          height: 340,
+                          fit: BoxFit.contain,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            
+            // 하단 정보 박스
+            _InfoContainer(character: character),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// --- 에러 방지를 위해 클래스 외부로 분리 ---
+class SpeechBubblePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.fill;
+
+    // 그림자 설정
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.1)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4);
+
+    final path = Path();
+    const double radius = 20.0;
+    const double tailWidth = 12.0;
+    const double tailHeight = 10.0;
+    
+    // 꼬리가 시작되는 높이 오프셋 (값이 커질수록 위로 올라감)
+    // 전체 높이(size.height)에서 이만큼 뺀 지점에 꼬리가 붙습니다.
+    const double tailYOffset = 18.0; 
+
+    // 1. 메인 말풍선 몸체 (둥근 사각형)
+    path.addRRect(RRect.fromLTRBAndCorners(
+      0, 0, size.width, size.height,
+      topLeft: const Radius.circular(radius),
+      topRight: const Radius.circular(radius),
+      bottomLeft: const Radius.circular(radius),
+      bottomRight: const Radius.circular(radius), // 몸체는 일단 다 둥글게
+    ));
+
+    // 2. 오른쪽 "좀 더 위"에 붙는 꼬리 경로 추가
+    // 오른쪽 변(size.width)의 하단에서 tailYOffset만큼 올라온 지점
+    path.moveTo(size.width - 2, size.height - tailYOffset); 
+    path.lineTo(size.width + tailWidth, size.height - tailYOffset + 5); 
+    path.lineTo(size.width - 2, size.height - tailYOffset + 12);
+    path.close();
+
+    // 그림자 레이어
+    canvas.drawPath(path.shift(const Offset(0, 2)), shadowPaint);
+    // 흰색 몸체 레이어
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
+}
+
+// --- 결과 화면에서 호출되는 말풍선 위젯 ---
+class _SpeechBubble extends StatelessWidget {
+  final String text;
+  const _SpeechBubble({required this.text});
 
   @override
   Widget build(BuildContext context) {
-    // 전달받은 resultId로 해당하는 캐릭터 정보를 찾아옵니다.
-    final Character character = Character.getCharacterById(resultId);
-    // 반응형을 위한 코드 수정  _ 가령
-    final size = MediaQuery.of(context).size;
-    final screenWidth = size.width;
-    final screenHeight = size.height;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFC),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.symmetric(
-            horizontal: screenWidth * 0.06,
-            vertical: screenHeight * 0.05,
-          ), // 두꺼운 검은 색으로 수정.
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // 1. 상단 텍스트
-              const Text(
-                'STEP 2',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                '난 어떤 유형의 사람일까? -',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 24),
-
-              // 말풍선
-              _SpeechBubble(text: character.speech),
-              SizedBox(height: screenHeight * 0.02),
-
-              // 3. 캐릭터 이미지
-              Image.asset(
-                character.imagePath,
-                height: 250,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
-                    height: screenHeight * 0.3,
-                    width: screenWidth * 0.5,
-                    color: Colors.grey[200],
-                    child: const Center(child: Text('이미지 없음')),
-                  );
-                },
-              ),
-              SizedBox(height: screenHeight * 0.03),
-
-              // 하단 정보 카드
-              _InfoContainer(character: character),
-            ],
+    return CustomPaint(
+      painter: SpeechBubblePainter(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF7E7B7B),
           ),
         ),
       ),
@@ -174,225 +288,184 @@ class PsychologyResult extends StatelessWidget {
   }
 }
 
-/// 클래스 : _SpeechBubble
-/// 목적 : 캐릭터의 대사를 말풍선 형태로 출력
-/// 반환타입 : StatelessWidget
-/// 예외 : 없음
-
-class _SpeechBubble extends StatelessWidget {
-  final String text;
-
-  const _SpeechBubble({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.05,
-        vertical: screenWidth * 0.03,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Text(text, style: TextStyle(fontSize: screenWidth * 0.04)),
-    );
-  }
-}
-
-// 하단 정보 컨테이너 위젯 // 하단 정보 컨테이너 위젯 (레이아웃이 수정된 버전)
 class _InfoContainer extends StatelessWidget {
   final Character character;
-
-
   const _InfoContainer({super.key, required this.character});
 
   @override
   Widget build(BuildContext context) {
-    // 화면 너비를 기준으로 반응형 UI를 구성합니다.
-    final screenWidth = MediaQuery.of(context).size.width;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      // 캐릭터별 고유 색상이 적용된 전체 배경
-      padding: EdgeInsets.all(screenWidth * 0.05),
+      width: double.infinity,
+      // 1. 박스 자체를 화면 양옆에서 띄우기 위해 margin 추가 (CSS left: 21px 반영)
+      margin: const EdgeInsets.fromLTRB(21, 0, 21, 0), 
+      // 2. 내부 요소들과의 간격
+      padding: EdgeInsets.fromLTRB(21, 25, 21, bottomPadding > 0 ? 5 : 10),
       decoration: BoxDecoration(
-        color: character.color,
-        borderRadius: BorderRadius.circular(24),
+        color: character.color, // Rectangle 94 배경색
+        // 3. 네 귀퉁이를 모두 둥글게 해야 '떠 있는 박스' 느낌이 납니다.
+        borderRadius: BorderRadius.circular(20), 
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2), // 위쪽으로 살짝 그림자
+          ),
+        ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // --- 제목 카드와 완료 버튼을 포함하는 새로운 Row ---
+          // 이름표와 완료 버튼 Row
           Row(
             children: [
-              // 1. 제목을 담는 카드 (남는 공간을 모두 차지)
               Expanded(
                 child: Container(
-                  padding: EdgeInsets.symmetric(vertical: screenWidth * 0.038),
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(50), // 둥근 모서리
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.03),
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Center(
-                    child: Text(
-                      character.name,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    character.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF616161),
                     ),
                   ),
                 ),
               ),
-
-              // 2. 카드와 버튼 사이의 간격
-              SizedBox(width: screenWidth * 0.03),
-
-              // 3. 완료 버튼
-              ElevatedButton(
-                onPressed: () async {
-                  final authService = AuthService();
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () async {
+                  final authService = AuthService(); //
                   try {
-                    final userData = await authService.signInWithNaver(
-                      character.id,
-                    );
-                    // 심리테스트 타이틀 지급(firestore) - 로컬 동기화 포함
+                    // 1. 네이버 로그인 및 데이터 저장
+                    await authService.signInWithNaver(character.id); //
+                    
+                    // 2. 심리테스트 완료 칭호 지급
+                    await TitlesRemote.SavePsychologyTestCompletion(); //
 
-                    await TitlesRemote.SavePsychologyTestCompletion();
+                    if (!context.mounted) return; //
 
-                    if (!context.mounted) return;
-                    Navigator.pushReplacement(
+                    // 3. 홈 화면으로 이동 (기존의 모든 경로를 제거하고 MainScreen을 새로 띄움)
+                    Navigator.pushAndRemoveUntil(
                       context,
-                      MaterialPageRoute(
-                        builder: (context) => const MainScreen(),
-                      ),
+                      MaterialPageRoute(builder: (context) => const MainScreen()),
+                      (route) => false, // 이 조건이 false면 이전의 모든 화면을 스택에서 지웁니다.
                     );
                   } catch (e) {
-                    print(" 로그인 실패: $e");
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("로그인에 실패했습니다. 다시 시도해주세요."),
-                        ),
-                      );
-                    }
+                    debugPrint("로그인 및 홈 이동 실패: $e"); //
                   }
                 },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF555555),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
+                child: Container(
+                  width: 80,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF494444), //
+                    borderRadius: BorderRadius.circular(999), //
                   ),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: screenWidth * 0.06,
-                    vertical: screenWidth * 0.03,
+                  alignment: Alignment.center,
+                  child: const Text(
+                    '완료',
+                    style: TextStyle(
+                      color: Colors.white, //
+                      fontSize: 14, //
+                      fontWeight: FontWeight.w700, //
+                    ),
                   ),
-                ),
-                child: const Text(
-                  '완료',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-
-          // 카드들 사이의 간격
-          SizedBox(height: screenWidth * 0.04),
-
-          // 캐릭터 소개 & 키워드 카드 (기존 구조 유지)
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            height: 0.5,
+            color: const Color(0xFF665E5E),
+          ),
+          const SizedBox(height: 16),
+          // 상세 카드 Row
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _InfoCard(
-                  title: '캐릭터 소개',
-                  content: Text(
-                    character.description,
-                    style: const TextStyle(fontSize: 15, height: 1.5),
-                  ),
-                ),
-              ),
-              SizedBox(width: screenWidth * 0.04),
-              Expanded(
-                child: _InfoCard(
-                  title: 'Keyword',
-                  content: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children:
-                    character.keywords
-                        .map(
-                          (keyword) => Text(
-                        keyword,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          height: 1.6,
-                        ),
-                      ),
-                    )
-                        .toList(),
-                  ),
-                ),
+              _ResultDetailCard(title: '캐릭터 소개', content: character.description, height: 120,),
+              const SizedBox(width: 16),
+              _ResultDetailCard(
+                title: 'Keyword',
+                content: character.keywords.join('\n'),
+                isKeyword: true,
+                height: 120,
               ),
             ],
           ),
+          // 기기 하단 노치 대응 여백
+          SizedBox(height: bottomPadding),
         ],
       ),
     );
   }
 }
 
-// 소개 & 키워드 카드 위젯 (이 위젯은 수정할 필요가 없습니다)
-class _InfoCard extends StatelessWidget {
+class _ResultDetailCard extends StatelessWidget {
   final String title;
-  final Widget content;
+  final String content;
+  final bool isKeyword;
+  final double height; // 높이 조절용 변수 추가
 
-  const _InfoCard({required this.title, required this.content});
+  const _ResultDetailCard({
+    required this.title,
+    required this.content,
+    this.isKeyword = false,
+    this.height = 115, // 기본값은 기존대로 유지
+  });
 
   @override
   Widget build(BuildContext context) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    return Container(
-      width: double.infinity, // Expanded 위젯 안에서 너비를 꽉 채우도록 설정
-      padding: EdgeInsets.symmetric(
-        horizontal: screenWidth * 0.045,
-        vertical: screenWidth * 0.05,
-      ),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 12),
-          content,
-        ],
+    return Expanded(
+      child: Container(
+        height: height, // 전달받은 높이 적용
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: double.infinity,
+              height: 32, // 헤더 높이도 살짝 축소
+              color: const Color(0xFFF1F1F1),
+              alignment: Alignment.centerLeft,
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+              ),
+            ),
+            Expanded(
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                alignment: isKeyword ? Alignment.centerLeft : Alignment.center,
+                child: Text(
+                  content,
+                  textAlign: isKeyword ? TextAlign.left : TextAlign.left,
+                  style: const TextStyle(
+                    fontSize: 12.5,
+                    color: Color(0xFF4A4A4A),
+                    height: 1.2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

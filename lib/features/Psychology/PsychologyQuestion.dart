@@ -9,7 +9,8 @@ import 'package:auto_size_text/auto_size_text.dart';
 /// 반환타입 : StatefulWidget
 /// 예외 : 없음
 class PsychologyQuestion extends StatefulWidget {
-  const PsychologyQuestion({super.key});
+  final bool isReTest;
+  const PsychologyQuestion({super.key, this.isReTest = false});
 
   @override
   State<PsychologyQuestion> createState() => _PsychologyQuestionState();
@@ -198,8 +199,10 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          // 이제 LoadingScreen으로 결과 ID를 넘겨줍니다.
-          builder: (_) => TestLoadingScreen(resultId: finalResultId),
+          builder: (_) => TestLoadingScreen(
+            resultId: finalResultId,
+            isReTest: widget.isReTest, // 로딩 화면으로 전달
+          ),
         ),
       );
     }
@@ -223,7 +226,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
             children: [
               SizedBox(height: size.height * 0.05), // 최상단 여백 줄임
               _TestProgressBar(
-                currentStep: _currentQuestionIndex + 1,
+                currentStep: _currentQuestionIndex,
                 totalSteps: _questions.length,
               ),
               SizedBox(height: size.height * 0.03), // 질문과의 간격
@@ -279,31 +282,34 @@ class _TestProgressBar extends StatelessWidget {
         // --- 1. 네모난 외곽 테두리가 있는 프로그레스 바 ---
         Container(
           width: double.infinity,
-          height: 9, // 바의 두께
+          height: 7, // 바의 두께
           decoration: BoxDecoration(
             color: const Color(0xFFFFFBED), // 바의 빈 배경색
             // 검은색에 가까운 진한 회색 테두리
             border: Border.all(color: const Color(0xFF797979), width: 1),
-            borderRadius: BorderRadius.circular(0), 
+            borderRadius: BorderRadius.circular(0),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
               return Stack(
                 children: [
                   // 1-1. 실제로 차오르는 게이지 (네모난 형태)
-                  FractionallySizedBox(
+                  AnimatedFractionallySizedBox(
                     widthFactor: progress,
+                    duration: const Duration(milliseconds: 300), //부드럽게 이동
+                    curve: Curves.easeInOut, // 시작과 끝을 부드럽게 처리
                     child: Container(
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFBF8181),
-                      ),
+                      decoration: const BoxDecoration(color: Color(0xFFBF8181)),
                     ),
                   ),
-                  // 1-2. 진행 지점의 수직 구분선 (2번 사진 포인트)
-                  Positioned(
+
+                  // 1-2. 진행 지점의 수직 구분선도 함께 애니메이션 처리
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
                     left: (constraints.maxWidth * progress) - 0.6,
                     child: Container(
-                      width: 1.2, // 테두리 두께와 맞춤
+                      width: 1.2,
                       height: 14,
                       color: const Color(0xFF3B3737),
                     ),
@@ -313,7 +319,7 @@ class _TestProgressBar extends StatelessWidget {
             },
           ),
         ),
-        
+
         SizedBox(height: size.height * 0.03),
 
         // --- 2. 진행 단계 표시 버블 ---
@@ -324,7 +330,7 @@ class _TestProgressBar extends StatelessWidget {
             borderRadius: BorderRadius.circular(25), // 버블은 둥글게 유지
           ),
           child: Text(
-            '$currentStep / $totalSteps',
+            '${currentStep + 1} / $totalSteps',
             style: TextStyle(
               fontSize: size.width * 0.042,
               fontWeight: FontWeight.bold,
@@ -481,35 +487,37 @@ class _AnswerShape extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // 1. 도형 이미지 (선택 시 살짝 어두워지는 효과)
           Image.asset(
             imagePath,
             width: shapeWidth.clamp(120, 350).toDouble(),
             fit: BoxFit.contain,
-            color:
-                isSelected
-                    ? const Color(0xFF6E8B66)
-                    : null, // 선택했을때 초록색으로 바꾸는 부분.
-            colorBlendMode: isSelected ? BlendMode.modulate : null,
+            // 선택되었을 때만 검은색 20% 투명도를 얹어서 어둡게 만듭니다.
+            color: isSelected 
+                ? Colors.black.withOpacity(0.2) // 0.2를 조절하여 어두운 정도 변경 가능
+                : null,
+            colorBlendMode: isSelected ? BlendMode.srcATop : null,
           ),
-          isSelected
-              ? const Icon(Icons.check, color: Colors.white, size: 50)
-              : SizedBox(
-                width: textContainerWidth,
-                child: Padding(
-                  padding: textPadding,
-                  child: AutoSizeText(
-                    text,
-                    textAlign: TextAlign.center,
-                    minFontSize: 10,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w500,
-                      fontSize: (size.width * 0.038).clamp(12, 18).toDouble(),
-                      color: const Color(0xFF504A4A),
-                      height: 1.3,
-                    ),
-                  ),
+
+          // 2. 텍스트 (이제 선택 여부와 상관없이 항상 보입니다)
+          SizedBox(
+            width: textContainerWidth,
+            child: Padding(
+              padding: textPadding,
+              child: AutoSizeText(
+                text,
+                textAlign: TextAlign.center,
+                minFontSize: 10,
+                style: TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: (size.width * 0.038).clamp(12, 18).toDouble(),
+                  // 선택되었을 때 글자색도 살짝 밝게 하고 싶다면 조건을 걸 수 있습니다.
+                  color: const Color(0xFF504A4A),
+                  height: 1.3,
                 ),
               ),
+            ),
+          ),
         ],
       ),
     );
@@ -523,10 +531,13 @@ class _AnswerShape extends StatelessWidget {
 class TestLoadingScreen extends StatefulWidget {
   // 질문 화면에서 넘어온 최종 결과 ID를 받을 변수 추가
   final int resultId;
-
+  final bool isReTest;
   // 생성자에서 resultId를 필수로 받도록 수정함.
-  const TestLoadingScreen({super.key, required this.resultId});
-
+  const TestLoadingScreen({
+    super.key, 
+    required this.resultId, 
+    this.isReTest = false, // 기본값을 false로 설정
+  });
   @override
   State<TestLoadingScreen> createState() => _TestLoadingScreenState();
 }
@@ -544,14 +555,15 @@ class _TestLoadingScreenState extends State<TestLoadingScreen> {
     super.initState();
     _navigateToResultScreen();
   }
-
   void _navigateToResultScreen() {
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            //  받은 resultId를 PsychologyResult 화면으로 전달
-            builder: (context) => PsychologyResult(resultId: widget.resultId),
+            builder: (context) => PsychologyResult(
+              resultId: widget.resultId,
+              isReTest: widget.isReTest, // 결과 화면으로 최종 전달
+            ),
           ),
         );
       }
@@ -563,36 +575,74 @@ class _TestLoadingScreenState extends State<TestLoadingScreen> {
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
+      backgroundColor: const Color(0xFFFFFEF9),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
               'assets/images/PsychologyTest/TestLoading.png',
-              //width: 80,
-              //height: 80,
-              width: size.width * 0.18,
-              height: size.width * 0.18,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  Icons.find_in_page_outlined,
-                  size: size.width * 0.18,
-                  color: Colors.grey,
-                );
-              },
+              width: size.width * 0.15,
+              height: size.width * 0.15,
+              errorBuilder:
+                  (context, error, stackTrace) => Icon(
+                    Icons.find_in_page_outlined,
+                    size: size.width * 0.18,
+                    color: Colors.grey,
+                  ),
             ),
-            SizedBox(height: size.height * 0.03),
+            SizedBox(height: size.height * 0.015),
             Text(
-              '어울리는 캐릭터 찾는 중...',
-              style: TextStyle(fontSize: size.width * 0.048),
+              '어울리는 캐릭터 찾는 중 . . .',
+              style: TextStyle(
+                fontSize: size.width * 0.04,
+                color: const Color(0xFF6B6060),
+                fontWeight: FontWeight.w600,
+              ),
             ),
-            SizedBox(height: size.height * 0.03),
+            SizedBox(height: size.height * 0.015),
+
+            // --- CSS 사양을 반영한 프로그레스 바 ---
             Padding(
               padding: EdgeInsets.symmetric(horizontal: size.width * 0.15),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.grey[200],
-                color: Colors.grey[600],
-                minHeight: size.height * 0.012,
+              child: Stack(
+                children: [
+                  // 1. 배경 바 (Rectangle 149)
+                  Container(
+                    width: 244, // CSS width
+                    height: 7, // CSS height
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFBED), // CSS background
+                      border: Border.all(
+                        color: const Color(0xFF797979),
+                        width: 1,
+                      ), // CSS border
+                      borderRadius: BorderRadius.circular(
+                        999,
+                      ), // CSS border-radius
+                    ),
+                  ),
+                  // 2. 게이지 바 (Rectangle 150)
+                  // 로딩 효과를 위해 TweenAnimationBuilder 사용
+                  TweenAnimationBuilder<double>(
+                    duration: const Duration(seconds: 3),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Container(
+                        width: 244 * value, // 시간에 따라 0에서 244까지 증가
+                        height: 7,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6B6060), // CSS background
+                          border: Border.all(
+                            color: const Color(0xFF797979),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ],
