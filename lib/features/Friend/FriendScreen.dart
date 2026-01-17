@@ -1065,177 +1065,194 @@ class _FriendScreenState extends State<FriendScreen> {
               );
             }
 
-            return Column(
-        children: [
-          const SizedBox(height: 30),
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                final screenWidth = constraints.maxWidth;
+                final screenHeight = constraints.maxHeight;
 
-          Expanded(
-            child: PageView.builder(
-              controller: _pageController, 
-              itemCount: recommendedUsers.length,
-              itemBuilder: (context, i) {
-                final user = recommendedUsers[i];
+                return Column(
+                  children: [
+                    SizedBox(height: screenHeight * 0.08),
 
-                double opacity = (1 - (i - _currentPage).abs() * 0.5).clamp(0.4, 1.0);
+                    Expanded(
+                      child: PageView.builder(
+                        controller: _pageController,
+                        itemCount: recommendedUsers.length,
+                        itemBuilder: (context, i) {
+                          final user = recommendedUsers[i];
 
-                return Opacity(
-                  opacity: opacity,
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 40,
-                      horizontal: 10,
-                    ),
-                    child: Container(
-                      clipBehavior: Clip.antiAlias,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFCF9EC),
-                        borderRadius: BorderRadius.circular(25),
-                        boxShadow: [],
-                      ),
-                      child: Column(
-                        children: [
-                          Container(
-                            width: double.infinity,
-                            height: 52,
-                            color: const Color(0xFFDFD7CD),
-                            alignment: Alignment.center,
-                            child: Text(
-                              user.name,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF504A4A),
-                              ),
-                            ),
-                          ),
+                          double opacity = (1 - (i - _currentPage).abs() * 0.5).clamp(0.4, 1.0);
 
-                          const SizedBox(height: 25),
+                          return Opacity(
+                            opacity: opacity,
+                            child: Center(
+                              child: Container(
+                                width: screenWidth * (290 / 411),
+                                height: screenHeight * (370 / 507), // 이거 따라서 많이 변하니까 주의 
+                                clipBehavior: Clip.antiAlias,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFCF9EC),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: LayoutBuilder(
+                                  builder: (context, cardConstraints) {
+                                    final cardWidth = cardConstraints.maxWidth;
+                                    final cardHeight = cardConstraints.maxHeight;
 
-                          Container(
-                            width: 135,
-                            height: 135,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFFF1F1F1), width: 4),
-                              color: Colors.white,
-                            ),
-                            child: ClipOval(
-                              child: _buildProfileImage(user.profileImage),
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          //타이틀 영역 높이를 고정 (타이틀 유무와 관계없이 동일한 높이 유지)
-                          SizedBox(
-                            height: 40, // 고정 높이 설정
-                            child: user.tags.isNotEmpty
-                                ? Wrap(
-                                    spacing: 8,
-                                    runSpacing: 6,
-                                    alignment: WrapAlignment.center,
-                                    children: user.tags.map((tag) => Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFFF4ECD2),
-                                        border: Border.all(color: const Color(0xFF6A6A6A), width: 1.0),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        '# $tag',
-                                        style: const TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF504A4A),
+                                    return Column(
+                                      children: [
+                                        // 헤더 (이름) - 56/414
+                                        Container(
+                                          width: double.infinity,
+                                          height: cardHeight * (56 / 414),
+                                          color: const Color(0xFFDFD7CD),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            user.name,
+                                            style: TextStyle(
+                                              fontSize: cardWidth * (20 / 290),
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF504A4A),
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    )).toList(),
-                                  )
-                                : const SizedBox.shrink(), // 타이틀이 없어도 높이는 유지
-                          ),
 
-                          const SizedBox(height: 20),
-                          Container(width: 170, height: 1.2, color: const Color(0xFFB8B8B8)),
-                          const SizedBox(height: 20),
+                                        // 프로필 이미지 영역 - (239-172-56)/414 = 11/414 간격 후
+                                        SizedBox(height: cardHeight * (11 / 414)),
 
-                          Container(
-                            width: double.infinity,
-                            height: 80,
-                            margin: const EdgeInsets.symmetric(horizontal: 20),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF0F0F0).withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              user.bio.isNotEmpty ? user.bio : "만나서 반가워요!",
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontSize: 13,
-                                color: Color(0xFF504A4A),
-                                height: 1.3,
-                              ),
-                            ),
-                          ),
+                                        // 프로필 이미지 - 150x150
+                                        Container(
+                                          width: cardWidth * (150 / 290),
+                                          height: cardWidth * (150 / 290),
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: const Color(0xFFF1F1F1), width: 3),
+                                            color: Colors.white,
+                                          ),
+                                          child: ClipOval(
+                                            child: _buildProfileImage(user.profileImage),
+                                          ),
+                                        ),
 
-                          const Spacer(),
+                                        // 프로필과 구분선 사이 간격
+                                        SizedBox(height: cardHeight * (12 / 414)),
 
-                          GestureDetector(
-                            onTap: () => sendFriendRequestByEmail(user.email),
-                            child: Container(
-                              width: 115,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFB4A0A0),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                '친구 신청',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                                        // 구분선 - 211px 너비
+                                        Container(
+                                          width: cardWidth * (211 / 290),
+                                          height: 1,
+                                          color: const Color(0xFFB8B8B8),
+                                        ),
+
+                                        // 구분선과 태그 사이 간격
+                                        SizedBox(height: cardHeight * (13 / 414)),
+
+                                        // 태그 영역
+                                        SizedBox(
+                                          height: cardHeight * (30 / 414),
+                                          child: user.tags.isNotEmpty
+                                              ? Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: user.tags.map((tag) => Container(
+                                                    margin: EdgeInsets.symmetric(horizontal: cardWidth * (4 / 290)),
+                                                    padding: EdgeInsets.symmetric(
+                                                      horizontal: cardWidth * (10 / 290),
+                                                      vertical: cardHeight * (5 / 414),
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(0xFFF4ECD2),
+                                                      border: Border.all(color: const Color(0xFF6A6A6A), width: 1.2),
+                                                      borderRadius: BorderRadius.circular(999),
+                                                    ),
+                                                    child: Text(
+                                                      '# $tag',
+                                                      style: TextStyle(
+                                                        fontSize: cardWidth * (15 / 290),
+                                                        fontWeight: FontWeight.w500,
+                                                        color: const Color(0xFF504A4A),
+                                                      ),
+                                                    ),
+                                                  )).toList(),
+                                                )
+                                              : const SizedBox.shrink(),
+                                        ),
+
+                                        // 태그와 소개글 사이 간격
+                                        SizedBox(height: cardHeight * (10 / 414)),
+
+                                        // 소개글 박스 - 270x65
+                                        Container(
+                                          width: cardWidth * (270 / 290),
+                                          height: cardHeight * (65 / 414),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEBEBEB),
+                                            borderRadius: BorderRadius.circular(10),
+                                          ),
+                                          alignment: Alignment.center,
+                                          padding: EdgeInsets.symmetric(horizontal: cardWidth * (10 / 290)),
+                                          child: Text(
+                                            user.bio.isNotEmpty ? user.bio : "만나서 반가워요!",
+                                            textAlign: TextAlign.center,
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              fontSize: cardWidth * (14 / 290),
+                                              fontWeight: FontWeight.w500,
+                                              color: const Color(0xFF504A4A),
+                                            ),
+                                          ),
+                                        ),
+
+                                        // 소개글과 버튼 사이 간격
+                                        SizedBox(height: cardHeight * (15 / 414)),
+
+                                        // 친구 신청 버튼 - 117x38
+                                        GestureDetector(
+                                          onTap: () => sendFriendRequestByEmail(user.email),
+                                          child: Container(
+                                            width: cardWidth * (117 / 290),
+                                            height: cardHeight * (38 / 414),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFB4A0A0),
+                                              borderRadius: BorderRadius.circular(999),
+                                            ),
+                                            alignment: Alignment.center,
+                                            child: Text(
+                                              '친구 신청',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w500,
+                                                fontSize: cardWidth * (15 / 290),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
+                          );
+                        },
                       ),
                     ),
-                  ),
+
+                    // 하단 안내 텍스트
+                    Padding(
+                      padding: EdgeInsets.only(bottom: screenHeight * 0.05),
+                      child: Text(
+                        '옆으로 스와이프 하세요',
+                        style: TextStyle(
+                          color: const Color(0xFF9A9A9A),
+                          fontSize: screenWidth * (14 / 411),
+                        ),
+                      ),
+                    ),
+                  ],
                 );
               },
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.only(bottom: 25, top: 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  '옆으로 스와이프 하세요',
-                  style: TextStyle(color: Color(0xFF9A9A9A), fontSize: 13),
-                ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: _refreshRecommendations,
-                  child: const Icon(
-                    Icons.refresh,
-                    size: 20,
-                    color: Color(0xFF9A9A9A),
-                  ),
-                ),
-              ],
-            ),
-          ),
-            ],
-          );
+            );
           },
         );
       },
@@ -1425,11 +1442,18 @@ class _FriendScreenState extends State<FriendScreen> {
       context: context,
       builder:
           (BuildContext dialogContext) => AlertDialog(
-            content: Text(message),
+            backgroundColor: Colors.white,
+            content: Text(
+              message,
+              style: const TextStyle(color: Color(0xFF716969)),
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext),
-                child: const Text('확인'),
+                child: const Text(
+                  '확인',
+                  style: TextStyle(color: Color(0xFF2F3BDC)),
+                ),
               ),
             ],
           ),
