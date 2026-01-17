@@ -335,7 +335,7 @@ class _HomeCalendarState extends State<HomeCalendar> {
             subtitle: Text(
               '${event.startTime.format(context)} ~ ${event.endTime.format(context)}',
               style: TextStyle(
-                fontSize: screenWidth * 0.024,
+                fontSize: screenWidth * 0.026,
                 color: const Color(0xFF626262),
               ),
             ),
@@ -1285,6 +1285,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
               ),
               SizedBox(height: spacingHeight),
               _buildTimeRow(
+                context,
                 '시작 시간',
                 _startTime,
                     () => _pickTime(context, isStartTime: true),
@@ -1294,6 +1295,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
               ),
               SizedBox(height: spacingHeight * 0.5), // 시간 줄 사이 간격
               _buildTimeRow(
+                context,
                 '종료 시간',
                 _endTime,
                     () => _pickTime(context, isStartTime: false),
@@ -1371,6 +1373,7 @@ class _AddEventDialogState extends State<AddEventDialog> {
   }
 
   Widget _buildTimeRow(
+      BuildContext context,
       String label,
       TimeOfDay? time,
       VoidCallback onPressed,
@@ -1378,8 +1381,10 @@ class _AddEventDialogState extends State<AddEventDialog> {
       double valueSize,
       bool isSelected, // <--- 시간이 선택되었는지 여부를 받는 파라미터 추가
       ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        final screenWidth = MediaQuery.of(context).size.width;
+      return Padding(
+      
+      padding: EdgeInsets.symmetric(horizontal: screenWidth*0.0388),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

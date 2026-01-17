@@ -128,6 +128,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double w = screenWidth * 0.00243;
+    final double h = screenHeight * 0.001134;
 
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
@@ -288,19 +291,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ],
                     ),
-                    SizedBox(height: screenWidth * 0.059375),
+                    SizedBox(height: screenHeight*0.02767314375),
                     Divider(
                       color: Color(0xFF847E7E),
                       thickness: 1,
                       indent: screenWidth * 0.011875,
                       endIndent: screenWidth * 0.011875,
                     ),
-                    SizedBox(height: screenWidth * 0.059375),
+                    SizedBox(height: screenHeight*0.02767314375),
                     // 알림 설정
                     Container(
                       padding: EdgeInsets.symmetric(
                         vertical: screenWidth * 0.038,
-                        horizontal: screenWidth * 0.038,
+                        horizontal: screenHeight * 0.017710812,
                       ),
                       decoration: BoxDecoration(
                         color: Color(0xFFF8F8F8),
@@ -358,8 +361,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   // 2. '꺼짐' 상태일 때 보여줄 위젯 (첫 번째 자식)
                                   firstChild: Image.asset(
                                     'assets/images/Setting/alarm_off.png', // 꺼짐 이미지 경로
-                                    width: 52,
-                                    height: 55,
+                                    width: 52*w,
+                                    height: 55 *h,
                                     fit:
                                         BoxFit
                                             .contain, // 이미지가 위젯 크기에 맞게 조절되도록 설정
@@ -368,8 +371,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   // 3. '켜짐' 상태일 때 보여줄 위젯 (두 번째 자식)
                                   secondChild: Image.asset(
                                     'assets/images/Setting/alarm_on.png', // 켜짐 이미지 경로
-                                    width: 50,
-                                    height: 55,
+                                    width: 50*w,
+                                    height: 55*h,
                                     fit: BoxFit.contain,
                                   ),
 
@@ -826,7 +829,9 @@ Future<void> callDeleteUserAllData(String uid) async {
 
   try {
     // asia-northeast3 리전을 명시해주는 것이 좋습니다.
-    final HttpsCallable callable = FirebaseFunctions.instanceFor(region: 'us-central1').httpsCallable('deleteUserAllData');
+    final HttpsCallable callable = FirebaseFunctions.instanceFor(
+      region: 'us-central1',
+    ).httpsCallable('deleteUserAllData');
     print("Cloud Function 'deleteUserAllData' 호출, UID: $uid");
     final response = await callable.call({'uid': uid});
     print('Function 결과: ${response.data}');
@@ -838,7 +843,7 @@ Future<void> callDeleteUserAllData(String uid) async {
       if (key.contains("title") || key.contains("titles")) {
         await prefs.remove(key);
       }
-      }
+    }
   } on FirebaseFunctionsException catch (e) {
     print('Functions 오류: ${e.code} - ${e.message}');
     throw Exception('서버 데이터 삭제 실패');

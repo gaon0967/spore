@@ -117,9 +117,9 @@ class PsychologyResult extends StatelessWidget {
   Widget build(BuildContext context) {
     final Character character = Character.getCharacterById(resultId);
     final size = MediaQuery.of(context).size;
-    
-    // STEP 1과 동일한 디자인 기준 너비 (예: 411px) 및 배율 계산
-    const double designWidth = 411.0; 
+    final screenWidth = size.width;
+    final Height = size.height;
+    double designWidth = size.width; 
     final double scale = size.width / designWidth;
 
     return Scaffold(
@@ -136,37 +136,37 @@ class PsychologyResult extends StatelessWidget {
                     // --- STEP 2: 재검사가 아닐 때만 STEP 1과 동일한 스타일로 표시 ---
                     if (!isReTest) ...[
                       Padding(
-                        padding: EdgeInsets.only(top: 20 * scale), // STEP 1과 동일한 top 위치
+                        padding: EdgeInsets.only(top: size.height * 0.02268), // STEP 1과 동일한 top 위치
                         child: SizedBox(
-                          width: 205 * scale,
+                          width: screenWidth * 0.49815,
                           child: Center(
                             child: Text(
                               'STEP 2',
                               style: TextStyle(
                                 fontFamily: 'GolosText',
                                 fontWeight: FontWeight.w500,
-                                fontSize: 18.5 * scale,
+                                fontSize: screenWidth*0.044955,
                                 color: const Color(0xFF555555), // STEP 1과 동일 색상
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: size.height * 0.009072),
                     ] else ...[
                        // 재검사일 때는 상단 여백만 살짝 줌
                        SizedBox(height: size.height * 0.06),
                     ],
 
-                    const Text(
+                    Text(
                       '난 어떤 유형의 사람일까? -',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: screenWidth * 0.0486,
                         fontWeight: FontWeight.w700,
                         color: Color(0xFF5F5F5F),
                       ),
                     ),
-                    const SizedBox(height: 40),
+                    SizedBox(height: size.height * 0.04536),
                     
                     _SpeechBubble(text: character.speech),
                     
@@ -178,10 +178,10 @@ class PsychologyResult extends StatelessWidget {
                       children: [
                         // 바닥 그림자 (Ellipse 15) - 위로 올리고 블러 대폭 강화
                         Positioned(
-                          bottom: 25, // 그림자 위치를 더 위로 올림
+                          bottom: size.height*0.02835, // 그림자 위치를 더 위로 올림
                           child: Container(
-                            width: 167,
-                            height: 56,
+                            width: screenWidth*0.40581,
+                            height: size.height*0.063504,
                             decoration: BoxDecoration(
                               boxShadow: [
                                 BoxShadow(
@@ -197,7 +197,7 @@ class PsychologyResult extends StatelessWidget {
                         ),
                         Image.asset(
                           character.imagePath,
-                          height: 340,
+                          height: screenWidth*0.8262,
                           fit: BoxFit.contain,
                         ),
                       ],
@@ -231,12 +231,12 @@ class SpeechBubblePainter extends CustomPainter {
 
     final path = Path();
     const double radius = 20.0;
-    const double tailWidth = 12.0;
-    const double tailHeight = 10.0;
+    double tailWidth = size.width * 0.02916; // 꼬리의 너비
+    double tailHeight = size.height*0.01134;
     
     // 꼬리가 시작되는 높이 오프셋 (값이 커질수록 위로 올라감)
     // 전체 높이(size.height)에서 이만큼 뺀 지점에 꼬리가 붙습니다.
-    const double tailYOffset = 18.0; 
+    double tailYOffset = size.height * 0.020412; 
 
     // 1. 메인 말풍선 몸체 (둥근 사각형)
     path.addRRect(RRect.fromLTRBAndCorners(
@@ -271,14 +271,15 @@ class _SpeechBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return CustomPaint(
       painter: SpeechBubblePainter(),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+        padding: EdgeInsets.symmetric(horizontal: size.width*0.05346, vertical: size.height*0.013608),
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 15,
+          style: TextStyle(
+            fontSize: size.width*0.03645,
             fontWeight: FontWeight.w600,
             color: Color(0xFF7E7B7B),
           ),
@@ -295,16 +296,16 @@ class _InfoContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
+    final size = MediaQuery.of(context).size;
 
     return Container(
       width: double.infinity,
-      // 1. 박스 자체를 화면 양옆에서 띄우기 위해 margin 추가 (CSS left: 21px 반영)
-      margin: const EdgeInsets.fromLTRB(21, 0, 21, 0), 
+      // 1. 박스 자체를 화면 양옆에서 띄우기 위해 margin 추가 
+      margin:EdgeInsets.fromLTRB(size.width*0.05103, 0, size.width*0.05103, 0), 
       // 2. 내부 요소들과의 간격
-      padding: EdgeInsets.fromLTRB(21, 25, 21, bottomPadding > 0 ? 5 : 10),
+      padding: EdgeInsets.fromLTRB(size.width*0.05103, size.height*0.02835, size.width*0.05103, bottomPadding > 0 ? size.height*0.00567 : size.height*0.01134),
       decoration: BoxDecoration(
-        color: character.color, // Rectangle 94 배경색
-        // 3. 네 귀퉁이를 모두 둥글게 해야 '떠 있는 박스' 느낌이 납니다.
+        color: character.color, 
         borderRadius: BorderRadius.circular(20), 
         boxShadow: [
           BoxShadow(
@@ -322,7 +323,7 @@ class _InfoContainer extends StatelessWidget {
             children: [
               Expanded(
                 child: Container(
-                  height: 56,
+                  height: size.height*0.063504,
                   decoration: BoxDecoration(
                     color: const Color(0xFFFAFAFA),
                     borderRadius: BorderRadius.circular(20),
@@ -330,15 +331,15 @@ class _InfoContainer extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text(
                     character.name,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: size.width*0.04374,
                       fontWeight: FontWeight.w700,
                       color: Color(0xFF616161),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: size.width*0.02916),
               GestureDetector(
                 onTap: () async {
                   final authService = AuthService(); //
@@ -362,18 +363,18 @@ class _InfoContainer extends StatelessWidget {
                   }
                 },
                 child: Container(
-                  width: 80,
-                  height: 48,
+                  width: size.width*0.1944,
+                  height: size.height*0.054432,
                   decoration: BoxDecoration(
                     color: const Color(0xFF494444), //
                     borderRadius: BorderRadius.circular(999), //
                   ),
                   alignment: Alignment.center,
-                  child: const Text(
+                  child: Text(
                     '완료',
                     style: TextStyle(
                       color: Colors.white, //
-                      fontSize: 14, //
+                      fontSize: size.width*0.03402, //
                       fontWeight: FontWeight.w700, //
                     ),
                   ),
@@ -381,23 +382,23 @@ class _InfoContainer extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: size.height*0.018144),
           Container(
             width: double.infinity,
             height: 0.5,
             color: const Color(0xFF665E5E),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: size.height*0.018144),
           // 상세 카드 Row
           Row(
             children: [
-              _ResultDetailCard(title: '캐릭터 소개', content: character.description, height: 120,),
-              const SizedBox(width: 16),
+              _ResultDetailCard(title: '캐릭터 소개', content: character.description, height: size.height*0.13608),
+              SizedBox(width: size.width*0.02916),
               _ResultDetailCard(
                 title: 'Keyword',
                 content: character.keywords.join('\n'),
                 isKeyword: true,
-                height: 120,
+                height: size.height*0.13608,
               ),
             ],
           ),
@@ -413,20 +414,21 @@ class _ResultDetailCard extends StatelessWidget {
   final String title;
   final String content;
   final bool isKeyword;
-  final double height; // 높이 조절용 변수 추가
+  final double height;
 
   const _ResultDetailCard({
     required this.title,
     required this.content,
     this.isKeyword = false,
-    this.height = 115, // 기본값은 기존대로 유지
+    required this.height,
   });
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Expanded(
       child: Container(
-        height: height, // 전달받은 높이 적용
+        height: size.height*0.13041, // 전달받은 높이 적용
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           color: Colors.white,
@@ -436,14 +438,14 @@ class _ResultDetailCard extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              height: 32, // 헤더 높이도 살짝 축소
+              height: size.height*0.036288, // 헤더 높이도 살짝 축소
               color: const Color(0xFFF1F1F1),
               alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 15),
+              padding: EdgeInsets.symmetric(horizontal: size.width*0.03645),
               child: Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 13.5,
+                style: TextStyle(
+                  fontSize: size.width*0.032805,
                   fontWeight: FontWeight.w600,
                   color: Colors.black,
                 ),
@@ -456,10 +458,10 @@ class _ResultDetailCard extends StatelessWidget {
                 child: Text(
                   content,
                   textAlign: isKeyword ? TextAlign.left : TextAlign.left,
-                  style: const TextStyle(
-                    fontSize: 12.5,
+                  style: TextStyle(
+                    fontSize: 0.030375 * size.width,
                     color: Color(0xFF4A4A4A),
-                    height: 1.2,
+                    height: size.height*0.0013608,          
                   ),
                 ),
               ),

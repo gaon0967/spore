@@ -129,134 +129,152 @@ class _TimetableListState extends State<TimetableList> {
 
   // 추가: 선택된 시간표를 Firestore에서 삭제하는 비동기 메소드
   Future<void> _deleteTimetable(String tableName) async {
-  final user = FirebaseAuth.instance.currentUser;
-  if (user == null) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
-  final screenWidth = MediaQuery.of(context).size.width;
-  final double scale = screenWidth / 411; // CSS 기준 너비 대비 비율
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-  // 1. 커스텀 삭제 확인 다이얼로그
-  final bool confirmDelete = await showDialog<bool>(
-    context: context,
-    builder: (context) => Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: EdgeInsets.symmetric(horizontal: 40 * scale),
-      child: Container(
-        width: 298 * scale,  // CSS width: 298px
-        height: 179 * scale, // CSS height: 179px (Rectangle 137 참조)
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFFFF9), // CSS background: #FFFFF9
-          borderRadius: BorderRadius.circular(10), // border-radius: 10px
-          border: Border.all(color: const Color(0xFFE5E5E5), width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.06),
-              offset: const Offset(1, 2),
-              blurRadius: 4,
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // 상단 메시지 영역
-            Expanded(
-              child: Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(horizontal: 20 * scale),
-                child: Text(
-                  '시간표를 삭제하시겠습니까?', // CSS "로그아웃 하시겠습니까?" 스타일 참조
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Golos Text',
-                    fontSize: 16 * scale,
-                    fontWeight: FontWeight.w500, // font-weight: 520
-                    color: const Color(0xFF716969), // color: #716969
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
+    // 1. 커스텀 삭제 확인 다이얼로그
+    final bool confirmDelete =
+        await showDialog<bool>(
+          context: context,
+          builder:
+              (context) => Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: EdgeInsets.symmetric(horizontal: 40 * w),
+                child: Container(
+                  width: 298 * w, 
+                  height: 179 * h, 
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFFFF9), 
+                    borderRadius: BorderRadius.circular(
+                      10,
+                    ), 
+                    border: Border.all(
+                      color: const Color(0xFFE5E5E5),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.06),
+                        offset: const Offset(1, 2),
+                        blurRadius: 4,
+                      ),
+                    ],
                   ),
-                ),
-              ),
-            ),
-            // 하단 버튼 영역 (Subtract 영역)
-            Container(
-              height: 47 * scale, // CSS height: 47px
-              decoration: const BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
-                ),
-              ),
-              child: Row(
-                children: [
-                  // '아니오' 버튼
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(false),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        alignment: Alignment.center,
+                  child: Column(
+                    children: [
+                      // 상단 메시지 영역
+                      Expanded(
+                        child: Container(
+                          alignment: Alignment.center,
+                          padding: EdgeInsets.symmetric(horizontal: 20 * w),
+                          child: Text(
+                            '시간표를 삭제하시겠습니까?',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontSize: 16 * w,
+                              fontWeight: FontWeight.w500, 
+                              color: const Color(0xFF716969),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // 하단 버튼 영역 
+                      Container(
+                        height: 47 * h, 
                         decoration: const BoxDecoration(
                           border: Border(
-                            right: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                            top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
                           ),
                         ),
-                        child: Text(
-                          '아니오',
-                          style: TextStyle(
-                            fontFamily: 'Golos Text',
-                            fontSize: 16 * scale,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF635E5E), // color: #635E5E
-                          ),
+                        child: Row(
+                          children: [
+                            // '아니오' 버튼
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => Navigator.of(context).pop(false),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  decoration: const BoxDecoration(
+                                    border: Border(
+                                      right: BorderSide(
+                                        color: Color(0xFFE5E5E5),
+                                        width: 1,
+                                      ),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    '아니오',
+                                    style: TextStyle(
+                                      fontFamily: 'Golos Text',
+                                      fontSize: 16 * w,
+                                      fontWeight: FontWeight.w400,
+                                      color: const Color(
+                                        0xFF635E5E,
+                                      ), // color: #635E5E
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // '네' (삭제) 버튼
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => Navigator.of(context).pop(true),
+                                behavior: HitTestBehavior.opaque,
+                                child: Container(
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    '네',
+                                    style: TextStyle(
+                                      fontFamily: 'Golos Text',
+                                      fontSize: 16 * w,
+                                      fontWeight: FontWeight.w400,
+                                      color: const Color(
+                                        0xFF2F3BDC,
+                                      ), // color: #2F3BDC
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                  // '네' (삭제) 버튼
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => Navigator.of(context).pop(true),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          '네',
-                          style: TextStyle(
-                            fontFamily: 'Golos Text',
-                            fontSize: 16 * scale,
-                            fontWeight: FontWeight.w400,
-                            color: const Color(0xFF2F3BDC), // color: #2F3BDC
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
-    ),
-  ) ?? false;
+        ) ??
+        false;
 
-  if (!confirmDelete) return;
+    if (!confirmDelete) return;
 
-  try {
-    await FirebaseFirestore.instance
-        .collection('timetables')
-        .doc(user.uid)
-        .collection('TableName')
-        .doc(tableName)
-        .delete();
+    try {
+      await FirebaseFirestore.instance
+          .collection('timetables')
+          .doc(user.uid)
+          .collection('TableName')
+          .doc(tableName)
+          .delete();
 
-    _loadTimetables();
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('시간표가 삭제되었습니다.')),
-      );
+      _loadTimetables();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('시간표가 삭제되었습니다.')));
+      }
+    } catch (e) {
+      print("시간표 삭제 실패: $e");
     }
-  } catch (e) {
-    print("시간표 삭제 실패: $e");
   }
-}
 
   // '시간표 추가' 다이얼로그를 표시하는 메소드입니다.
   void _showAddTimetableDialog() async {
@@ -279,8 +297,11 @@ class _TimetableListState extends State<TimetableList> {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: const Color(0xFFFFFFF9),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -305,13 +326,12 @@ class _TimetableListState extends State<TimetableList> {
         ),
         centerTitle: false,
         actions: [
-          // CSS Rectangle 80 & 시간표 추가 + 반영
           Padding(
-            padding: EdgeInsets.only(right: 20, top: 10, bottom: 10),
+            padding: EdgeInsets.only(right: 20*w, top: 10*h, bottom: 10*h),
             child: GestureDetector(
               onTap: _showAddTimetableDialog,
               child: Container(
-                width: 110,
+                width: 110*w,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: const Color(0xFFD9D9D9),
@@ -322,7 +342,7 @@ class _TimetableListState extends State<TimetableList> {
                   style: TextStyle(
                     fontFamily: 'Golos Text',
                     fontWeight: FontWeight.w500,
-                    fontSize: 15,
+                    fontSize: 15*w,
                     color: const Color(0xFF504A4A),
                   ),
                 ),
@@ -331,81 +351,83 @@ class _TimetableListState extends State<TimetableList> {
           ),
         ],
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: EdgeInsets.all(screenWidth * 0.04),
-              child: GridView.builder(
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: screenWidth * 0.04,
-                  mainAxisSpacing: screenWidth * 0.04,
-                  childAspectRatio: 0.85,
-                ),
-                itemCount: _timetables.length,
-                itemBuilder: (context, index) {
-                  final timetable = _timetables[index];
-                  return GestureDetector(
-                    onTap: () {
-                      Navigator.pop(context, timetable.tableName);
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(screenWidth * 0.04),
-                      decoration: BoxDecoration(
-                        color: timetable.color,
-                        borderRadius: BorderRadius.circular(screenWidth * 0.04),
-                      ),
-                      child: Stack(
-                        children: [
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.delete,
-                                color: Colors.black54,
-                                size: screenWidth * 0.055,
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Padding(
+                padding: EdgeInsets.all(screenWidth * 0.04),
+                child: GridView.builder(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: screenWidth * 0.04,
+                    mainAxisSpacing: screenWidth * 0.04,
+                    childAspectRatio: 0.85,
+                  ),
+                  itemCount: _timetables.length,
+                  itemBuilder: (context, index) {
+                    final timetable = _timetables[index];
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context, timetable.tableName);
+                      },
+                      child: Container(
+                        padding: EdgeInsets.all(screenWidth * 0.04),
+                        decoration: BoxDecoration(
+                          color: timetable.color,
+                          borderRadius: BorderRadius.circular(
+                            screenWidth * 0.04,
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              right: 0,
+                              top: 0,
+                              child: IconButton(
+                                icon: Icon(
+                                  Icons.delete,
+                                  color: Colors.black54,
+                                  size: screenWidth * 0.055,
+                                ),
+                                onPressed: () {
+                                  _deleteTimetable(timetable.tableName);
+                                },
                               ),
-                              onPressed: () {
-                                _deleteTimetable(timetable.tableName);
-                              },
                             ),
-                          ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                "${timetable.year}년",
-                                style: TextStyle(
-                                  fontFamily: 'Golos Text',
-                                  fontSize: screenWidth * 0.05,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF504A4A),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "${timetable.year}년",
+                                  style: TextStyle(
+                                    fontFamily: 'Golos Text',
+                                    fontSize: screenWidth * 0.05,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF504A4A),
+                                  ),
                                 ),
-                              ),
-                              Text(
-                                timetable.semester,
-                                style: TextStyle(
-                                  color: const Color(0xFF675F5F),
-                                  fontFamily: 'Golos Text',
-                                  fontSize: screenWidth * 0.045,
-                                  fontWeight: FontWeight.bold,
+                                Text(
+                                  timetable.semester,
+                                  style: TextStyle(
+                                    color: const Color(0xFF675F5F),
+                                    fontFamily: 'Golos Text',
+                                    fontSize: screenWidth * 0.045,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
     );
   }
 }
 
-// 새 시간표를 추가하기 위한 다이얼로그 위젯입니다.
 // 새 시간표를 추가하기 위한 다이얼로그 위젯입니다.
 class AddTimetableModal extends StatefulWidget {
   const AddTimetableModal({super.key});
@@ -418,11 +440,15 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
   final _formKey = GlobalKey<FormState>(); //
   final List<String> _semesterOptions = ['1학기', '2학기', '여름학기', '겨울학기']; //
   String? _selectedSemester; //
-  
+
   // CSS에 정의된 색상 목록
   final List<Color> _colorOptions = const [
-    Color(0xFFCDDEE3), Color(0xFF8E9CBF), Color(0xFF97B4C7),
-    Color(0xFFBBCDC0), Color(0xFFE5EAEF), Color(0xFFE8EBDF),
+    Color(0xFFCDDEE3),
+    Color(0xFF8E9CBF),
+    Color(0xFF97B4C7),
+    Color(0xFFBBCDC0),
+    Color(0xFFE5EAEF),
+    Color(0xFFE8EBDF),
   ];
 
   late Color _selectedColor; //
@@ -441,11 +467,12 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
   }
 
   void _addTimetable() {
-    if (_formKey.currentState!.validate()) { //
+    if (_formKey.currentState!.validate()) {
+      //
       final year = _yearController.text; //
       final semester = _selectedSemester!; //
       final tableName = "$year년 $semester"; //
-      
+
       final newTimetable = TimetableInfo(
         tableName: tableName,
         year: year,
@@ -460,14 +487,20 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    final scale = screenWidth / 411.0;
-    final circleSize = 35 * scale;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243; 
+
+    final circleSize = 35 * w;
 
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15 * scale)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15 * w),
+      ),
       backgroundColor: const Color(0xFFFFFFF9),
       child: Padding(
-        padding: EdgeInsets.all(24 * scale),
+        padding: EdgeInsets.all(24 * w),
         child: Form(
           key: _formKey,
           child: Column(
@@ -479,121 +512,150 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'Golos Text',
-                  fontSize: 18 * scale,
+                  fontSize: 18 * w,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF504A4A),
                 ),
               ),
-              SizedBox(height: 25 * scale),
+              SizedBox(height: 25 * h),
 
               // 1. 년도 입력 커스텀 스타일
               Text(
                 "년도",
                 style: TextStyle(
                   fontFamily: 'Golos Text',
-                  fontSize: 14 * scale,
+                  fontSize: 14 * w,
                   color: const Color(0xFF716969),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 0.5 * scale), // 제목과 입력칸 사이 간격
+              SizedBox(height: 0.5 * h), // 제목과 입력칸 사이 간격
               TextFormField(
                 controller: _yearController,
                 keyboardType: TextInputType.number,
-                style: TextStyle(fontFamily: 'Golos Text', fontSize: 16 * scale),
+                style: TextStyle(
+                  fontFamily: 'Golos Text',
+                  fontSize: 16 * w,
+                ),
                 decoration: InputDecoration(
                   // labelText 제거
-                  hintText: '예: 2025', // 입력값이 없을 때 보여줄 가이드 (선택 사항)
-                  hintStyle: TextStyle(color: const Color(0xFFACACAC), fontSize: 14 * scale),
+                  hintText: '예: 2025', 
+                  hintStyle: TextStyle(
+                    color: const Color(0xFFACACAC),
+                    fontSize: 14 * w,
+                  ),
                   isDense: true, // 내부 패딩을 줄여 텍스트와 밑줄 사이 간격을 조절
-                  contentPadding: EdgeInsets.symmetric(vertical: 8 * scale),
+                  contentPadding: EdgeInsets.symmetric(vertical: 8 * h),
                   // CSS Border 스타일 직접 제어
-                  enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFFE5E5E5))),
-                  focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: Color(0xFF504A4A))),
+                  enabledBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFFE5E5E5)),
+                  ),
+                  focusedBorder: const UnderlineInputBorder(
+                    borderSide: BorderSide(color: Color(0xFF504A4A)),
+                  ),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? '년도를 입력하세요.' : null,
+                validator:
+                    (v) => v == null || v.trim().isEmpty ? '년도를 입력하세요.' : null,
               ),
-              SizedBox(height: 25 * scale),
+              SizedBox(height: 25 * h),
 
-              // 2. 학기 선택 (기존 보라색 드롭다운 제거 -> 직접 커스텀 가능한 칩 스타일)
               Text(
                 "학기 선택",
                 style: TextStyle(
                   fontFamily: 'Golos Text',
-                  fontSize: 14 * scale,
+                  fontSize: 14 * w,
                   color: const Color(0xFF716969),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 12 * scale),
+              SizedBox(height: 12 * h),
               Wrap(
-                spacing: 8 * scale,
-                runSpacing: 8 * scale,
-                children: _semesterOptions.map((semester) {
-                  final isSelected = _selectedSemester == semester;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedSemester = semester),
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16 * scale, vertical: 8 * scale),
-                      decoration: BoxDecoration(
-                        // [CSS 수정 포인트] 배경색 제어
-                        color: isSelected ? const Color(0xFF8E9CBF) : Colors.transparent,
-                        borderRadius: BorderRadius.circular(10 * scale),
-                        // [CSS 수정 포인트] 테두리 제어
-                        border: Border.all(
-                          color: isSelected ? const Color.fromARGB(255, 126, 142, 185) : const Color(0xFFE5E5E5),
-                          width: 1,
+                spacing: 8 * w,
+                runSpacing: 8 * h,
+                children:
+                    _semesterOptions.map((semester) {
+                      final isSelected = _selectedSemester == semester;
+                      return GestureDetector(
+                        onTap:
+                            () => setState(() => _selectedSemester = semester),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16 * w,
+                            vertical: 8 * h,
+                          ),
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected
+                                    ? const Color(0xFF8E9CBF)
+                                    : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10 * w),
+                            border: Border.all(
+                              color:
+                                  isSelected
+                                      ? const Color.fromARGB(255, 126, 142, 185)
+                                      : const Color(0xFFE5E5E5),
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            semester,
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontSize: 14 * w,
+                              color:
+                                  isSelected
+                                      ? Colors.white
+                                      : const Color(0xFF716969),
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w400,
+                            ),
+                          ),
                         ),
-                      ),
-                      child: Text(
-                        semester,
-                        style: TextStyle(
-                          fontFamily: 'Golos Text',
-                          fontSize: 14 * scale,
-                          // [CSS 수정 포인트] 글자색 제어
-                          color: isSelected ? Colors.white : const Color(0xFF716969),
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
-              
-              SizedBox(height: 25 * scale),
+
+              SizedBox(height: 25 * h),
 
               // 3. 색상 선택 (동일 유지)
               Text(
                 "테마 색상",
                 style: TextStyle(
                   fontFamily: 'Golos Text',
-                  fontSize: 14 * scale,
+                  fontSize: 14 * w,
                   color: const Color(0xFF716969),
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              SizedBox(height: 12 * scale),
+              SizedBox(height: 12 * h ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: _colorOptions.map((color) {
-                  bool isSelected = _selectedColor == color;
-                  return GestureDetector(
-                    onTap: () => setState(() => _selectedColor = color),
-                    child: Container(
-                      width: circleSize,
-                      height: circleSize,
-                      decoration: BoxDecoration(
-                        color: color,
-                        shape: BoxShape.circle,
-                        border: isSelected
-                            ? Border.all(color: const Color(0xFF504A4A), width: 2)
-                            : Border.all(color: Colors.transparent),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                children:
+                    _colorOptions.map((color) {
+                      bool isSelected = _selectedColor == color;
+                      return GestureDetector(
+                        onTap: () => setState(() => _selectedColor = color),
+                        child: Container(
+                          width: circleSize,
+                          height: circleSize,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border:
+                                isSelected
+                                    ? Border.all(
+                                      color: const Color(0xFF504A4A),
+                                      width: 2,
+                                    )
+                                    : Border.all(color: Colors.transparent),
+                          ),
+                        ),
+                      );
+                    }).toList(),
               ),
-              SizedBox(height: 35 * scale),
+              SizedBox(height: 35 * h),
 
               // 4. 하단 버튼
               Row(
@@ -601,22 +663,40 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
                 children: [
                   TextButton(
                     onPressed: () => Navigator.of(context).pop(),
-                    child: Text('취소', style: TextStyle(fontFamily: 'Golos Text', color: Color(0xFFACACAC), fontSize: 16 * scale)),
+                    child: Text(
+                      '취소',
+                      style: TextStyle(
+                        fontFamily: 'Golos Text',
+                        color: Color(0xFFACACAC),
+                        fontSize: 16 * w,
+                      ),
+                    ),
                   ),
-                  SizedBox(width: 20 * scale),
+                  SizedBox(width: 20 * w),
                   // Expanded를 제거하고 크기를 고정
                   SizedBox(
-                    width: 80 * scale, // 원하는 가로 너비값으로 조절하세요
-                    height: 40 * scale, // 높이 조절
+                    width: 80 * w, // 원하는 가로 너비값으로 조절하세요
+                    height: 40 * h, // 높이 조절
                     child: ElevatedButton(
                       onPressed: _addTimetable,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF504A4A),
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
-                        padding: EdgeInsets.zero, // 내부 패딩 제거해야 지정한 사이즈가 잘 적용됩니다.
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        padding:
+                            EdgeInsets.zero, // 내부 패딩 제거해야 지정한 사이즈가 잘 적용됩니다.
                       ),
-                      child: Text('추가', style: TextStyle(fontFamily: 'Golos Text', color: Colors.white, fontSize: 15 * scale, fontWeight: FontWeight.w400)),
+                      child: Text(
+                        '추가',
+                        style: TextStyle(
+                          fontFamily: 'Golos Text',
+                          color: Colors.white,
+                          fontSize: 15 * w,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -628,4 +708,3 @@ class _AddTimetableModalState extends State<AddTimetableModal> {
     );
   }
 }
-

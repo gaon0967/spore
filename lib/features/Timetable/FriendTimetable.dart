@@ -72,13 +72,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
         final List<dynamic> subjectsList = data['subjects'];
         for (int i = 0; i < subjectsList.length; i++) {
           final subjectData = subjectsList[i] as Map<String, dynamic>;
-          allCourses.add(
-            Course.fromMap(
-              subjectData,
-              dayId,
-              subjectData['id'] ?? i.toString(),
-            ),
-          );
+          allCourses.add(Course.fromMap(subjectData, dayId));
         }
       }
 
@@ -97,8 +91,11 @@ class _FriendTimetableState extends State<FriendTimetable> {
 
   @override
   Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 430.0;
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
@@ -137,29 +134,28 @@ class _FriendTimetableState extends State<FriendTimetable> {
             children: [
               Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: 23 * scale,
-                  vertical: 10 * scale,
+                  horizontal: 23 * w,
+                  vertical: 10 * h,
                 ),
                 child: Text(
                   _currentSemester,
                   style: TextStyle(
                     fontFamily: 'Golos Text',
                     color: const Color(0xFF556283),
-                    fontSize: 13 * scale,
+                    fontSize: 13 * w,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
               Padding(
                 padding: EdgeInsets.fromLTRB(
-                  14 * scale,
-                  1 * scale,
-                  14 * scale,
-                  30 * scale,
-                ), // 하단 여백 추가
-                child: _buildTimetable(scale),
+                  14 * w,
+                  1 * h,
+                  14 * w,
+                  30 * h,
+                ), 
+                child: _buildTimetable(h, w),
               ),
-              // 강의 목록(_buildCourseListDetails)을 삭제했습니다.
             ],
           ),
         ),
@@ -167,7 +163,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
     );
   }
 
-  Widget _buildTimetable(double scale) {
+  Widget _buildTimetable(double h, double w) {
     int minHour = 9;
     int maxHour = 16;
     if (_friendCourses.isNotEmpty) {
@@ -214,7 +210,8 @@ class _FriendTimetableState extends State<FriendTimetable> {
                   rowHeight,
                   minHour,
                   maxHour,
-                  scale,
+                  w,
+                  h,
                 ),
                 ..._friendCourses.map(
                   (course) => _buildCourseItem(
@@ -224,7 +221,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
                     dayColumnWidth,
                     rowHeight,
                     minHour,
-                    scale,
+                    w,
                   ),
                 ),
               ],
@@ -242,7 +239,8 @@ class _FriendTimetableState extends State<FriendTimetable> {
     double rowHeight,
     int startHour,
     int endHour,
-    double scale,
+    double w,
+    double h
   ) {
     const List<String> days = ['월', '화', '수', '목', '금'];
     final List<String> times = List.generate(
@@ -288,7 +286,7 @@ class _FriendTimetableState extends State<FriendTimetable> {
                 days[i],
                 style: TextStyle(
                   fontFamily: 'Golos Text',
-                  fontSize: 11 * scale,
+                  fontSize: 11 * w,
                   color: const Color(0xFF504A4A),
                   fontWeight: FontWeight.w500,
                 ),
@@ -306,12 +304,12 @@ class _FriendTimetableState extends State<FriendTimetable> {
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: EdgeInsets.only(top: 2.0 * scale, right: 4.0 * scale),
+                padding: EdgeInsets.only(top: 2.0 * h, right: 4.0 * w),
                 child: Text(
                   times[i],
                   style: TextStyle(
                     fontFamily: 'Golos Text',
-                    fontSize: 11 * scale,
+                    fontSize: 11 * w,
                     color: const Color(0xFF504A4A),
                     fontWeight: FontWeight.w500,
                   ),
@@ -324,112 +322,150 @@ class _FriendTimetableState extends State<FriendTimetable> {
     );
   }
 
-  Widget _buildCourseItem(Course course, double headerHeight, double timeColWidth, double dayColWidth, double rowHeight, int startHour, double scale) {
-  final top = headerHeight + (course.startTime - startHour) * rowHeight;
-  final height = (course.endTime - course.startTime) * rowHeight;
-  final left = timeColWidth + (course.day * dayColWidth);
-  final width = dayColWidth;
+  Widget _buildCourseItem(
+    Course course,
+    double headerHeight,
+    double timeColWidth,
+    double dayColWidth,
+    double rowHeight,
+    int startHour,
+    double w,
+  ) {
+    final top = headerHeight + (course.startTime - startHour) * rowHeight;
+    final height = (course.endTime - course.startTime) * rowHeight;
+    final left = timeColWidth + (course.day * dayColWidth);
+    final width = dayColWidth;
 
-  return Positioned(
-    top: top + 0.5,
-    left: left + 0.5,
-    child: GestureDetector(
-      onTap: () => _showCourseDetailModal(context, course), // 모달 호출
-      child: Container(
-        width: width - 0.5,
-        height: height - 0.5,
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: course.color),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(course.title, 
-                style: TextStyle(fontFamily: 'Golos Text', fontSize: 13 * scale, fontWeight: FontWeight.w500, color: const Color(0xFF504A4A)), 
-                overflow: TextOverflow.ellipsis, maxLines: 2),
-              const SizedBox(height: 0.5),
-              Text(course.professor, 
-                style: TextStyle(fontFamily: 'Golos Text', fontSize: 10.5 * scale, fontWeight: FontWeight.w400, color: const Color(0xFF625B5B)), 
-                overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 0.5),
-              Text(course.room, 
-                style: TextStyle(fontFamily: 'Golos Text', fontSize: 10.5 * scale, fontWeight: FontWeight.w400, color: const Color(0xFF625B5B)), 
-                overflow: TextOverflow.ellipsis),
-            ],
+    return Positioned(
+      top: top + 0.5,
+      left: left + 0.5,
+      child: GestureDetector(
+        onTap: () => _showCourseDetailModal(context, course), // 모달 호출
+        child: Container(
+          width: width - 0.5,
+          height: height - 0.5,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: course.color),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  course.title,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 13 * w,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF504A4A),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 0.5),
+                Text(
+                  course.professor,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 10.9 * w,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF625B5B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 0.5),
+                Text(
+                  course.room,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 10.9 * w,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF625B5B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   // 2. 친구 전용 상세정보 바텀시트 (수정/삭제 제외)
- void _showCourseDetailModal(BuildContext context, Course course) {
-  final screenWidth = MediaQuery.of(context).size.width;
-  final double scale = screenWidth / 430;
+  void _showCourseDetailModal(BuildContext context, Course course) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true, // 추가: 내용에 따라 높이 조절 및 바닥 밀착 보장
-    backgroundColor: Colors.transparent, // 배경을 투명하게 해서 라운드 적용
-    builder: (context) => Container(
-      width: double.infinity, // 양옆을 꽉 채우기 위해 무한대 설정
-      padding: EdgeInsets.fromLTRB(24 * scale, 24 * scale, 24 * scale, 40 * scale),
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFFFF9),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min, // 내부 콘텐츠만큼만 높이 차지
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. 수업 제목
-          Text(
-            course.title,
-            style: TextStyle(
-              fontFamily: 'Golos Text',
-              fontSize: 20 * scale,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF504A4A),
-            ),
-          ),
-          SizedBox(height: 8 * scale),
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
 
-          // 2. 상세 정보 (교수, 장소, 시간)
-          Text(
-            "교수: ${course.professor}",
-            style: TextStyle(
-              fontFamily: 'Golos Text', 
-              fontSize: 15 * scale, 
-              color: const Color(0xFF675F5F)
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // 추가: 내용에 따라 높이 조절 및 바닥 밀착 보장
+      backgroundColor: Colors.transparent, // 배경을 투명하게 해서 라운드 적용
+      builder:
+          (context) => Container(
+            width: double.infinity, // 양옆을 꽉 채우기 위해 무한대 설정
+            padding: EdgeInsets.fromLTRB(
+              24 * w,
+              24 * h,
+              24 * w,
+              40 * h,
+            ),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFFFF9),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // 내부 콘텐츠만큼만 높이 차지
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 수업 제목
+                Text(
+                  course.title,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 20 * w,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF504A4A),
+                  ),
+                ),
+                SizedBox(height: 8 * h),
+
+                // 2. 상세 정보 (교수, 장소, 시간)
+                Text(
+                  "교수: ${course.professor}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                Text(
+                  "장소: ${course.room}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                Text(
+                  "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                // 하단 버튼(수정, 삭제)이 들어가는 Row를 완전히 제거함
+              ],
             ),
           ),
-          Text(
-            "장소: ${course.room}",
-            style: TextStyle(
-              fontFamily: 'Golos Text', 
-              fontSize: 15 * scale, 
-              color: const Color(0xFF675F5F)
-            ),
-          ),
-          Text(
-            "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
-            style: TextStyle(
-              fontFamily: 'Golos Text', 
-              fontSize: 15 * scale, 
-              color: const Color(0xFF675F5F)
-            ),
-          ),
-          // 하단 버튼(수정, 삭제)이 들어가는 Row를 완전히 제거함
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
   String formatTimeDouble(double time) {
     int hour = time.floor();

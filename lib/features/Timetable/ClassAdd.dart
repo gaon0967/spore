@@ -5,9 +5,8 @@ import '../Settings/TitleHandler.dart';
 import '../Settings/firebase_title.dart';
 
 class ClassAdd extends StatefulWidget {
-  final Course? course; 
+  final Course? course;
 
-  // 2. 생성자에서 course를 받을 수 있도록 추가합니다.
   const ClassAdd({super.key, this.course});
   @override
   State<ClassAdd> createState() => _ClassAddState();
@@ -26,8 +25,12 @@ class _ClassAddState extends State<ClassAdd> {
 
   final List<String> _days = ['월', '화', '수', '목', '금'];
   final List<Color> _colors = const [
-    Color(0xFFCDDEE3), Color(0xFF8E9CBF), Color(0xFF97B4C7),
-    Color(0xFFBBCDC0), Color(0xFFE5EAEF), Color(0xFFE8EBDF),
+    Color(0xFFCDDEE3),
+    Color(0xFF8E9CBF),
+    Color(0xFF97B4C7),
+    Color(0xFFBBCDC0),
+    Color(0xFFE5EAEF),
+    Color(0xFFE8EBDF),
   ];
 
   @override
@@ -40,7 +43,7 @@ class _ClassAddState extends State<ClassAdd> {
       _locationController.text = widget.course!.room;
       _selectedDay = _days[widget.course!.day];
       _selectedColor = widget.course!.color;
-      
+
       // double(9.5) -> TimeOfDay(9, 30) 변환
       int sHour = widget.course!.startTime.toInt();
       int sMin = ((widget.course!.startTime - sHour) * 60).round();
@@ -64,24 +67,32 @@ class _ClassAddState extends State<ClassAdd> {
     super.dispose();
   }
 
-  Future<TimeOfDay?> _showCupertino5MinutePicker(BuildContext context, TimeOfDay initial) async {
+  Future<TimeOfDay?> _showCupertino5MinutePicker(
+    BuildContext context,
+    TimeOfDay initial,
+  ) async {
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-    final pickerHeight = 230.0;
+    final double w = screenWidth * 0.00243;
+    final double h = screenHeight * 0.001134;
+
+    final pickerHeight = 200.0*h;
 
     DateTime picked = DateTime(2024, 1, 1, initial.hour, initial.minute);
-    
+
     return await showModalBottomSheet<TimeOfDay>(
       context: context,
       builder: (_) {
         // CupertinoTheme를 사용하여 피커의 색상을 직접 설정합니다.
         return CupertinoTheme(
-          data: const CupertinoThemeData(
-            primaryColor: Color(0xFF504A4A), // '확인' 버튼 및 선택바 강조 색상 (원하는 색상으로 변경)
+          data: CupertinoThemeData(
+            primaryColor: Color(
+              0xFF504A4A,
+            ), // '확인' 버튼 및 선택바 강조 색상 (원하는 색상으로 변경)
             textTheme: CupertinoTextThemeData(
               dateTimePickerTextStyle: TextStyle(
                 fontFamily: 'Golos Text',
-                fontSize: 18,
+                fontSize: 18*w,
                 color: Color(0xFF675F5F), // 피커 내부 숫자/글자 색상
               ),
             ),
@@ -104,12 +115,13 @@ class _ClassAddState extends State<ClassAdd> {
                 ),
                 CupertinoButton(
                   padding: EdgeInsets.zero,
-                  child: const Text('확인', 
+                  child: Text(
+                    '확인',
                     style: TextStyle(
-                      fontFamily: 'Golos Text', 
-                      fontSize: 15, 
-                      fontWeight: FontWeight.w500
-                    )
+                      fontFamily: 'Golos Text',
+                      fontSize: 15*w,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   onPressed: () {
                     Navigator.pop(
@@ -117,7 +129,7 @@ class _ClassAddState extends State<ClassAdd> {
                       TimeOfDay(hour: picked.hour, minute: picked.minute),
                     );
                   },
-                )
+                ),
               ],
             ),
           ),
@@ -129,14 +141,18 @@ class _ClassAddState extends State<ClassAdd> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
     final double scale = screenWidth / 430;
 
     return Dialog(
       backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+      insetPadding: EdgeInsets.symmetric(horizontal: 40*w),
       child: Container(
-        width: 292 * scale,
-        height: 365 * scale,
+        width: 292 * w,
+        height: 365 * h,
         decoration: BoxDecoration(
           color: const Color(0xFFFFFFF9),
           borderRadius: BorderRadius.circular(12),
@@ -153,24 +169,32 @@ class _ClassAddState extends State<ClassAdd> {
             Form(
               key: _formKey,
               child: Padding(
-                padding: EdgeInsets.fromLTRB(20 * scale, 25 * scale, 20 * scale, 15 * scale),
+                padding: EdgeInsets.fromLTRB(
+                  20 * w,
+                  25 * h,
+                  20 * h,
+                  15 * h,
+                ),
                 child: Column(
                   children: [
-                    _buildTextField(_courseNameController, '수업명', scale),
-                    SizedBox(height: 6 * scale),
-                    _buildTextField(_professorController, '교수', scale),
-                    SizedBox(height: 6 * scale),
-                    _buildTextField(_locationController, '장소', scale),
-                    SizedBox(height: 10 * scale),
-                    _buildDayPicker(scale),
-                    SizedBox(height: 10 * scale),
+                    _buildTextField(_courseNameController, '수업명', w,h),
+                    SizedBox(height: 6 * h),
+                    _buildTextField(_professorController, '교수', w,h,),
+                    SizedBox(height: 6 * h),
+                    _buildTextField(_locationController, '장소', w,h,),
+                    SizedBox(height: 10 * h),
+                    _buildDayPicker(h,w),
+                    SizedBox(height: 10 * h),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          width: 155 * scale,
-                          height: 94 * scale,
-                          padding: EdgeInsets.symmetric(horizontal: 14 * scale, vertical: 6 * scale),
+                          width: 155 * w,
+                          height: 94 * h,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 14 * w,
+                            vertical: 6 * h,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF5F5EF),
                             borderRadius: BorderRadius.circular(5),
@@ -178,19 +202,28 @@ class _ClassAddState extends State<ClassAdd> {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _buildTimeRow("시작 시간", _startTime!, scale, true),
-                              Container(height: 0.8, color: const Color(0xFFADADAD)),
-                              _buildTimeRow("종료 시간", _endTime!, scale, false),
+                              _buildTimeRow("시작 시간", _startTime!, true,h,w),
+                              Container(
+                                height: 0.8*h,
+                                color: const Color(0xFFADADAD),
+                              ),
+                              _buildTimeRow("종료 시간", _endTime!, false,h,w),
                             ],
                           ),
                         ),
                         const Spacer(),
                         SizedBox(
-                          width: 74 * scale,
+                          width: 75 * w,
                           child: Wrap(
-                            spacing: 10 * scale,
-                            runSpacing: 10 * scale,
-                            children: _colors.map((color) => _buildColorCircle(color, scale)).toList(),
+                            spacing: 10 * w,
+                            runSpacing: 10 * h,
+                            children:
+                                _colors
+                                    .map(
+                                      (color) =>
+                                          _buildColorCircle(color, w),
+                                    )
+                                    .toList(),
                           ),
                         ),
                       ],
@@ -201,8 +234,8 @@ class _ClassAddState extends State<ClassAdd> {
             ),
             // 완료/추가 버튼
             Positioned(
-              right: 12 * scale,
-              bottom: 12 * scale,
+              right: 12 * w,
+              bottom: 12 * h,
               child: GestureDetector(
                 onTap: () {
                   if (_formKey.currentState!.validate()) {
@@ -220,8 +253,8 @@ class _ClassAddState extends State<ClassAdd> {
                   }
                 },
                 child: Container(
-                  width: 65 * scale,
-                  height: 38 * scale,
+                  width: 65 * w,
+                  height: 38 * h,
                   decoration: BoxDecoration(
                     color: const Color(0xFF504A4A),
                     borderRadius: BorderRadius.circular(999),
@@ -232,7 +265,7 @@ class _ClassAddState extends State<ClassAdd> {
                     style: TextStyle(
                       color: Colors.white,
                       fontFamily: 'Golos Text',
-                      fontSize: 13 * scale,
+                      fontSize: 13 * w,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -245,26 +278,31 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String hint, double scale) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint,
+    double w,
+    double h,
+  ) {
     return Container(
-      height: 42 * scale, // 높이 축소 (48 -> 42)
+      height: 42 * w,
       decoration: BoxDecoration(
         color: const Color(0xFFF5F5EF),
         borderRadius: BorderRadius.circular(5),
       ),
-      padding: EdgeInsets.symmetric(horizontal: 10 * scale),
+      padding: EdgeInsets.symmetric(horizontal: 10 * w),
       alignment: Alignment.centerLeft,
       child: TextFormField(
         controller: controller,
         style: TextStyle(
           fontFamily: 'Golos Text',
-          fontSize: 14 * scale, // 폰트 축소 (16 -> 14)
+          fontSize: 14 * w, 
           fontWeight: FontWeight.w600,
           color: const Color(0xFF675F5F),
         ),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: TextStyle(fontSize: 13 * scale),
+          hintStyle: TextStyle(fontSize: 13 * w),
           border: InputBorder.none,
           isDense: true,
         ),
@@ -273,61 +311,92 @@ class _ClassAddState extends State<ClassAdd> {
     );
   }
 
-  Widget _buildDayPicker(double scale) {
+  Widget _buildDayPicker(double h, double w) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: _days.map((day) {
-        bool isSelected = _selectedDay == day;
-        return GestureDetector(
-          onTap: () => setState(() => _selectedDay = day),
-          child: Container(
-            width: 42 * scale, // 폭 축소
-            height: 30 * scale, // 높이 축소
-            decoration: BoxDecoration(
-              color: isSelected ? const Color(0xFF8E9CBF) : const Color(0xFFF0F0F0),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            alignment: Alignment.center,
-            child: Text(day, 
-              style: TextStyle(
-                color: isSelected ? Colors.white : const Color(0xFF675F5F), 
-                fontWeight: FontWeight.bold,
-                fontSize: 13 * scale,
-              )
-            ),
-          ),
-        );
-      }).toList(),
+      children:
+          _days.map((day) {
+            bool isSelected = _selectedDay == day;
+            return GestureDetector(
+              onTap: () => setState(() => _selectedDay = day),
+              child: Container(
+                width: 42 * w, // 폭 축소
+                height: 30 * h, // 높이 축소
+                decoration: BoxDecoration(
+                  color:
+                      isSelected
+                          ? const Color(0xFF8E9CBF)
+                          : const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  day,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF675F5F),
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13 * w,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
     );
   }
 
-  Widget _buildTimeRow(String label, TimeOfDay time, double scale, bool isStart) {
+  Widget _buildTimeRow(
+    String label,
+    TimeOfDay time,
+    bool isStart,
+    double h,
+    double w,
+  ) {
     return GestureDetector(
       onTap: () async {
         final picked = await _showCupertino5MinutePicker(context, time);
-        if (picked != null) setState(() => isStart ? _startTime = picked : _endTime = picked);
+        if (picked != null)
+          setState(() => isStart ? _startTime = picked : _endTime = picked);
       },
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontFamily: 'Golos Text', fontSize: 13 * scale, color: const Color(0xFF504A4A), fontWeight: FontWeight.w500)),
-          Text(time.format(context), style: TextStyle(fontFamily: 'Golos Text', fontSize: 13 * scale, color: const Color(0xFF675F5F), fontWeight: FontWeight.w500)),
+          Text(
+            label,
+            style: TextStyle(
+              fontFamily: 'Golos Text',
+              fontSize: 13 * w,
+              color: const Color(0xFF504A4A),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Text(
+            time.format(context),
+            style: TextStyle(
+              fontFamily: 'Golos Text',
+              fontSize: 13 * w,
+              color: const Color(0xFF675F5F),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildColorCircle(Color color, double scale) {
+  Widget _buildColorCircle(Color color, double w) {
     bool isSelected = _selectedColor == color;
     return GestureDetector(
       onTap: () => setState(() => _selectedColor = color),
       child: Container(
-        width: 24 * scale, // 크기 축소 (24 -> 20)
-        height: 24 * scale,
+        width: 24 * w,
+        height: 24 * w,
         decoration: BoxDecoration(
           color: color,
           shape: BoxShape.circle,
-          border: isSelected ? Border.all(color: const Color(0xFF675F5F), width: 1.5) : null,
+          border:
+              isSelected
+                  ? Border.all(color: const Color(0xFF675F5F), width: 1.5)
+                  : null,
         ),
       ),
     );

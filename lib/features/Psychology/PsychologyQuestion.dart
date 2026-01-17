@@ -212,7 +212,8 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final horizontalPadding = size.width * 0.06;
-
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final questionData = _questions[_currentQuestionIndex];
     final answers = questionData['answers'] as List<Map<String, dynamic>>;
 
@@ -241,7 +242,7 @@ class _PsychologyQuestionState extends State<PsychologyQuestion> {
                   fontSize: size.width * 0.049, // 글자 크기 약간 확대
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF3B3737),
-                  height: 1.45,
+                  height: screenHeight*0.0016443,
                 ),
               ),
               Expanded(
@@ -275,6 +276,8 @@ class _TestProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     double progress = currentStep / totalSteps;
 
     return Column(
@@ -282,7 +285,7 @@ class _TestProgressBar extends StatelessWidget {
         // --- 1. 네모난 외곽 테두리가 있는 프로그레스 바 ---
         Container(
           width: double.infinity,
-          height: 7, // 바의 두께
+          height: screenHeight * 0.007938, // 바의 두께
           decoration: BoxDecoration(
             color: const Color(0xFFFFFBED), // 바의 빈 배경색
             // 검은색에 가까운 진한 회색 테두리
@@ -309,8 +312,8 @@ class _TestProgressBar extends StatelessWidget {
                     curve: Curves.easeInOut,
                     left: (constraints.maxWidth * progress) - 0.6,
                     child: Container(
-                      width: 1.2,
-                      height: 14,
+                      width: screenWidth*0.002916,
+                      height: screenHeight*0.015876,
                       color: const Color(0xFF3B3737),
                     ),
                   ),
@@ -324,7 +327,7 @@ class _TestProgressBar extends StatelessWidget {
 
         // --- 2. 진행 단계 표시 버블 ---
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          padding: EdgeInsets.symmetric(horizontal: screenWidth*0.0486, vertical: screenHeight*0.009072),
           decoration: BoxDecoration(
             color: const Color(0xFFEDE9BC), // 2번 사진의 연노란색
             borderRadius: BorderRadius.circular(25), // 버블은 둥글게 유지
@@ -367,6 +370,7 @@ class _AnswerOptions extends StatelessWidget {
     ];
 
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Stack(
       fit: StackFit.expand,
@@ -445,6 +449,8 @@ class _AnswerShape extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
 
     String imagePath;
     double shapeWidth;
@@ -458,7 +464,7 @@ class _AnswerShape extends StatelessWidget {
         //shapeWidth = 276;
         shapeWidth = size.width * 0.7;
         textContainerWidth = shapeWidth * 0.65;
-        textPadding = EdgeInsets.only(top: 15, left: 5, right: 5);
+        textPadding = EdgeInsets.only(top: screenHeight*0.0171, left: screenWidth*0.01215, right: shapeWidth*0.01215);
         break;
 
       case _ShapeType.circle: //Ellipse
@@ -466,7 +472,7 @@ class _AnswerShape extends StatelessWidget {
         //shapeWidth = 284;
         shapeWidth = size.width * 0.72;
         textContainerWidth = shapeWidth * 0.7;
-        textPadding = EdgeInsets.only(top: 0, left: 0, right: 25);
+        textPadding = EdgeInsets.only(top: 0, left: 0, right: screenWidth*0.06075);
         break;
       case _ShapeType.triangle: // Polygon
         imagePath = 'assets/images/PsychologyTest/Shape/Polygon.png';
@@ -513,7 +519,7 @@ class _AnswerShape extends StatelessWidget {
                   fontSize: (size.width * 0.038).clamp(12, 18).toDouble(),
                   // 선택되었을 때 글자색도 살짝 밝게 하고 싶다면 조건을 걸 수 있습니다.
                   color: const Color(0xFF504A4A),
-                  height: 1.3,
+                  height: screenHeight*0.0015876,
                 ),
               ),
             ),
@@ -583,7 +589,7 @@ class _TestLoadingScreenState extends State<TestLoadingScreen> {
             Image.asset(
               'assets/images/PsychologyTest/TestLoading.png',
               width: size.width * 0.15,
-              height: size.width * 0.15,
+              height: size.height*0.0699111,
               errorBuilder:
                   (context, error, stackTrace) => Icon(
                     Icons.find_in_page_outlined,

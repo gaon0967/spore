@@ -56,9 +56,10 @@ class _TopSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 70.0, bottom: 20.0),
+      padding: EdgeInsets.only(top: screenHeight*0.0794, bottom: screenHeight*0.02268),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -66,12 +67,12 @@ class _TopSection extends StatelessWidget {
             'assets/images/LoginHome/Logo.png',
             width: screenWidth * 0.093,
           ),
-          const SizedBox(height: 10),
-          const Text(
+          SizedBox(height: screenHeight * 0.01134),
+          Text(
             "하루를 공유하고, 일정을 관리하세요.",
             style: TextStyle(
               fontFamily: 'Golos Text',
-              fontSize: 13.3,
+              fontSize: screenWidth*0.032319,
               fontWeight: FontWeight.w500,
               color: Color.fromARGB(255, 104, 95, 95),
             ),
@@ -83,7 +84,7 @@ class _TopSection extends StatelessWidget {
               fontSize: screenWidth * 0.125,
               fontWeight: FontWeight.w800, // bold 에서 수정.
               color: const Color(0xFF6B6060),
-              height: 1.0, // 큰 폰트의 기본 줄 간격으로 인한 상단 여백을 줄입니다.
+              height: screenHeight* 0.001134, // 큰 폰트의 기본 줄 간격으로 인한 상단 여백을 줄입니다.
             ),
           ),
         ],
@@ -204,8 +205,9 @@ class _ChatBubbleSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+      padding: EdgeInsets.symmetric(horizontal: screenHeight*0.02268, vertical: screenHeight*0.02268),
       child: Center(
         // Transform.translate 위젯을 사용하여 위치를 미세 조정합니다.
         child: Transform.translate(
@@ -246,6 +248,8 @@ class _BottomSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width; // 반응형
+    final screenHeight = MediaQuery.of(context).size.height;
+
     final default_id = -1;
 
     return Column(
@@ -288,12 +292,12 @@ class _BottomSection extends StatelessWidget {
           },
           child: Container(
             width: screenWidth * 0.7,
-            height: 59,
+            height: screenHeight*0.066906,
             decoration: BoxDecoration(
               color: const Color(0xFF03C75A), // 네이버 녹색
               borderRadius: BorderRadius.circular(999), // 완전한 타원형 모양
             ),
-            child: const Center(
+            child: Center(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -301,17 +305,17 @@ class _BottomSection extends StatelessWidget {
                     "NAVER",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: screenWidth * 0.03888,
                       fontWeight: FontWeight.w900,
                       letterSpacing: -0.5,
                     ),
                   ),
-                  SizedBox(width: 6),
+                  SizedBox(width: screenWidth * 0.01458),
                   Text(
                     "로그인",
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: screenWidth * 0.03888,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -321,7 +325,7 @@ class _BottomSection extends StatelessWidget {
           ),
         ),
 
-        const SizedBox(height: 20),
+        SizedBox(height: screenHeight * 0.02268),
 
         // 계정이 없는 사람들을 위한 텍스트 버튼
         InkWell(
@@ -339,8 +343,8 @@ class _BottomSection extends StatelessWidget {
 
           borderRadius: BorderRadius.circular(8),
 
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: screenWidth*0.01944, vertical: screenHeight*0.004536),
 
             child: Text(
               "계정이 없다면? 심리테스트 바로가기 →",
@@ -348,7 +352,7 @@ class _BottomSection extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Golos Text',
 
-                fontSize: 12,
+                fontSize: screenWidth*0.02916,
 
                 fontWeight: FontWeight.w500,
 
