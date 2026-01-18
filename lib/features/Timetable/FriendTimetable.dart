@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:math'; // min, max 함수 사용
 import 'course_model.dart';
 
 class FriendTimetable extends StatefulWidget {
   final String friendName;
   final String friendUid;
 
-  FriendTimetable({super.key, required this.friendName, required this.friendUid});
+  FriendTimetable({
+    super.key,
+    required this.friendName,
+    required this.friendUid,
+  });
 
   @override
   _FriendTimetableState createState() => _FriendTimetableState();
@@ -24,18 +29,16 @@ class _FriendTimetableState extends State<FriendTimetable> {
   }
 
   Future<void> _loadFriendCourses() async {
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
     try {
-      // 가장 최근에 생성된 시간표 가져오기
-      final tableSnapshot = await FirebaseFirestore.instance
-          .collection('timetables')
-          .doc(widget.friendUid)
-          .collection('TableName')
-          .orderBy('createdAt', descending: true)
-          .limit(1)
-          .get();
+      final tableSnapshot =
+          await FirebaseFirestore.instance
+              .collection('timetables')
+              .doc(widget.friendUid)
+              .collection('TableName')
+              .orderBy('createdAt', descending: true)
+              .limit(1)
+              .get();
 
       if (tableSnapshot.docs.isEmpty) {
         if (mounted) {
@@ -51,23 +54,25 @@ class _FriendTimetableState extends State<FriendTimetable> {
       final latestTable = tableSnapshot.docs.first;
       final tableName = latestTable.id;
 
-      final snapshot = await FirebaseFirestore.instance
-          .collection('timetables')
-          .doc(widget.friendUid)
-          .collection('TableName')
-          .doc(tableName)
-          .collection('classes')
-          .get();
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('timetables')
+              .doc(widget.friendUid)
+              .collection('TableName')
+              .doc(tableName)
+              .collection('classes')
+              .get();
 
       List<Course> allCourses = [];
       for (var doc in snapshot.docs) {
         final dayId = doc.id;
         final data = doc.data();
-        if (data.containsKey('subjects')) {
-          final List<dynamic> subjectsList = data['subjects'];
-          for (var subjectData in subjectsList) {
-            allCourses.add(Course.fromMap(subjectData as Map<String, dynamic>, dayId));
-          }
+        if (data['subjects'] == null) continue;
+
+        final List<dynamic> subjectsList = data['subjects'];
+        for (int i = 0; i < subjectsList.length; i++) {
+          final subjectData = subjectsList[i] as Map<String, dynamic>;
+          allCourses.add(Course.fromMap(subjectData, dayId));
         }
       }
 
@@ -80,41 +85,47 @@ class _FriendTimetableState extends State<FriendTimetable> {
     } catch (e) {
       print("친구 시간표 로딩 실패: $e");
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final scale = MediaQuery.of(context).size.width / 411.0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
 
     if (_isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: const Color(0xFFFFFEF9),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.black87),
+          icon: Image.asset(
+            'assets/images/Setting/go.png',
+            width: screenWidth * 0.045,
+            height: screenWidth * 0.045,
+          ),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        leadingWidth: screenWidth * 0.1315,
+        titleSpacing: 0,
         title: Text(
           widget.friendName,
           style: TextStyle(
             fontFamily: 'Golos Text',
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-            fontSize: 22 * scale,
+            fontWeight: FontWeight.w700,
+            fontSize: screenWidth * 0.047,
+            color: Color(0xFF504A4A),
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
       ),
       body: SingleChildScrollView(
         child: SafeArea(
@@ -122,22 +133,29 @@ class _FriendTimetableState extends State<FriendTimetable> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Padding(
-                padding: EdgeInsets.symmetric(horizontal: 23 * scale, vertical: 8 * scale),
+                padding: EdgeInsets.symmetric(
+                  horizontal: 23 * w,
+                  vertical: 10 * h,
+                ),
                 child: Text(
                   _currentSemester,
                   style: TextStyle(
                     fontFamily: 'Golos Text',
-                    color: const Color(0xFF556283).withOpacity(0.8),
-                    fontSize: 12 * scale,
-                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF556283),
+                    fontSize: 13 * w,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
               ),
               Padding(
-                padding: EdgeInsets.all(14 * scale),
-                child: _buildTimetable(context, scale),
+                padding: EdgeInsets.fromLTRB(
+                  14 * w,
+                  1 * h,
+                  14 * w,
+                  30 * h,
+                ), 
+                child: _buildTimetable(h, w),
               ),
-              _buildCourseListDetails(context, scale),
             ],
           ),
         ),
@@ -145,173 +163,313 @@ class _FriendTimetableState extends State<FriendTimetable> {
     );
   }
 
-  Widget _buildTimetable(BuildContext context, double scale) {
+  Widget _buildTimetable(double h, double w) {
+    int minHour = 9;
+    int maxHour = 16;
+    if (_friendCourses.isNotEmpty) {
+      final startTimes =
+          _friendCourses.map((c) => c.startTime.floor()).toList();
+      final endTimes = _friendCourses.map((c) => c.endTime.ceil()).toList();
+      minHour = min(minHour, startTimes.reduce(min));
+      maxHour = max(maxHour, endTimes.reduce(max));
+    }
+    final int totalHours = maxHour - minHour;
+
     return LayoutBuilder(
       builder: (context, constraints) {
-        final screenWidth = constraints.maxWidth;
-        final timeColumnWidth = 30.0 * scale;
-        final dayColumnWidth = (screenWidth - timeColumnWidth) / 5;
-        final rowHeight = 55.0 * scale;
-        final headerHeight = 22 * scale;
-        final containerHeight = rowHeight * 10 + headerHeight;
+        final timeColumnWidth = constraints.maxWidth * 0.06;
+        final dayColumnWidth = (constraints.maxWidth - timeColumnWidth) / 5;
+        final headerHeight = constraints.maxWidth * 0.06;
+        final rowHeight = constraints.maxWidth * 0.144;
+        final containerHeight = rowHeight * totalHours + headerHeight;
 
         return Container(
-          width: screenWidth,
           height: containerHeight,
           decoration: BoxDecoration(
             border: Border.all(color: const Color(0xFFB3A6A6), width: 0.5),
-            borderRadius: BorderRadius.circular(10 * scale),
-            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
           ),
-          child: Stack(
-            children: [
-              _buildGrid(headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale),
-              ..._friendCourses.map((course) => _buildCourseItem(course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, scale)),
-            ],
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Container(color: const Color(0xFFFFFDF2)),
+                ),
+                Positioned(
+                  top: headerHeight,
+                  left: timeColumnWidth,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(color: const Color(0xFFFFFFF9)),
+                ),
+                _buildGrid(
+                  headerHeight,
+                  timeColumnWidth,
+                  dayColumnWidth,
+                  rowHeight,
+                  minHour,
+                  maxHour,
+                  w,
+                  h,
+                ),
+                ..._friendCourses.map(
+                  (course) => _buildCourseItem(
+                    course,
+                    headerHeight,
+                    timeColumnWidth,
+                    dayColumnWidth,
+                    rowHeight,
+                    minHour,
+                    w,
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
     );
   }
 
-  Widget _buildGrid(double headerHeight, double timeColWidth, double dayColWidth, double rowHeight, double scale) {
+  Widget _buildGrid(
+    double headerHeight,
+    double timeColWidth,
+    double dayColWidth,
+    double rowHeight,
+    int startHour,
+    int endHour,
+    double w,
+    double h
+  ) {
     const List<String> days = ['월', '화', '수', '목', '금'];
-    const List<String> times = ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18'];
+    final List<String> times = List.generate(
+      endHour - startHour,
+      (i) => (startHour + i).toString(),
+    );
 
     return Stack(
       children: [
-        ...List.generate(times.length + 1, (i) => Positioned(
-          left: 0, right: 0, top: headerHeight + (i * rowHeight),
-          child: Container(height: 0.5, color: const Color(0xFFB3A6A6)),
-        )),
-        ...List.generate(6, (i) => Positioned(
-          top: 0, bottom: 0, left: timeColWidth + (i * dayColWidth),
-          child: Container(width: 0.5, color: const Color(0xFFB3A6A6)),
-        )),
-        ...List.generate(5, (i) => Positioned(
+        ...List.generate(
+          times.length + 1,
+          (i) => Positioned(
+            top: headerHeight + (i * rowHeight),
+            left: 0,
+            right: 0,
+            child: Container(height: 0.5, color: const Color(0xFFB3A6A6)),
+          ),
+        ),
+        Positioned(
           top: 0,
-          left: timeColWidth + (i * dayColWidth),
-          width: dayColWidth,
-          height: headerHeight,
-          child: Center(
-            child: Text(
-              days[i],
-              style: TextStyle(fontFamily: 'Golos Text', fontSize: 11 * scale, color: const Color(0xFF504A4A))
+          bottom: 0,
+          left: timeColWidth,
+          child: Container(width: 0.5, color: const Color(0xFFB3A6A6)),
+        ),
+        ...List.generate(
+          4,
+          (i) => Positioned(
+            top: 0,
+            bottom: 0,
+            left: timeColWidth + ((i + 1) * dayColWidth),
+            child: Container(width: 0.5, color: const Color(0xFFB3A6A6)),
+          ),
+        ),
+        ...List.generate(
+          5,
+          (i) => Positioned(
+            top: 0,
+            height: headerHeight,
+            left: timeColWidth + (i * dayColWidth),
+            width: dayColWidth,
+            child: Center(
+              child: Text(
+                days[i],
+                style: TextStyle(
+                  fontFamily: 'Golos Text',
+                  fontSize: 11 * w,
+                  color: const Color(0xFF504A4A),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ),
-        )),
-        ...List.generate(times.length, (i) => Positioned(
-          top: headerHeight + (i * rowHeight),
-          left: 0,
-          width: timeColWidth,
-          height: rowHeight,
-          child: Center(
-            child: Text(
-              times[i],
-              style: TextStyle(fontFamily: 'Golos Text', fontSize: 11 * scale, color: const Color(0xFF504A4A))
+        ),
+        ...List.generate(
+          times.length,
+          (i) => Positioned(
+            top: headerHeight + (i * rowHeight),
+            height: rowHeight,
+            left: 0,
+            width: timeColWidth,
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: EdgeInsets.only(top: 2.0 * h, right: 4.0 * w),
+                child: Text(
+                  times[i],
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 11 * w,
+                    color: const Color(0xFF504A4A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
             ),
           ),
-        )),
+        ),
       ],
     );
   }
 
-  Widget _buildCourseItem(Course course, double headerHeight, double timeColWidth, double dayColWidth, double rowHeight, double scale) {
-    final top = headerHeight + (course.startTime - 9) * rowHeight;
-    final left = timeColWidth + (course.day * dayColWidth);
+  Widget _buildCourseItem(
+    Course course,
+    double headerHeight,
+    double timeColWidth,
+    double dayColWidth,
+    double rowHeight,
+    int startHour,
+    double w,
+  ) {
+    final top = headerHeight + (course.startTime - startHour) * rowHeight;
     final height = (course.endTime - course.startTime) * rowHeight;
+    final left = timeColWidth + (course.day * dayColWidth);
     final width = dayColWidth;
 
     return Positioned(
-      top: top,
-      left: left,
-      child: Container(
-        width: width - 0.5,
-        height: height - 0.5,
-        padding: EdgeInsets.all(4 * scale),
-        decoration: BoxDecoration(
-          color: course.color,
-          borderRadius: BorderRadius.circular(4 * scale)
-        ),
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.topLeft,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              Text(course.title, style: TextStyle(fontFamily: 'Golos Text', fontSize: 13 * scale, fontWeight: FontWeight.w500, color: const Color(0xFF504A4A))),
-              const SizedBox(height: 2),
-              Text(course.professor, style: TextStyle(fontFamily: 'Golos Text', fontSize: 10 * scale, color: const Color(0xFF625B5B))),
-              const SizedBox(height: 2),
-              Text(course.room, style: TextStyle(fontFamily: 'Golos Text', fontSize: 10 * scale, color: const Color(0xFF625B5B))),
-            ],
+      top: top + 0.5,
+      left: left + 0.5,
+      child: GestureDetector(
+        onTap: () => _showCourseDetailModal(context, course), // 모달 호출
+        child: Container(
+          width: width - 0.5,
+          height: height - 0.5,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(color: course.color),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  course.title,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 13 * w,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF504A4A),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+                const SizedBox(height: 0.5),
+                Text(
+                  course.professor,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 10.9 * w,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF625B5B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 0.5),
+                Text(
+                  course.room,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 10.9 * w,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF625B5B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildCourseListDetails(BuildContext context, double scale) {
-    final List<String> dayNames = ['월', '화', '수', '목', '금'];
+  // 2. 친구 전용 상세정보 바텀시트 (수정/삭제 제외)
+  void _showCourseDetailModal(BuildContext context, Course course) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(16 * scale, 10 * scale, 16 * scale, 16 * scale),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '강의 목록',
-            style: TextStyle(fontFamily: 'Golos Text', fontSize: 20 * scale, fontWeight: FontWeight.bold, color: Colors.black87),
-          ),
-          SizedBox(height: 12 * scale),
-          ListView.builder(
-            itemCount: _friendCourses.length,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemBuilder: (context, index) {
-              final course = _friendCourses[index];
-              return Card(
-                elevation: 1.5,
-                margin: EdgeInsets.only(bottom: 12 * scale),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10 * scale)),
-                child: Padding(
-                  padding: EdgeInsets.all(16.0 * scale),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        course.title,
-                        style: TextStyle(fontFamily: 'Golos Text', fontSize: 17 * scale, fontWeight: FontWeight.bold),
-                      ),
-                      SizedBox(height: 10 * scale),
-                      _buildDetailRow(icon: Icons.person_outline, text: course.professor, scale: scale),
-                      SizedBox(height: 5 * scale),
-                      _buildDetailRow(icon: Icons.location_on, text: course.room, scale: scale),
-                      SizedBox(height: 5 * scale),
-                      _buildDetailRow(
-                        icon: Icons.access_time_outlined,
-                        text: '${dayNames[course.day]}요일 ${course.startTime}:00 - ${course.endTime}:00',
-                        scale: scale
-                      ),
-                    ],
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, // 추가: 내용에 따라 높이 조절 및 바닥 밀착 보장
+      backgroundColor: Colors.transparent, // 배경을 투명하게 해서 라운드 적용
+      builder:
+          (context) => Container(
+            width: double.infinity, // 양옆을 꽉 채우기 위해 무한대 설정
+            padding: EdgeInsets.fromLTRB(
+              24 * w,
+              24 * h,
+              24 * w,
+              40 * h,
+            ),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFFFF9),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min, // 내부 콘텐츠만큼만 높이 차지
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 수업 제목
+                Text(
+                  course.title,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 20 * w,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF504A4A),
                   ),
                 ),
-              );
-            },
+                SizedBox(height: 8 * h),
+
+                // 2. 상세 정보 (교수, 장소, 시간)
+                Text(
+                  "교수: ${course.professor}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                Text(
+                  "장소: ${course.room}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                Text(
+                  "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                // 하단 버튼(수정, 삭제)이 들어가는 Row를 완전히 제거함
+              ],
+            ),
           ),
-        ],
-      ),
     );
   }
 
-  Widget _buildDetailRow({required IconData icon, required String text, required double scale}) {
-    return Row(
-      children: [
-        Icon(icon, size: 16 * scale, color: Colors.grey[700]),
-        SizedBox(width: 8 * scale),
-        Text(text, style: TextStyle(fontFamily: 'Golos Text', fontSize: 14 * scale, color: Colors.grey[800])),
-      ],
-    );
+  String formatTimeDouble(double time) {
+    int hour = time.floor();
+    int minute = ((time - hour) * 60).round();
+    return '$hour:${minute.toString().padLeft(2, '0')}';
   }
 }

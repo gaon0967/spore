@@ -7,7 +7,7 @@ import 'package:new_project_1/features/Friend/FriendScreen.dart';
 import 'package:new_project_1/features/Settings/profile_edit.dart';
 
 // --- 데이터 모델 클래스 (파일 상단에 위치) ---
-// [수정됨] AppNotification 모델에 친구 알림을 위한 type, senderId 추가 및 fromFirestore 팩토리 생성자 추가
+// AppNotification 모델에 친구 알림을 위한 type, senderId 추가 및 fromFirestore 팩토리 생성자 추가
 class ScheduledEvent {
   final String eventId; // Firestore의 고유 문서 ID
   final String title;
@@ -55,7 +55,7 @@ class AppNotification {
       timestamp: (data['timestamp'] as Timestamp? ?? Timestamp.now()).toDate(),
       type: data['type'],
       senderId: data['senderId'],
-      titleName: data['titleName'], // 타이틀 이름 필드 추가
+      titleName: data['titleName'],
     );
   }
 }
@@ -65,7 +65,7 @@ class AppNotification {
 class NotificationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
-
+  
   String? get currentUserId => _auth.currentUser?.uid;
   Future<void> createNotification({
     required String receiverId,
@@ -282,7 +282,7 @@ class NotificationService {
 
     // 이미 알림이 있으면 생성하지 않음
     if (existingNotifications.docs.isNotEmpty) {
-      print('🔥 이미 $titleName 타이틀 알림이 존재합니다. 중복 알림 생성하지 않음.');
+      print('이미 $titleName 타이틀 알림이 존재합니다. 중복 알림 생성하지 않음.');
       return;
     }
 
@@ -310,47 +310,37 @@ class NotificationService {
 }
 // -----------------------------------------
 
-// --- 스타일 및 UI 헬퍼 함수 ---
-final baseStyle = TextStyle(
-  fontFamily: 'Golos Text',
-  fontWeight: FontWeight.w500,
-  fontSize: 13.5,
-  color: Color(0xFF645E5E),
-);
 
-final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.w800);
 
-List<TextSpan> _buildStyledTextSpans(AppNotification noti) {
-  // D-Day 알림 처리: eventTitle을 볼드체로 만듭니다.
+// [수정] baseStyle과 boldStyle을 인자로 받도록 변경
+List<TextSpan> _buildStyledTextSpans(AppNotification noti, TextStyle baseStyle, TextStyle boldStyle) {
   if (noti.title.contains("D-Day") && noti.eventTitle != null) {
     if (noti.content == "오늘") {
       return [
         TextSpan(text: "오늘은 ", style: baseStyle),
-        TextSpan(text: noti.eventTitle!, style: boldStyle), // 볼드 스타일 적용
+        TextSpan(text: noti.eventTitle!, style: boldStyle),
         TextSpan(text: " 이(가) 있는 날입니다.", style: baseStyle),
       ];
     } else {
       return [
-        TextSpan(text: noti.eventTitle!, style: boldStyle), // 볼드 스타일 적용
+        TextSpan(text: noti.eventTitle!, style: boldStyle),
         TextSpan(text: " ${noti.content}", style: baseStyle),
       ];
     }
   }
 
-  // 친구 알림 처리: 닉네임을 찾아서 볼드체로 만듭니다.
   final nameMatch = RegExp(r'(\S+)\s님').firstMatch(noti.content);
   final userName = nameMatch?.group(1);
   if (userName != null && userName.isNotEmpty) {
     final splitContent = noti.content.split(userName);
     return [
-      TextSpan(text: splitContent[0], style: baseStyle),
-      TextSpan(text: userName, style: boldStyle), // 볼드 스타일 적용
+      TextSpan(text: splitContent[0] ?? "", style: baseStyle),
+      TextSpan(text: userName, style: boldStyle),
       if (splitContent.length > 1)
         TextSpan(text: splitContent[1], style: baseStyle),
     ];
   }
 
-  // 그 외 모든 일반 알림
   return [TextSpan(text: noti.content, style: baseStyle)];
 }
 
@@ -358,9 +348,18 @@ Widget _buildStyledNotiBox(
   AppNotification noti,
   BuildContext context,
   Function(DateTime) onGoToCalendar,
-  void Function({int tabIndex, bool expandRequests})
-  onNavigateToFriendsCallback,
+  void Function({int tabIndex, bool expandRequests}) onNavigateToFriendsCallback,
 ) {
+  final screenWidth = MediaQuery.of(context).size.width;
+  final screenHeight = MediaQuery.of(context).size.height;
+
+  final baseStyle = TextStyle(
+    fontFamily: 'Golos Text',
+    fontWeight: FontWeight.w500,
+    fontSize: screenWidth * 0.032805, 
+    color: Color(0xFF645E5E),
+  );
+  final boldStyle = baseStyle.copyWith(fontWeight: FontWeight.w800);
   Color bgColor = Color(0xF4F4F4F4);
   String? label;
   String? badgeText;
@@ -369,8 +368,6 @@ Widget _buildStyledNotiBox(
 
   final nameMatch = RegExp(r'(\S+)\s님').firstMatch(noti.content);
   final userName = nameMatch != null ? nameMatch.group(1)! : '';
-
-  final screenWidth = MediaQuery.of(context).size.width;
 
   if (noti.title.contains("D-Day")) {
     label = '일정';
@@ -407,12 +404,12 @@ Widget _buildStyledNotiBox(
     rightText = '바로 가기';
   }
 
-  // [수정] '수락'/'거절' 버튼을 만들던 로직을 삭제하고, '바로 가기' 버튼을 만드는 로직으로 통합
+  // '수락'/'거절' 버튼을 만들던 로직을 삭제하고, '바로 가기' 버튼을 만드는 로직으로 통합
   Widget? actionArea;
   if (rightText != null) {
     actionArea = Positioned(
-      bottom: 0,
-      right: 0,
+      bottom: -screenWidth*0.02916,
+      right: screenWidth*0.01944,
       child: GestureDetector(
         onTap: () {
           if (noti.title.contains("D-Day") && noti.dueDate != null) {
@@ -458,7 +455,7 @@ Widget _buildStyledNotiBox(
             Image.asset(
               'assets/images/Setting/chevron.png',
               width: screenWidth * 0.015,
-              height: screenWidth * 0.029,
+              height: screenHeight*0.01360,
               fit: BoxFit.contain,
             ),
           ],
@@ -468,19 +465,26 @@ Widget _buildStyledNotiBox(
   }
 
   return Container(
-    padding: EdgeInsets.all(screenWidth * 0.031),
+    padding: EdgeInsets.fromLTRB(
+      screenWidth * 0.031, 
+      screenHeight * 0.013, 
+      screenWidth * 0.031, 
+      screenHeight*0.024948, 
+    ),
     decoration: BoxDecoration(
       color: bgColor,
       borderRadius: BorderRadius.circular(25),
     ),
     child: Stack(
+      // [핵심 수정 2] Positioned 위젯이 Container의 범위를 살짝 벗어나도 보이게 설정합니다.
+      clipBehavior: Clip.none, 
       children: [
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: screenWidth * 0.12,
-              height: screenWidth * 0.12,
+              height: screenHeight*0.05592888,
               margin: EdgeInsets.only(right: screenWidth * 0.009),
               child: Center(child: iconWidget),
             ),
@@ -490,7 +494,7 @@ Widget _buildStyledNotiBox(
                 children: [
                   if (label != null)
                     Padding(
-                      padding: EdgeInsets.only(bottom: screenWidth * 0.0005),
+                      padding: EdgeInsets.only(bottom: screenHeight*0.000233037),
                       child: Text(
                         label,
                         style: TextStyle(
@@ -505,14 +509,14 @@ Widget _buildStyledNotiBox(
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       Text.rich(
-                        TextSpan(children: _buildStyledTextSpans(noti)),
+                        TextSpan(children: _buildStyledTextSpans(noti, baseStyle, boldStyle)),
                       ),
                       if (badgeText != null)
                         Container(
-                          margin: EdgeInsets.only(left: screenWidth * 0.025),
+                          margin: EdgeInsets.only(left: screenWidth*0.01944, top: screenHeight*0.002268),
                           padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 1,
+                            horizontal: screenWidth*0.01944,
+                            vertical: screenHeight*0.001134,
                           ),
                           decoration: BoxDecoration(
                             color: Color(0xFFF4ECD2),
@@ -531,6 +535,7 @@ Widget _buildStyledNotiBox(
                         ),
                     ],
                   ),
+                  SizedBox(height: screenHeight*0.01134),
                 ],
               ),
             ),
@@ -815,6 +820,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
   void _clearNotis() {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -826,7 +832,7 @@ class _NotificationPageState extends State<NotificationPage> {
           ),
           child: Container(
             width: screenWidth * 0.7,
-            height: screenWidth * 0.43,
+            height: screenHeight * 0.20041182,
             decoration: BoxDecoration(
               color: Color(0xFFFFFEF9),
               borderRadius: BorderRadius.circular(10),
@@ -836,7 +842,7 @@ class _NotificationPageState extends State<NotificationPage> {
                 Expanded(
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      padding: EdgeInsets.symmetric(horizontal: screenWidth*0.05832),
                       child: Text(
                         '알림을 모두 삭제하시겠습니까?',
                         style: TextStyle(
@@ -850,7 +856,7 @@ class _NotificationPageState extends State<NotificationPage> {
                     ),
                   ),
                 ),
-                Divider(height: 1, color: Color(0xFFE5E5E5)),
+                Divider(height: screenHeight*0.001134, color: Color(0xFFE5E5E5)),
                 Row(
                   children: [
                     Expanded(
@@ -879,8 +885,8 @@ class _NotificationPageState extends State<NotificationPage> {
                       ),
                     ),
                     Container(
-                      width: 1,
-                      height: screenWidth * 0.1,
+                      width: screenWidth*0.00243,
+                      height: screenHeight*0.055074,
                       color: Color(0xFFE5E5E5),
                     ),
                     Expanded(
@@ -912,7 +918,7 @@ class _NotificationPageState extends State<NotificationPage> {
                             ),
                           ),
                           padding: EdgeInsets.symmetric(
-                            vertical: screenWidth * 0.035,
+                            vertical: screenHeight*0.01631259,
                           ),
                         ),
                         child: Text(
@@ -957,6 +963,7 @@ class _NotificationPageState extends State<NotificationPage> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     return Scaffold(
       backgroundColor: Color(0xFFFFFEF9),
       appBar: AppBar(
@@ -971,7 +978,7 @@ class _NotificationPageState extends State<NotificationPage> {
           icon: Image.asset(
             'assets/images/Setting/go.png',
             width: screenWidth * 0.045,
-            height: screenWidth * 0.045,
+            height: screenHeight * 0.02097333,
           ),
           onPressed: () => Navigator.of(context).pop(),
         ),
@@ -990,7 +997,7 @@ class _NotificationPageState extends State<NotificationPage> {
             child: Padding(
               padding: EdgeInsets.only(
                 right: screenWidth * 0.07,
-                bottom: screenWidth * 0.0005,
+                bottom: screenHeight * 0.000233037,
               ),
               child: GestureDetector(
                 onTap: notiList.isEmpty ? null : _clearNotis,
@@ -1014,7 +1021,7 @@ class _NotificationPageState extends State<NotificationPage> {
               : AnimatedList(
                 key: _listKey,
                 initialItemCount: notiList.length,
-                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                padding: EdgeInsets.symmetric(vertical: screenHeight*0.009072),
                 itemBuilder: (context, index, animation) {
                   final noti = notiList[index];
                   return _buildAnimatedItem(noti, index, animation);
@@ -1036,7 +1043,7 @@ class _NotificationPageState extends State<NotificationPage> {
       child: Container(
         margin: EdgeInsets.symmetric(
           horizontal: MediaQuery.of(context).size.width * 0.05,
-          vertical: 6,
+          vertical: MediaQuery.of(context).size.height*0.006804,
         ),
         child: Slidable(
           key: ValueKey(noti.id),
@@ -1097,7 +1104,7 @@ class _NotificationPageState extends State<NotificationPage> {
       child: Container(
         margin: EdgeInsets.symmetric(
           horizontal: screenWidth * 0.05,
-          vertical: 6,
+          vertical: MediaQuery.of(context).size.width*0.006804,
         ),
         color: const Color(0xFFFFFEF9),
         child: Stack(
@@ -1120,12 +1127,10 @@ class _NotificationPageState extends State<NotificationPage> {
               offset: Offset(-actionPaneWidth, 0),
               child: SizedBox(
                 width: totalWidth,
-                // [수정] _buildStyledNotiBox 호출 시 콜백 인수를 전달하지 않습니다.
                 child: _buildStyledNotiBox(
                   noti,
                   context,
                   (_) {},
-                  // 삭제 애니메이션 중에는 동작할 필요가 없으므로, 비어있는 함수를 전달합니다.
                   ({int tabIndex = 0, bool expandRequests = false}) {},
                 ),
               ),

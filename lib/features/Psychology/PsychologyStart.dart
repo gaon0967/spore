@@ -130,6 +130,14 @@ class PsychologyStart extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
 
+
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+
+    // 2. 요청하신 반응형 비율 적용 (1px 당 비율)
+    final double w = screenWidth * 0.00243;
+    final double h = screenHeight * 0.001134;
+    
     final scaleW = size.width / _designWidth;
     final scaleH = size.height / _designHeight;
 
@@ -152,8 +160,8 @@ class PsychologyStart extends StatelessWidget {
                     // Each character shape and name is positioned and scaled uniformly.
                     for (int i = 0; i < characterData.length; i++)
                       Positioned(
-                        left: _characterLayouts[i].left * scale,
-                        top: _characterLayouts[i].top * scale,
+                        left: _characterLayouts[i].left * w,
+                        top: _characterLayouts[i].top * h,
                         child: Transform.rotate(
                           angle: _characterLayouts[i].angle * 3.141592 / 180,
                           child: Stack(
@@ -161,18 +169,18 @@ class PsychologyStart extends StatelessWidget {
                             children: [
                               Image.asset(
                                 characterData[i].bgImagePath,
-                                width: _characterLayouts[i].width * scale,
-                                height: _characterLayouts[i].height * scale,
+                                width: _characterLayouts[i].width * w,
+                                height: _characterLayouts[i].height * h,
                                 fit: BoxFit.fill,
                               ),
                               Container(
-                                width: _characterLayouts[i].width * scale,
-                                height: _characterLayouts[i].height * scale,
+                                width: _characterLayouts[i].width * w,
+                                height: _characterLayouts[i].height * h,
                                 alignment: Alignment.center,
                                 child: Text(
                                   characterData[i].name,
                                   style: TextStyle(
-                                    fontSize: 16 * scale,
+                                    fontSize: 16 * w,
                                     color: const Color(0xFF5F5F5F),
                                     fontWeight: FontWeight.w600,
                                     fontFamily: 'GolosText',
@@ -185,25 +193,25 @@ class PsychologyStart extends StatelessWidget {
                       ),
 
                     Positioned(
-                      left: 119.92 * scale,
-                      top: 279.49 * scale,
+                      left: 119.92 * w,
+                      top: 279.49 * h,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
                           Image.asset(
                             'assets/images/PsychologyTest/Character/TestStart_Character.png',
-                            width: 187.91 * scale,
-                            height: 204.1 * scale,
+                            width: 187.91 * w,
+                            height: 204.1 * h,
                             fit: BoxFit.contain,
                           ),
                           Positioned(
                             // 추가 : 물음표 위치를 조정하기 위해서
-                            left: ((187.91 - 45) / 2) * scale,
+                            left: ((187.91 - 45) / 2) * w,
                             // (캐릭터 높이 / 2) - (물음표 높이 / 2) - (시각적 보정값)
-                            top: 55 * scale,
+                            top: 55 * h,
                             child: Image.asset(
                               'assets/images/PsychologyTest/Character/QuestionMark.png',
-                              width: 20 * scale, // 40-> 15
+                              width: 20 * w, // 40-> 15
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -212,17 +220,17 @@ class PsychologyStart extends StatelessWidget {
                     ),
                     // STEP 1 header
                     Positioned(
-                      left: ((_designWidth - 205) / 2) * scale,
-                      top: 20 * scale,
+                      left: ((_designWidth - 205) / 2) * w,
+                      top: 20 * h,
                       child: SizedBox(
-                        width: 205 * scale,
+                        width: 205 * w,
                         child: Center(
                           child: Text(
                             'STEP 1',
                             style: TextStyle(
                               fontFamily: 'GolosText',
                               fontWeight: FontWeight.w500,
-                              fontSize: 18.5 * scale,
+                              fontSize: 18.5 * w,
                               color: const Color(0xFF555555),
                             ),
                           ),
@@ -231,10 +239,10 @@ class PsychologyStart extends StatelessWidget {
                     ),
                     // Main title
                     Positioned(
-                      left: ((_designWidth - 304) / 2) * scale,
-                      top: 70 * scale,
+                      left: ((_designWidth - 304) / 2) * w,
+                      top: 70 * h,
                       child: SizedBox(
-                        width: 304 * scale,
+                        width: 304 * w,
                         child: Center(
                           child: Text(
                             '나의 성격 유형을 알고\n같은 유형의 사람을 찾아가는 여정-',
@@ -242,7 +250,7 @@ class PsychologyStart extends StatelessWidget {
                             style: TextStyle(
                               fontFamily: 'GolosText',
                               fontWeight: FontWeight.bold,
-                              fontSize: 20 * scale,
+                              fontSize: 20 * w,
                               color: const Color(0xFF5F5F5F),
                               height: 1.4,
                             ),

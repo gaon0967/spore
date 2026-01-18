@@ -124,7 +124,7 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
           icon: Image.asset(
             'assets/images/Setting/go.png', // 화살표 이미지 경로
             width: screenWidth * 0.045,
-            height: screenWidth * 0.045,
+            height: screenHeight * 0.02097333,
           ),
           onPressed: () => Navigator.pop(context),
         ),
@@ -147,15 +147,15 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
               ? const Center(child: CircularProgressIndicator())
               : ListView(
                 // 전체적인 좌우 패딩 적용
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24.0,
-                  vertical: 16.0,
+                padding: EdgeInsets.symmetric(
+                  horizontal: screenWidth*0.05616 ,
+                  vertical: screenHeight*0.018144,
                 ),
                 children: [
                   _buildRecommendationTile(),
-                  const SizedBox(height: 2),
+                  SizedBox(height: screenHeight*0.002268),
                   const Divider(color: Color(0xFFE4E4E4), thickness: 1),
-                  const SizedBox(height: 2),
+                  SizedBox(height: screenHeight*0.002268),
                   _buildBlockedFriendsSection(),
                 ],
               ),
@@ -165,17 +165,17 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
   // '추천 친구 활성화' 섹션 위젯
   Widget _buildRecommendationTile() {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+      padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height*0.009072, horizontal: MediaQuery.of(context).size.width*0.01944),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Expanded(
+          Expanded(
             child: Text(
               '추천 친구 활성화',
               style: TextStyle(
                 fontFamily: 'Golos Text',
                 fontWeight: FontWeight.w600,
-                fontSize: 17,
+                fontSize: MediaQuery.of(context).size.width*0.04131,
                 color: Color(0xFF504A4A),
               ),
             ),
@@ -190,8 +190,8 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
                     ? 'assets/images/Setting/alarm_on.png' // ON 이미지 경로
                     : 'assets/images/Setting/alarm_off.png', // OFF 이미지 경로
                 key: ValueKey<bool>(_recommendationsEnabled),
-                width: 52, // 스위치 크기에 맞게 조절하세요
-                height: 30,
+                width: MediaQuery.of(context).size.width * 0.12636, // 스위치 크기에 맞게 조절하세요
+                height: MediaQuery.of(context).size.height * 0.03402,
                 fit: BoxFit.contain,
               ),
             ),
@@ -208,15 +208,15 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
       data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
       child: ExpansionTile(
         // 기본 패딩 제거
-        tilePadding: const EdgeInsets.symmetric(horizontal: 8.0),
+        tilePadding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.01944 ),
         // 항상 펼쳐진 상태로 시작
         initiallyExpanded: true,
-        title: const Text(
+        title: Text(
           '차단 목록',
           style: TextStyle(
             fontFamily: 'Golos Text',
             fontWeight: FontWeight.w600,
-            fontSize: 17,
+            fontSize: MediaQuery.of(context).size.width*0.04131,
             color: Color(0xFF504A4A),
           ),
         ),
@@ -233,8 +233,8 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
                     : null,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Padding(
-                  padding: EdgeInsets.all(16.0),
+                return Padding(
+                  padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.03888),
                   child: Center(child: CircularProgressIndicator()),
                 );
               }
@@ -243,12 +243,12 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
               }
               final blockedDocs = snapshot.data?.docs ?? [];
               if (blockedDocs.isEmpty) {
-                return const Center(
+                return Center(
                   child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 40.0),
+                    padding: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.0536),
                     child: Text(
                       '차단된 친구가 없습니다',
-                      style: TextStyle(fontSize: 15, color: Colors.grey),
+                      style: TextStyle(fontSize: MediaQuery.of(context).size.width*0.03645, color: Colors.grey),
                     ),
                   ),
                 );
@@ -262,7 +262,7 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
                   return _buildBlockedFriendTile(blockedDocs[index]);
                 },
                 separatorBuilder:
-                    (context, index) => const SizedBox(height: 12),
+                    (context, index) => SizedBox(height: MediaQuery.of(context).size.height * 0.013608),
               );
             },
           ),
@@ -348,8 +348,8 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
     required VoidCallback onUnblock,
   }) {
     return Container(
-      height: 70,
-      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+      height: MediaQuery.of(context).size.height * 0.07938,
+      padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.01944),
       decoration: BoxDecoration(
         color: const Color(0xFFF8F8F8),
         borderRadius: BorderRadius.circular(25),
@@ -357,34 +357,34 @@ class _FriendManagementScreenState extends State<FriendManagementScreen> {
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: MediaQuery.of(context).size.width * 0.1215,
+            height: MediaQuery.of(context).size.height * 0.0567,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Color(0xFFF1F1F1),
             ),
             child: ClipOval(child: profileImageWidget), // 위젯을 그대로 출력
           ),
-          const SizedBox(width: 24),
+          SizedBox(width: MediaQuery.of(context).size.width * 0.05832),
           Expanded(
             child: Text(
               nickName,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Golos Text',
                 fontWeight: FontWeight.w600,
-                fontSize: 17,
+                fontSize: MediaQuery.of(context).size.width * 0.04131,
                 color: Color(0xFF6F6B6B),
               ),
             ),
           ),
           TextButton(
             onPressed: onUnblock,
-            child: const Text(
+            child: Text(
               '해제',
               style: TextStyle(
                 fontFamily: 'Golos Text',
                 fontWeight: FontWeight.w500,
-                fontSize: 15.5,
+                fontSize: MediaQuery.of(context).size.width * 0.037665,
                 color: Color(0xFF506497),
               ),
             ),

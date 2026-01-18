@@ -1,6 +1,5 @@
 // 불필요 import 제거!
 import 'package:flutter/material.dart';
-
 class Course {
   final String title;
   final String professor;
