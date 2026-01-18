@@ -21,7 +21,13 @@ class _TimetableScreenState extends State<TimetableScreen> {
   bool _isLoading = true;
   String? _currentTableName;
 
-  final List<String> _dayNames = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+  final List<String> _dayNames = [
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+  ];
 
   @override
   void initState() {
@@ -100,23 +106,30 @@ class _TimetableScreenState extends State<TimetableScreen> {
     }
 
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('timetables')
-          .doc(user.uid)
-          .collection('TableName')
-          .doc(_currentTableName!)
-          .collection('classes')
-          .get();
+      final snapshot =
+          await FirebaseFirestore.instance
+              .collection('timetables')
+              .doc(user.uid)
+              .collection('TableName')
+              .doc(_currentTableName!)
+              .collection('classes')
+              .get();
 
       List<Course> allCourses = [];
       for (var doc in snapshot.docs) {
-        final dayId = doc.id;
+        final dayId = doc.id; // monday, tuesday 등
         final data = doc.data();
         if (data['subjects'] == null) continue;
 
         final List<dynamic> subjectsList = data['subjects'];
-        for (var subjectData in subjectsList) {
-          allCourses.add(Course.fromMap(subjectData as Map<String, dynamic>, dayId));
+
+        // 중요: 배열(List) 구조이므로 index를 ID 대용으로 사용하거나,
+        // Course 모델에서 자체 생성한 uuid를 id로 사용해야 합니다.
+        for (int i = 0; i < subjectsList.length; i++) {
+          final subjectData = subjectsList[i] as Map<String, dynamic>;
+
+          // 여기서 courseId 대신 데이터 내부의 고유 ID를 사용합니다.
+          allCourses.add(Course.fromMap(subjectData, dayId));
         }
       }
 
@@ -129,15 +142,11 @@ class _TimetableScreenState extends State<TimetableScreen> {
     } catch (e) {
       print("수업 로딩 실패: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('시간표를 불러오는 중 오류가 발생했습니다.')),
-        );
         setState(() => _isLoading = false);
       }
     }
   }
 
-  
   Future<void> _addCourse(Course newCourse) async {
     if (_currentTableName == null) return;
     final user = FirebaseAuth.instance.currentUser;
@@ -157,10 +166,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
     await FirebaseFirestore.instance.runTransaction((transaction) async {
       final docSnapshot = await transaction.get(docRef);
       if (!docSnapshot.exists) {
-        transaction.set(docRef, {'subjects': [newCourseMap]});
+        transaction.set(docRef, {
+          'subjects': [newCourseMap],
+        });
       } else {
         transaction.update(docRef, {
-          'subjects': FieldValue.arrayUnion([newCourseMap])
+          'subjects': FieldValue.arrayUnion([newCourseMap]),
         });
       }
     });
@@ -185,12 +196,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final courseMapToRemove = courseToDelete.toMap();
 
     await docRef.update({
-      'subjects': FieldValue.arrayRemove([courseMapToRemove])
+      'subjects': FieldValue.arrayRemove([courseMapToRemove]),
     });
 
     await _loadCourses();
   }
-  
+
   String formatTimeDouble(double time) {
     int hour = time.floor();
     int minute = ((time - hour) * 60).round();
@@ -210,16 +221,142 @@ class _TimetableScreenState extends State<TimetableScreen> {
   }
 
   Future<bool> _showConflictDialog(Course conflictingCourse) async {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
     final result = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('시간 중복'),
-        content: Text("'${conflictingCourse.title}' 강의와 시간이 겹칩니다. 기존 강의를 삭제하고 추가하시겠습니까?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('아니오')),
-          TextButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('예')),
-        ],
-      ),
+      builder:
+          (context) => Dialog(
+            backgroundColor: Colors.transparent,
+            insetPadding: EdgeInsets.symmetric(horizontal: 40 * w),
+            child: Container(
+              width: 298 * w, 
+              height: 179 * h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFFF9), 
+                borderRadius: BorderRadius.circular(10), 
+                border: Border.all(
+                  color: const Color(0xFFE5E5E5),
+                  width: 1,
+                ), 
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(
+                      0.06,
+                    ), 
+                    offset: const Offset(1, 2),
+                    blurRadius: 4,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  // 텍스트 영역
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 20 * w),
+                      alignment: Alignment.center,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '시간 중복',
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontSize: 17 * w,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF716969),
+                            ),
+                          ),
+                          SizedBox(height: 10 * h),
+                          Text(
+                            "'${conflictingCourse.title}' 강의와 시간이 겹칩니다.\n기존 강의를 삭제하고 추가하시겠습니까?",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontSize: 14 * w,
+                              fontWeight: FontWeight.w500,
+                              height: 1.3*h,
+                              color: const Color(
+                                0xFF716969,
+                              ), 
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // 하단 버튼 영역
+                  Container(
+                    height: 47 * h, 
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        // 아니오 버튼
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(false),
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                border: Border(
+                                  right: BorderSide(
+                                    color: Color(0xFFE5E5E5),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                '아니오',
+                                style: TextStyle(
+                                  fontFamily: 'Golos Text',
+                                  fontSize: 16 * w,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(
+                                    0xFF635E5E,
+                                  ), 
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 예 버튼
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => Navigator.of(context).pop(true),
+                            behavior: HitTestBehavior.opaque,
+                            child: Container(
+                              alignment: Alignment.center,
+                              child: Text(
+                                '예',
+                                style: TextStyle(
+                                  fontFamily: 'Golos Text',
+                                  fontSize: 16 * w,
+                                  fontWeight: FontWeight.w400,
+                                  color: const Color(
+                                    0xFF2F3BDC,
+                                  ), // CSS color: #2F3BDC
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
     );
     return result ?? false;
   }
@@ -234,149 +371,149 @@ class _TimetableScreenState extends State<TimetableScreen> {
         var end = Offset.zero;
         var curve = Curves.easeOut;
 
-        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
 
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
 
   Route _createFriendTimetableRoute(String friendName, String friendUid) {
     return PageRouteBuilder(
-      pageBuilder: (context, animation, secondaryAnimation) => FriendTimetable(
-        friendName: friendName,
-        friendUid: friendUid,
-      ),
+      pageBuilder:
+          (context, animation, secondaryAnimation) =>
+              FriendTimetable(friendName: friendName, friendUid: friendUid),
       transitionDuration: const Duration(milliseconds: 600),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         var begin = const Offset(0.0, 1.0);
         var end = Offset.zero;
         var curve = Curves.easeOut;
 
-        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+        var tween = Tween(
+          begin: begin,
+          end: end,
+        ).chain(CurveTween(curve: curve));
 
-        return SlideTransition(
-          position: animation.drive(tween),
-          child: child,
-        );
+        return SlideTransition(position: animation.drive(tween), child: child);
       },
     );
   }
 
-
   @override
-  Widget build(BuildContext context) {  
+  Widget build(BuildContext context) {
     if (_isLoading) {
       return const Scaffold(
         backgroundColor: Color(0xFFFFFEF9),
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    final screenWidth = MediaQuery.of(context).size.width;
-    final screenHeight = MediaQuery.of(context).size.height;
+
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
-      
+
       body: SafeArea(
         top: true,
         child: Column(
           children: [
             _buildHeader(),
-            Expanded(
-              child: SingleChildScrollView(
-                child: _buildTimetable(),
-              ),
-            ),
+            Expanded(child: SingleChildScrollView(child: _buildTimetable())),
             _buildFriendsSection(),
           ],
         ),
       ),
-      // bottomNavigationBar 속성 제거
     );
   }
 
-  
-Widget _buildHeader() {
-  final screenWidth = MediaQuery.of(context).size.width;
+  Widget _buildHeader() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
 
-  return SizedBox(
-    height: 80,
-    child: Stack(
-      children: [
-        // 1. 제목 부분 (기존과 거의 동일)
-        Positioned(
-          left: 28,
-          top: 2,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '시간표',
-                style: TextStyle(
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
+    return SizedBox(
+      height: 80*h,
+      child: Stack(
+        children: [
+          // 1. 제목 부분
+          Positioned(
+            left: 29*w,
+            top: 8*h,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '시간표',
+                  style: TextStyle(
                     fontFamily: 'Golos Text',
                     fontSize: screenWidth * 0.065,
                     fontWeight: FontWeight.bold,
-                    color: const Color(0xFF504A4A)),
-              ),
-              const SizedBox(height: 1),
-              Padding(
-                padding: const EdgeInsets.only(left: 4.0), // 이 값을 조절해 오른쪽으로 얼마나 이동할지 정합니다.
-                child: Text(
-                  _currentTableName ?? '시간표 로딩 중...',
-                  style: const TextStyle(
+                    color: const Color(0xFF504A4A),
+                  ),
+                ),
+                SizedBox(height: 4*h),
+                Padding(
+                  padding: EdgeInsets.only(
+                    left: 4.0*w,
+                  ), // 이 값을 조절해 오른쪽으로 얼마나 이동할지 정합니다.
+                  child: Text(
+                    _currentTableName ?? '시간표 로딩 중...',
+                    style: TextStyle(
                       fontFamily: 'Golos Text',
-                      fontSize: 11.5,
+                      fontSize: w * 13,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF556283)),
-                  overflow: TextOverflow.ellipsis,
+                      color: Color(0xFF556283),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
 
-        // 2. 아이콘 버튼 부분
-        Positioned(
-          top: -2,    // 숫자를 줄일수록 '위로' 이동합니다.
-          right: 25,   // 숫자를 줄일수록 '오른쪽으로' 이동합니다.
-          child: Row(
-            children: [
-              IconButton(
-                icon: Image.asset(
-                  'assets/images/TimeTable/add_icon.png',
-                  width: 22,
-                  height: 22,
-                ),
-                onPressed: () async {
-                  final newCourse = await showDialog<Course>(
-                    context: context,
-                    builder: (context) => const ClassAdd(),
-                  );
-                  if (newCourse == null) return;
-                  final conflictingCourse = _checkTimeConflict(newCourse);
-                  if (conflictingCourse != null) {
-                    final wannaReplace =
-                        await _showConflictDialog(conflictingCourse);
-                    if (wannaReplace) {
-                      await _deleteCourse(conflictingCourse);
+          // 2. 아이콘 버튼 부분
+          Positioned(
+            top: 4*h, // 숫자를 줄일수록 '위로' 이동합니다.
+            right: 23*w, // 숫자를 줄일수록 '오른쪽으로' 이동합니다.
+            child: Row(
+              children: [
+                IconButton(
+                  icon: Image.asset(
+                    'assets/images/TimeTable/add_icon.png',
+                    width: 22*w,
+                    height: 22*w,
+                  ),
+                  onPressed: () async {
+                    final newCourse = await showDialog<Course>(
+                      context: context,
+                      builder: (context) => const ClassAdd(),
+                    );
+                    if (newCourse == null) return;
+                    final conflictingCourse = _checkTimeConflict(newCourse);
+                    if (conflictingCourse != null) {
+                      final wannaReplace = await _showConflictDialog(
+                        conflictingCourse,
+                      );
+                      if (wannaReplace) {
+                        await _deleteCourse(conflictingCourse);
+                        await _addCourse(newCourse);
+                      }
+                    } else {
                       await _addCourse(newCourse);
                     }
-                  } else {
-                    await _addCourse(newCourse);
-                  }
-                },
-              ),
-              IconButton(
-                icon: Image.asset(
-                  'assets/images/TimeTable/menu_icon.png',
-                  width: 22,
-                  height: 22,
+                  },
                 ),
-                onPressed: () async {
-                    // 새로 만든 커스텀 Route를 사용하여 페이지 이동
+                IconButton(
+                  icon: Image.asset(
+                    'assets/images/TimeTable/menu_icon.png',
+                    width: 22*w,
+                    height: 22*w,
+                  ),
+                  onPressed: () async {
                     final newTableName = await Navigator.push<String>(
                       context,
                       _createTimetableListRoute(),
@@ -390,14 +527,14 @@ Widget _buildHeader() {
                       await _loadCourses();
                     }
                   },
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildTimetable() {
     int minHour = 9;
@@ -406,16 +543,25 @@ Widget _buildHeader() {
     if (_courses.isNotEmpty) {
       final startTimes = _courses.map((c) => c.startTime.floor()).toList();
       final endTimes = _courses.map((c) => c.endTime.ceil()).toList();
-      final earliestCourse = startTimes.reduce((minVal, e) => e < minVal ? e : minVal);
-      final latestCourse = endTimes.reduce((maxVal, e) => e > maxVal ? e : maxVal);
+      
+      final earliestCourse = startTimes.reduce(
+        (minVal, e) => e < minVal ? e : minVal,
+      );
+      final latestCourse = endTimes.reduce(
+        (maxVal, e) => e > maxVal ? e : maxVal,
+      );
       minHour = min(minHour, earliestCourse);
       maxHour = max(maxHour, latestCourse);
     }
-    
+
     final int totalHours = maxHour - minHour;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
 
     return Container(
-      margin: const EdgeInsets.fromLTRB(14, 1, 14, 20),
+      margin: EdgeInsets.fromLTRB(14*w, 1*h, 14*w, 20*h),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final timeColumnWidth = constraints.maxWidth * 0.06;
@@ -438,7 +584,9 @@ Widget _buildHeader() {
                 children: [
                   // 배경색과 내용은 Stack 안에서 처리합니다.
                   // 제목 행/열 배경색
-                  Positioned.fill(child: Container(color: const Color(0xFFFFFDF2))),
+                  Positioned.fill(
+                    child: Container(color: const Color(0xFFFFFDF2)),
+                  ),
                   // 강의 셀 부분만 덮어쓸 흰색 배경
                   Positioned(
                     top: headerHeight,
@@ -447,8 +595,28 @@ Widget _buildHeader() {
                     bottom: 0,
                     child: Container(color: const Color(0xFFFFFFF9)),
                   ),
-                  _buildGrid(headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, constraints.maxWidth, minHour, maxHour),
-                  ..._courses.map((course) => _buildCourseItem(course, headerHeight, timeColumnWidth, dayColumnWidth, rowHeight, minHour)),
+                  _buildGrid(
+                    headerHeight,
+                    timeColumnWidth,
+                    dayColumnWidth,
+                    rowHeight,
+                    constraints.maxWidth,
+                    minHour,
+                    maxHour,
+                    w,
+                    h,
+                  ),
+                  ..._courses.map(
+                    (course) => _buildCourseItem(
+                      course,
+                      headerHeight,
+                      timeColumnWidth,
+                      dayColumnWidth,
+                      rowHeight,
+                      minHour,
+                      w,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -458,9 +626,22 @@ Widget _buildHeader() {
     );
   }
 
-    Widget _buildGrid(double headerHeight, double timeColWidth, double dayColWidth, double rowHeight, double timetableWidth, int startHour, int endHour) {
+  Widget _buildGrid(
+    double headerHeight,
+    double timeColWidth,
+    double dayColWidth,
+    double rowHeight,
+    double timetableWidth,
+    int startHour,
+    int endHour,
+    double w,
+    double h,
+  ) {
     const days = ['월', '화', '수', '목', '금'];
-    final times = List.generate(endHour - startHour, (i) => (startHour + i).toString());
+    final times = List.generate(
+      endHour - startHour,
+      (i) => (startHour + i).toString(),
+    );
 
     return Stack(
       children: [
@@ -490,7 +671,7 @@ Widget _buildHeader() {
             child: Container(height: 0.5, color: const Color(0xFFB3A6A6)),
           );
         }),
-        
+
         // 2. 세로 구분선들
         Positioned(
           top: 0,
@@ -508,36 +689,65 @@ Widget _buildHeader() {
         }),
 
         // 3. 요일 텍스트 (월, 화, 수, 목, 금)
-        ...List.generate(5, (i) => Positioned(
-          top: 0,
-          height: headerHeight,
-          left: timeColWidth + (i * dayColWidth),
-          width: dayColWidth,
-          child: Center(
-            child: Text(days[i], style: const TextStyle(fontFamily: 'Golos Text', fontSize: 11, color: Color(0xFF504A4A),fontWeight: FontWeight.w500))
-          ),
-        )),
-        
-        // 4. 시간 텍스트 (9, 10, 11...)
-        ...List.generate(times.length, (i) => Positioned(
-          top: headerHeight + (i * rowHeight),
-          height: rowHeight,
-          left: 0,
-          width: timeColWidth,
-          child: Align(
-            alignment: Alignment.topRight,
-            child: Padding(
-              padding: const EdgeInsets.only(top: 2.0, right: 4.0),
-              child: Text(times[i], style: const TextStyle(fontFamily: 'Golos Text', fontSize: 11, color: Color(0xFF504A4A),fontWeight: FontWeight.w500)),
+        ...List.generate(
+          5,
+          (i) => Positioned(
+            top: 0,
+            height: headerHeight,
+            left: timeColWidth + (i * dayColWidth),
+            width: dayColWidth,
+            child: Center(
+              child: Text(
+                days[i],
+                style: TextStyle(
+                  fontFamily: 'Golos Text',
+                  fontSize: 11*w,
+                  color: Color(0xFF504A4A),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ),
-        )),
+        ),
+
+        // 4. 시간 텍스트 (9, 10, 11...)
+        ...List.generate(
+          times.length,
+          (i) => Positioned(
+            top: headerHeight + (i * rowHeight),
+            height: rowHeight,
+            left: 0,
+            width: timeColWidth,
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: EdgeInsets.only(top: 2.0*h, right: 4.0*w),
+                child: Text(
+                  times[i],
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 11*w,
+                    color: const Color(0xFF504A4A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildCourseItem(Course course, double headerHeight,
-      double timeColWidth, double dayColWidth, double rowHeight, int startHour) {
+  Widget _buildCourseItem(
+    Course course,
+    double headerHeight,
+    double timeColWidth,
+    double dayColWidth,
+    double rowHeight,
+    int startHour,
+    double w,
+  ) {
     final top = headerHeight + (course.startTime - startHour) * rowHeight;
     final height = (course.endTime - course.startTime) * rowHeight;
     final left = timeColWidth + (course.day * dayColWidth);
@@ -560,11 +770,39 @@ Widget _buildHeader() {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(course.title, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF504A4A)), overflow: TextOverflow.ellipsis, maxLines: 2,),
+                Text(
+                  course.title,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 13*w,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF504A4A),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
                 const SizedBox(height: 0.5),
-                Text(course.professor, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 10.5, fontWeight: FontWeight.w400, color: Color(0xFF625B5B)), overflow: TextOverflow.ellipsis),
+                Text(
+                  course.professor,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 10.9*w,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF625B5B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
                 const SizedBox(height: 0.5),
-                Text(course.room, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 10.5,fontWeight: FontWeight.w400, color: Color(0xFF625B5B)), overflow: TextOverflow.ellipsis),
+                Text(
+                  course.room,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 10.9*w,
+                    fontWeight: FontWeight.w400,
+                    color: Color(0xFF625B5B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
@@ -574,45 +812,97 @@ Widget _buildHeader() {
   }
 
   void _showCourseDetailModal(BuildContext context, Course course) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243; 
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-        decoration: const BoxDecoration(
-          color: Color(0xFFFFFFF9),
-          borderRadius: BorderRadius.only(topLeft: Radius.circular(20), topRight: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(course.title, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 20, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text("교수: ${course.professor}", style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16)),
-            Text("장소: ${course.room}", style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16)),
-            Text(
-              "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
-              style: const TextStyle(fontFamily: 'Golos Text', fontSize: 16),
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.fromLTRB(
+              24 * w,
+              24 * h,
+              24 * w,
+              20 * h,
             ),
-            const Divider(height: 24),
-            GestureDetector(
-              onTap: () {
-                Navigator.pop(context);
-                _deleteCourse(course);
-              },
-              child: const Row(children: [
-                Icon(Icons.delete_outline, color: Colors.grey), SizedBox(width: 6), Text("삭제", style: TextStyle(fontFamily: 'Golos Text'))
-              ]),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFFFFF9),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(20),
+                topRight: Radius.circular(20),
+              ),
             ),
-          ],
-        ),
-      ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. 수업 제목
+                Text(
+                  course.title,
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 20 * w,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF504A4A),
+                  ),
+                ),
+                SizedBox(height: 8 * h),
+                // 2. 상세 정보 (교수, 장소, 시간)
+                Text(
+                  "교수: ${course.professor}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                Text(
+                  "장소: ${course.room}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+                Text(
+                  "시간: ${formatTimeDouble(course.startTime)} - ${formatTimeDouble(course.endTime)}",
+                  style: TextStyle(
+                    fontFamily: 'Golos Text',
+                    fontSize: 15 * w,
+                    color: const Color(0xFF675F5F),
+                  ),
+                ),
+
+                SizedBox(height: 8 * h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _deleteCourse(course);
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0), // 터치 영역 확보
+                        child: Image.asset(
+                          'assets/images/mainpage/delete.png',
+                          width: 24 * w,
+                          height: 24 * w,
+                          color: const Color(0xFF675F5F),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
     );
   }
-
-
-
 
   Widget _buildFriendsSection() {
     final user = FirebaseAuth.instance.currentUser;
@@ -621,14 +911,19 @@ Widget _buildHeader() {
     }
 
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    final double h = screenHeight * 0.001134;
+    final double w = screenWidth * 0.00243;
+
     final buttonHeight = screenHeight * 0.055;
     final separatorHeight = screenHeight * 0.008;
-    final sectionHeight = screenHeight * 0.2; // 친구 버튼 크기 
+    final sectionHeight = screenHeight * 0.2; // 친구 버튼 크기
 
     return Container(
       height: sectionHeight,
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 15, 20, 5),
+      padding: EdgeInsets.fromLTRB(20*w, 15*h, 20*w, 5*h),
       decoration: const BoxDecoration(
         color: Color(0xFFF0F0F0),
         borderRadius: BorderRadius.only(
@@ -640,24 +935,30 @@ Widget _buildHeader() {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+            padding: EdgeInsets.symmetric(horizontal: 11*w, vertical: 5*h),
             decoration: BoxDecoration(
               color: const Color(0xFFACACAC),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Text(
+            child: Text(
               '친구 시간표',
-              style: TextStyle(fontFamily: 'Golos Text', fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF504A4A)),
+              style: TextStyle(
+                fontFamily: 'Golos Text',
+                fontSize: 14 * w,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFF504A4A),
+              ),
             ),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14*h),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .collection('friends')
-                  .snapshots(),
+              stream:
+                  FirebaseFirestore.instance
+                      .collection('users')
+                      .doc(user.uid)
+                      .collection('friends')
+                      .snapshots(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -678,23 +979,46 @@ Widget _buildHeader() {
                     final friendUid = friendDoc.id;
 
                     return FutureBuilder<DocumentSnapshot>(
-                      future: FirebaseFirestore.instance.collection('users').doc(friendUid).get(),
+                      future:
+                          FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(friendUid)
+                              .get(),
                       builder: (context, userSnapshot) {
-                        if (userSnapshot.connectionState == ConnectionState.waiting) {
-                          return _buildFriendButton(context, '로딩 중...', friendUid, buttonHeight);
+                        if (userSnapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return _buildFriendButton(
+                            context,
+                            '로딩 중...',
+                            friendUid,
+                            buttonHeight,
+                          );
                         }
-                        if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
-                          return _buildFriendButton(context, '알 수 없는 친구', friendUid, buttonHeight);
+                        if (!userSnapshot.hasData ||
+                            !userSnapshot.data!.exists) {
+                          return _buildFriendButton(
+                            context,
+                            '알 수 없는 친구',
+                            friendUid,
+                            buttonHeight,
+                          );
                         }
 
-                        final userData = userSnapshot.data!.data() as Map<String, dynamic>;
+                        final userData =
+                            userSnapshot.data!.data() as Map<String, dynamic>;
                         final friendName = userData['name'] ?? '이름 없음';
 
-                        return _buildFriendButton(context, friendName, friendUid, buttonHeight);
+                        return _buildFriendButton(
+                          context,
+                          friendName,
+                          friendUid,
+                          buttonHeight,
+                        );
                       },
                     );
                   },
-                  separatorBuilder: (context, index) => SizedBox(height: separatorHeight),
+                  separatorBuilder:
+                      (context, index) => SizedBox(height: separatorHeight),
                 );
               },
             ),
@@ -704,13 +1028,15 @@ Widget _buildHeader() {
     );
   }
 
-  Widget _buildFriendButton(BuildContext context, String name, String uid, double buttonHeight) {
+  Widget _buildFriendButton(
+    BuildContext context,
+    String name,
+    String uid,
+    double buttonHeight,
+  ) {
     return ElevatedButton(
       onPressed: () {
-        Navigator.push(
-          context,
-          _createFriendTimetableRoute(name, uid),
-        );
+        Navigator.push(context, _createFriendTimetableRoute(name, uid));
       },
       style: ElevatedButton.styleFrom(
         backgroundColor: const Color(0xFF5F5F5F),
@@ -718,13 +1044,20 @@ Widget _buildHeader() {
         minimumSize: Size(double.infinity, buttonHeight),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.0388),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(name, style: const TextStyle(fontFamily: 'Golos Text', fontSize: 15.5, fontWeight: FontWeight.w500)),
-          const Icon(Icons.arrow_forward_ios, size: 16),
+          Text(
+            name,
+            style: TextStyle(
+              fontFamily: 'Golos Text',
+              fontSize: MediaQuery.of(context).size.width * 0.03831,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          Icon(Icons.arrow_forward_ios, size: MediaQuery.of(context).size.width * 0.03888),
         ],
       ),
     );

@@ -255,34 +255,46 @@ class _FriendScreenState extends State<FriendScreen> {
   }
 
   // 추천 친구 가져오기
+  // 추천 친구 가져오기 (신청 중인 유저 제외 로직 추가)
   Stream<List<RecommendedUser>> get recommendedUsersStream {
     if (currentUserId == null) return Stream.value([]);
 
     return _firestore
         .collection('users')
         .where('recommend', isEqualTo: true)
-        .limit(20)
+        .limit(30) // 필터링을 고려해 조금 더 넉넉히 가져옴
         .snapshots()
         .asyncMap((snapshot) async {
           List<RecommendedUser> recommended = [];
-          Set<String> friendIds = {};
+          Set<String> excludedIds = {}; // 제외할 UID 목록 (친구 + 이미 신청 보낸 대상)
+
           try {
-            final friendsSnapshot =
-                await _firestore
-                    .collection('users')
-                    .doc(currentUserId)
-                    .collection('friends')
-                    .get();
-            friendIds =
-                friendsSnapshot.docs
-                    .map((doc) => doc.data()['friendId'] as String)
-                    .toSet();
+            // 1. 이미 친구인 사람들 가져오기
+            final friendsSnapshot = await _firestore
+                .collection('users')
+                .doc(currentUserId)
+                .collection('friends')
+                .get();
+            for (var doc in friendsSnapshot.docs) {
+              excludedIds.add(doc.data()['friendId'] as String);
+            }
+
+            // 2. 내가 이미 친구 신청을 보낸 사람들 가져오기 (추가된 로직)
+            final sentRequestsSnapshot = await _firestore
+                .collection('friendRequests')
+                .where('senderId', isEqualTo: currentUserId)
+                .get();
+            for (var doc in sentRequestsSnapshot.docs) {
+              excludedIds.add(doc.data()['receiverId'] as String);
+            }
           } catch (e) {
-            print('친구 목록 조회 오류: $e');
+            print('목록 필터링 조회 오류: $e');
           }
 
+          // 3. 필터링 수행
           for (var doc in snapshot.docs) {
-            if (doc.id != currentUserId && !friendIds.contains(doc.id)) {
+            // 나 자신이 아니고, 친구가 아니며, 신청 대기 중도 아닌 경우만 추가
+            if (doc.id != currentUserId && !excludedIds.contains(doc.id)) {
               recommended.add(RecommendedUser.fromFirestore(doc));
             }
           }
@@ -332,80 +344,106 @@ class _FriendScreenState extends State<FriendScreen> {
 
   // 친구 신청 보내기
   Future<void> sendFriendRequestByEmail(String receiverEmail) async {
-    if (currentUserId == null) return;
-    if (receiverEmail == _auth.currentUser?.email) {
-      _showAlert('자신에게는 친구 신청을 할 수 없습니다.');
+  final String myUid = currentUserId ?? "";
+  if (myUid.isEmpty) return;
+
+  // 1. 입력값 정제 (공백 제거 및 소문자화)
+  final String cleanTargetEmail = receiverEmail.trim().toLowerCase();
+  final String myEmail = (_auth.currentUser?.email ?? "").trim().toLowerCase();
+
+  // 2. [1차 차단] 내 이메일과 입력한 이메일 문자열 비교
+  if (cleanTargetEmail == myEmail) {
+    if (mounted) {
+      _showAlert('자신에게는 친구 신청을\n할 수 없습니다.');
+    }
+    return;
+  }
+
+  try {
+    // 3. Firestore에서 상대방 찾기 (정제된 cleanTargetEmail 사용)
+    final userQuery = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: cleanTargetEmail)
+        .limit(1)
+        .get();
+
+    if (userQuery.docs.isEmpty) {
+      if (mounted) {
+        _showAlert('해당 이메일의 사용자를\n찾을 수 없습니다.');
+      }
       return;
     }
 
-    try {
-      final userQuery =
-          await _firestore
-              .collection('users')
-              .where('email', isEqualTo: receiverEmail)
-              .limit(1)
-              .get();
+    final targetUserDoc = userQuery.docs.first;
+    final String receiverId = targetUserDoc.id; // 상대방 UID
+    final receiverData = targetUserDoc.data();
 
-      if (userQuery.docs.isEmpty) {
-        _showAlert('해당 이메일의 사용자를 찾을 수 없습니다.');
-        return;
-      }
-
-      final targetUserDoc = userQuery.docs.first;
-      final receiverId = targetUserDoc.id;
-      final receiverData = targetUserDoc.data();
-
-      final friendDoc =
-          await _firestore
-              .collection('users')
-              .doc(currentUserId)
-              .collection('friends')
-              .doc(receiverId)
-              .get();
-      if (friendDoc.exists) {
-        _showAlert('이미 친구입니다.');
-        return;
-      }
-
-      final existingRequest =
-          await _firestore
-              .collection('friendRequests')
-              .where('senderId', isEqualTo: currentUserId)
-              .where('receiverId', isEqualTo: receiverId)
-              .get();
-
-      if (existingRequest.docs.isNotEmpty) {
-        _showAlert('이미 친구 신청을 보냈습니다.');
-        return;
-      }
-
-      final currentUserDoc =
-          await _firestore.collection('users').doc(currentUserId!).get();
-      final currentUserData = currentUserDoc.data()!;
-
-      await _firestore.collection('friendRequests').add({
-        'senderId': currentUserId,
-        'receiverId': receiverId,
-        'senderName': currentUserData['name'] ?? '',
-        'senderTags': currentUserData['title'] ?? [],
-        'senderProfileImage': currentUserData['profileImage'] ?? '',
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
+    // 4. [2차 차단] 찾은 사용자의 UID가 내 UID와 같은지 확인 (가장 확실함)
+    if (receiverId == myUid) {
       if (mounted) {
-        _emailCtrl.clear();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              '${receiverData['nickName'] ?? receiverData['name']}님께 친구 신청을 보냈습니다.',
-            ),
-          ),
-        );
+        _showAlert('자신에게는 친구 신청을\n할 수 없습니다.');
       }
-    } catch (e) {
+      return;
+    }
+
+    // 5. 이미 친구인지 확인
+    final friendDoc = await _firestore
+        .collection('users')
+        .doc(myUid)
+        .collection('friends')
+        .doc(receiverId)
+        .get();
+    
+    if (friendDoc.exists) {
+      if (mounted) {
+        _showAlert('이미 친구입니다.');
+      }
+      return;
+    }
+
+    // 6. 이미 신청을 보냈는지 확인
+    final existingRequest = await _firestore
+        .collection('friendRequests')
+        .where('senderId', isEqualTo: myUid)
+        .where('receiverId', isEqualTo: receiverId)
+        .get();
+
+    if (existingRequest.docs.isNotEmpty) {
+      if (mounted) {
+        _showAlert('이미 친구 신청을 보냈습니다.');
+      }
+      return;
+    }
+
+    // 7. 모든 검사를 통과한 경우 실제 신청서 생성
+    final currentUserDoc = await _firestore.collection('users').doc(myUid).get();
+    final currentUserData = currentUserDoc.data()!;
+
+    await _firestore.collection('friendRequests').add({
+      'senderId': myUid,
+      'receiverId': receiverId,
+      'senderName': currentUserData['name'] ?? '',
+      'senderTags': currentUserData['title'] ?? [],
+      'senderProfileImage': currentUserData['profileImage'] ?? '',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    if (mounted) {
+      _emailCtrl.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${receiverData['nickName'] ?? receiverData['name']}님께 친구 신청을 보냈습니다.',
+          ),
+        ),
+      );
+    }
+  } catch (e) {
+    if (mounted) {
       _showAlert('친구 신청 중 오류가 발생했습니다: $e');
     }
   }
+}
 
   // 친구 신청 수락
   Future<void> acceptFriendRequest(FriendRequest request) async {
@@ -659,7 +697,7 @@ class _FriendScreenState extends State<FriendScreen> {
             icon: Image.asset(
               'assets/images/mainpage/notifications.png', 
               width: screenWidth * 0.052,
-              height: screenWidth * 0.052,
+              height: screenHeight * 0.024235848,
             ),
             onPressed: () {
               Navigator.push(
@@ -679,7 +717,7 @@ class _FriendScreenState extends State<FriendScreen> {
               icon: Image.asset(
                 'assets/images/mainpage/setting.png',
                 width: screenWidth * 0.085,
-                height: screenWidth * 0.085,
+                height: screenHeight*0.03961629,
               ),
               onPressed: () {
                 Navigator.push(
@@ -690,7 +728,7 @@ class _FriendScreenState extends State<FriendScreen> {
                 );
               },
             ),
-            const SizedBox(width: 8), // 오른쪽 여백이 필요할 경우 추가
+            SizedBox(width: screenWidth * 0.01944), // 오른쪽 여백이 필요할 경우 추가
           ],
           bottom: TabBar(
             indicatorColor: const Color(0xFF504A4A),
@@ -698,12 +736,12 @@ class _FriendScreenState extends State<FriendScreen> {
             indicatorWeight: 2.0, // 선의 두께 조절
             labelColor: const Color(0xFF504A4A),
             unselectedLabelColor: Colors.grey,
-            labelStyle: const TextStyle(
-              fontSize: 16, // 글꼴 크기 확대
-              fontWeight: FontWeight.bold,
+            labelStyle: TextStyle(
+              fontSize: screenWidth*0.03888, // 글꼴 크기 확대
+              fontWeight: FontWeight.w500,
             ),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 16, // 선택되지 않은 탭도 크기 동일하게
+            unselectedLabelStyle: TextStyle(
+              fontSize: screenWidth*0.03888, // 선택되지 않은 탭도 크기 동일하게
             ),
             onTap: (index) {
               if (index == 2) {
@@ -740,19 +778,19 @@ class _FriendScreenState extends State<FriendScreen> {
         }
         final friends = snapshot.data ?? [];
         if (friends.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
                   Icons.people_outline,
-                  size: 64,
+                  size: MediaQuery.of(context).size.width * 0.15552,
                   color: const Color(0xFFF8F8F8),
                 ),
-                SizedBox(height: 16),
+                SizedBox(height: MediaQuery.of(context).size.height * 0.018144),
                 Text(
                   '아직 친구가 없습니다',
-                  style: TextStyle(fontSize: 17, color: Colors.grey),
+                  style: TextStyle(fontSize: MediaQuery.of(context).size.width *0.04131, color: Colors.grey),
                 ),
               ],
             ),
@@ -765,7 +803,7 @@ class _FriendScreenState extends State<FriendScreen> {
           child: ListView.separated(
             padding: const EdgeInsets.all(16),
             itemCount: friends.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 4),
+            separatorBuilder: (_, __) => SizedBox(height: MediaQuery.of(context).size.height * 0.004536),
             itemBuilder: (context, idx) {
               final friend = friends[idx];
               return _FriendTile(
@@ -814,12 +852,12 @@ class _FriendScreenState extends State<FriendScreen> {
                   keyboardType: TextInputType.emailAddress,
                   decoration: InputDecoration(
                     hintText: '이메일로 친구 추가',
-                    hintStyle: const TextStyle(
+                    hintStyle: TextStyle(
                       color: const Color(
                         0xFF9A9A9A,
                       ), // 원하는 색상으로 변경 (예: Colors.black54)
                       fontWeight: FontWeight.w500,
-                      fontSize: 15, // 필요하다면 크기도 조절 가능
+                      fontSize: MediaQuery.of(context).size.width * 0.03645, // 필요하다면 크기도 조절 가능
                     ),
                     filled: true,
                     fillColor: const Color(0xFFEDEDED),
@@ -827,14 +865,14 @@ class _FriendScreenState extends State<FriendScreen> {
                       borderRadius: BorderRadius.circular(12),
                       borderSide: BorderSide.none,
                     ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 12,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: MediaQuery.of(context).size.width * 0.03888,
+                      vertical: MediaQuery.of(context).size.height * 0.006804,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
+              SizedBox(width: MediaQuery.of(context).size.width * 0.01944),
               ElevatedButton(
                 onPressed: () {
                   final email = _emailCtrl.text.trim();
@@ -845,23 +883,24 @@ class _FriendScreenState extends State<FriendScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF484848),
                   shape: const StadiumBorder(),
-                  minimumSize: const Size(60, 44),
+                  minimumSize: Size(MediaQuery.of(context).size.width * 0.1458, 
+                      MediaQuery.of(context).size.height * 0.049896),
                   elevation: 0,
                 ),
                 child: const Text('추가', style: TextStyle(color: Colors.white)),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: MediaQuery.of(context).size.height * 0.027216),
           // 받은 친구 신청
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
               initiallyExpanded: widget.expandRequestsSection,
-              title: const Text(
+              title: Text(
                 '나랑 친구해줘!',
                 style: TextStyle(
-                  fontSize: 16, // 글자 크기를 더 크게 조절
+                  fontSize: MediaQuery.of(context).size.width * 0.03888, // 글자 크기를 더 크게 조절
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF504A4A),
                 ),
@@ -876,16 +915,14 @@ class _FriendScreenState extends State<FriendScreen> {
                     }
                     final requests = snapshot.data ?? [];
                     if (requests.isEmpty) {
-                      return const Padding(
+                      return Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Center(
-                          // 텍스트를 중앙에 배치하면 더 깔끔합니다.
                           child: Text(
                             '받은 친구 신청이 없습니다.',
                             style: TextStyle(
-                              // --- 원하는 색상으로 변경하세요 ---
-                              color: Color(0xFF9A9A9A), // 연한 회색 (추천)
-                              fontSize: 15, // 글자 크기도 조절 가능
+                              color: Color(0xFF9A9A9A),
+                              fontSize: MediaQuery.of(context).size.width * 0.03645,
                               fontWeight: FontWeight.w500,
                               // ------------------------------
                             ),
@@ -937,21 +974,21 @@ class _FriendScreenState extends State<FriendScreen> {
               ],
             ),
           ),
-          const Divider(height: 32, thickness: 1),
+          Divider(height: MediaQuery.of(context).size.height * 0.036288, thickness: 1),
           // 보낸 친구 신청
           Theme(
             data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
             child: ExpansionTile(
               initiallyExpanded: false,
-              title: const Text(
+              title: Text(
                 '언제쯤 받아줄까...',
                 style: TextStyle(
-                  fontSize: 16, // 글자 크기를 더 크게 조절
+                  fontSize: MediaQuery.of(context).size.width * 0.03888, // 글자 크기를 더 크게 조절
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF504A4A),
                 ),
               ),
-              backgroundColor: Colors.white,
+              backgroundColor: const Color(0xFFFFFFEF9),
               children: [
                 StreamBuilder<List<FriendRequest>>(
                   stream: outgoingRequestsStream,
@@ -961,16 +998,14 @@ class _FriendScreenState extends State<FriendScreen> {
                     }
                     final requests = snapshot.data ?? [];
                     if (requests.isEmpty) {
-                      return const Padding(
+                      return Padding(
                         padding: EdgeInsets.all(16.0),
                         child: Center(
-                          // 텍스트를 중앙에 배치하면 더 깔끔합니다.
                           child: Text(
                             '보낸 친구 신청이 없습니다.',
                             style: TextStyle(
-                              // --- 원하는 색상으로 변경하세요 ---
-                              color: Color(0xFF9A9A9A), // 연한 회색 (추천)
-                              fontSize: 15, // 글자 크기도 조절 가능
+                              color: Color(0xFF9A9A9A), 
+                              fontSize: MediaQuery.of(context).size.width * 0.03645,
                               fontWeight: FontWeight.w500,
                               // ------------------------------
                             ),
@@ -1005,7 +1040,8 @@ class _FriendScreenState extends State<FriendScreen> {
                                             8,
                                           ), // 숫자가 작을수록 각진 모양이 됩니다 (기존은 완전 타원형)
                                         ),
-                                        minimumSize: const Size(50, 36),
+                                        minimumSize: Size(MediaQuery.of(context).size.width * 0.1215, 
+                                            MediaQuery.of(context).size.height * 0.040824),
                                         elevation: 0,
                                       ),
                                       child: const Text(
@@ -1357,7 +1393,7 @@ class _FriendScreenState extends State<FriendScreen> {
         getImagePathByCharacterId(charId),
         fit: BoxFit.cover,
         errorBuilder:
-            (context, error, stackTrace) => const Icon(Icons.person, size: 50),
+            (context, error, stackTrace) => Icon(Icons.person, size: MediaQuery.of(context).size.width * 0.0567 ),
       );
     }
     // 2. URL인지 확인
@@ -1366,97 +1402,204 @@ class _FriendScreenState extends State<FriendScreen> {
         profileData,
         fit: BoxFit.cover,
         errorBuilder:
-            (context, error, stackTrace) => const Icon(Icons.person, size: 50),
+            (context, error, stackTrace) => Icon(Icons.person, size: MediaQuery.of(context).size.width * 0.0567 ),
       );
     }
     // 3. 기본 아이콘
     else {
-      return const Icon(Icons.person, size: 60, color: Colors.grey);
+      return Icon(Icons.person, size: MediaQuery.of(context).size.width * 0.06804, color: Colors.grey);
     }
   }
 
   void _showConfirm(String action, VoidCallback onOk) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.2),
-      builder:
-          (BuildContext dialogContext) => Dialog(
-            backgroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
+      barrierColor: Colors.black.withOpacity(0.1), // 배경을 아주 살짝 어둡게
+      builder: (BuildContext dialogContext) => Dialog(
+        backgroundColor: Colors.transparent, // 배경을 투명하게 하고 내부 Container에서 디자인 적용
+        elevation: 0,
+        child: Container(
+          width: screenWidth*0.72414,
+          height: screenHeight*0.202986,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFFF9), // CSS: background: #FFFFF9
+            border: Border.all(color: const Color(0xFFE5E5E5), width: 1), // border: 1px solid #E5E5E5
+            borderRadius: BorderRadius.circular(10), // border-radius: 10px
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06), // rgba(0, 0, 0, 0.06)
+                offset: const Offset(1, 2),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 상단 메시지 영역 (Rectangle 45 텍스트 공간)
+              Expanded(
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: EdgeInsets.symmetric(horizontal:screenWidth*0.0486),
+                  child: Text(
                     '정말 $action 하시겠습니까?',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 17),
+                    style: TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontStyle: FontStyle.normal,
+                      fontWeight: FontWeight.w500, 
+                      fontSize: screenWidth*0.0388, 
+                      height: 1.2,
+                      color: const Color(0xFF716969),
+                    ),
                   ),
-                  const SizedBox(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.grey.shade200,
-                          minimumSize: const Size(100, 44),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              // 하단 버튼 구분선 및 버튼 영역 (Subtract 부분)
+              Container(
+                height: screenHeight*0.053298, // height: 47px
+                decoration: const BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    // '아니오' 버튼
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => Navigator.pop(dialogContext),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            border: Border(
+                              right: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                            ),
+                          ),
+                          child: Text(
+                            '아니오',
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontWeight: FontWeight.w400,
+                              fontSize: screenWidth*0.0388,
+                              color: const Color(0xFF635E5E), // color: #635E5E
+                            ),
                           ),
                         ),
-                        child: const Text('아니요'),
                       ),
-                      TextButton(
-                        onPressed: () {
+                    ),
+                    // '네' 버튼
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
                           Navigator.pop(dialogContext);
                           onOk();
                         },
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.red.shade50,
-                          minimumSize: const Size(100, 44),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          alignment: Alignment.center,
+                          child: Text(
+                            '네',
+                            style: TextStyle(
+                              fontFamily: 'Golos Text',
+                              fontWeight: FontWeight.w400,
+                              fontSize: screenWidth*0.0388,
+                              color: const Color(0xFF2F3BDC), // color: #2F3BDC
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          '네',
-                          style: TextStyle(color: Colors.red),
-                        ),
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
   void _showAlert(String message) {
     if (!mounted) return;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final double scale = screenWidth / 411;
+
     showDialog(
       context: context,
-      builder:
-          (BuildContext dialogContext) => AlertDialog(
-            backgroundColor: Colors.white,
-            content: Text(
-              message,
-              style: const TextStyle(color: Color(0xFF716969)),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(dialogContext),
-                child: const Text(
-                  '확인',
-                  style: TextStyle(color: Color(0xFF2F3BDC)),
+      barrierColor: Colors.black.withOpacity(0.1),
+      builder: (BuildContext dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          // CSS: Rectangle 45 & 137 기반 수치 (298x179)
+          width: screenWidth*0.72414,
+          height: screenHeight*0.202986,
+          decoration: BoxDecoration(
+            color: const Color(0xFFFFFFF9), // CSS: #FFFFF9
+            border: Border.all(color: const Color(0xFFE5E5E5), width: 1),
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                offset: const Offset(1, 2),
+                blurRadius: 4,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // 상단 메시지 영역
+              Expanded(
+                child: Container(
+                  alignment: Alignment.center,
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth*0.02268),
+                  child: Text(
+                    message,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontWeight: FontWeight.w500, 
+                      fontSize: screenWidth*0.03645,
+                      height: screenHeight*0.0015876,
+                      color: const Color(0xFF716969), 
+                    ),
+                  ),
+                ),
+              ),
+              // 하단 '확인' 버튼 영역 (Subtract 부분)
+              GestureDetector(
+                onTap: () => Navigator.pop(dialogContext),
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: double.infinity,
+                  height: screenHeight*0.053298, 
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '확인',
+                    style: TextStyle(
+                      fontFamily: 'Golos Text',
+                      fontWeight: FontWeight.w500,
+                      fontSize: screenWidth*0.03645,
+                      color: const Color(0xFF2F3BDC), // '네' 버튼과 동일한 강조색
+                    ),
+                  ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
     );
   }
 }
@@ -1494,11 +1637,11 @@ class _FriendTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        margin: EdgeInsets.symmetric(vertical: MediaQuery.of(context).size.height * 0.006804),
+        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.03888, vertical: MediaQuery.of(context).size.height * 0.01134),
         decoration: BoxDecoration(
           color: tileColor,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Column( 
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1512,17 +1655,17 @@ class _FriendTile extends StatelessWidget {
                       isFavorite
                           ? 'assets/images/friendScreen/star_on.png'
                           : 'assets/images/friendScreen/star_off.png',
-                      width: 20,
-                      height: 20,
+                      width: MediaQuery.of(context).size.width * 0.0486,
+                      height: MediaQuery.of(context).size.height*0.0226,
                     ),
                   ),
-                  const SizedBox(width: 24),
+                  SizedBox(width: MediaQuery.of(context).size.width * 0.05346),
                 ],
                 Expanded(
                   child: Text(
                     name,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    style: TextStyle(
+                      fontSize: MediaQuery.of(context).size.width * 0.03888,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF504A4A),
                     ),
@@ -1539,14 +1682,14 @@ class _FriendTile extends StatelessWidget {
                   left: onFavoriteToggle != null ? 44 : 0, // 별이 있으면 들여쓰기
                 ),
                 child: Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
+                  spacing: MediaQuery.of(context).size.width * 0.01458,
+                  runSpacing: MediaQuery.of(context).size.width*0.00972,
                   children: tags
                       .map(
                         (tag) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                          padding:EdgeInsets.symmetric(
+                            horizontal: MediaQuery.of(context).size.width * 0.007938,
+                            vertical: MediaQuery.of(context).size.height * 0.003402,
                           ),
                           decoration: BoxDecoration(
                             color: tagBackground,
@@ -1555,7 +1698,7 @@ class _FriendTile extends StatelessWidget {
                           child: Text(
                             '#$tag',
                             style: TextStyle(
-                              fontSize: 13,
+                              fontSize: MediaQuery.of(context).size.width * 0.030375,
                               color: tagText,
                             ),
                           ),

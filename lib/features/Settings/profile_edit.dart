@@ -128,7 +128,10 @@ class _TitleSelectState extends State<TitleSelect> {
   @override
   Widget build(BuildContext context) {
     final double topPadding = MediaQuery.of(context).padding.top;
-
+    final double screenWidth = MediaQuery.of(context).size.width;
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double w = screenWidth * 0.00243;
+    final double h = screenHeight * 0.001134;
     return Material(
       color: Colors.transparent,
       child: Container(
@@ -137,18 +140,18 @@ class _TitleSelectState extends State<TitleSelect> {
           color: Color(0xFFFEFEF9),
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
         ),
-        padding: EdgeInsets.fromLTRB(24, topPadding + 10, 24, 40),
+        padding: EdgeInsets.fromLTRB(24*w, topPadding + 10, 24*w, 40*h),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
               alignment: Alignment.center,
               children: [
-                const Text(
+                Text(
                   '타이틀',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    fontSize: 19,
+                    fontSize: 19*w,
                     color: Color(0xFF504A4A),
                   ),
                 ),
@@ -159,33 +162,33 @@ class _TitleSelectState extends State<TitleSelect> {
                       widget.onSelect(current);
                       Navigator.of(context).pop();
                     },
-                    child: const Text(
+                    child: Text(
                       '완료',
                       style: TextStyle(
                         color: Color(0xFF6A6A6A),
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
+                        fontSize: 16*w,
                       ),
                     ),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-            const Text(
+            SizedBox(height: 10*h),
+            Text(
               '타이틀 2가지를 지정해주세요.\n지정한 타이틀은 프로필에 표시됩니다.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 14*w,
                 color: Color(0xFFA5A5A5),
                 height: 1.4,
               ),
             ),
-            const SizedBox(height: 30),
+            SizedBox(height: 30*h),
             Wrap(
               alignment: WrapAlignment.center,
-              spacing: 13,
-              runSpacing: 13,
+              spacing: 13*w,
+              runSpacing: 13*h,
               children:
                   allTitles.where((t) => widget.unlocked.contains(t.name)).map((
                     titleInfo,
@@ -195,9 +198,9 @@ class _TitleSelectState extends State<TitleSelect> {
                     return GestureDetector(
                       onTap: () => handleToggle(titleName),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 18,
-                          vertical: 10,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 18*w,
+                          vertical: 10*h,
                         ),
                         decoration: BoxDecoration(
                           color:
@@ -216,7 +219,7 @@ class _TitleSelectState extends State<TitleSelect> {
                         child: Text(
                           titleName,
                           style: TextStyle(
-                            fontSize: 14.5,
+                            fontSize: 14.5*w,
                             color:
                                 isSelected
                                     ? const Color(0xFF413B3B)
@@ -382,17 +385,21 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       barrierColor: Colors.black54,
       builder: (dialogContext) {
         final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+
+        final double w = screenWidth * 0.00243;
+        final double h = screenHeight * 0.001134;
 
         return Center(
           child: Material(
             color: Colors.transparent,
             child: Container(
               width: screenWidth * 0.65,
-              padding: const EdgeInsets.only(
-                top: 40,
-                left: 24,
-                right: 24,
-                bottom: 20,
+              padding: EdgeInsets.only(
+                top: 40*h,
+                left: 24*w,
+                right: 24*w,
+                bottom: 20*h,
               ),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
@@ -409,14 +416,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       maxLines: 1,
                       softWrap: false,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontSize: 16,
+                      style: TextStyle(
+                        fontSize: 16*w,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF535353),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  SizedBox(height: 24*h),
                   const Divider(
                     thickness: 1,
                     height: 1,
@@ -424,7 +431,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   ),
                   SizedBox(
                     width: double.infinity,
-                    height: 44,
+                    height: 44*h,
                     child: TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.black,
@@ -434,10 +441,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         ),
                       ),
                       onPressed: () => Navigator.of(dialogContext).pop(),
-                      child: const Text(
+                      child: Text(
                         '확인',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 16*w,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -457,25 +464,30 @@ class _ProfileEditPageState extends State<ProfileEdit> {
       context: context,
       barrierDismissible: false,
       builder: (BuildContext context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final screenHeight = MediaQuery.of(context).size.height;
+        final double w = screenWidth * 0.00243;
+        final double h = screenHeight * 0.001134;
+
         return AlertDialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+          contentPadding: EdgeInsets.fromLTRB(24*w, 20*h, 24*w, 0),
           content: SizedBox(
-            width: 280,
+            width: 280*w,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 16,
+                  style: TextStyle(
+                    fontSize: 16*w,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24*h),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -484,12 +496,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14*h),
                     ),
-                    child: const Text(
+                    child: Text(
                       '완료',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: 16*w,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -539,23 +551,23 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   }
 
   Future<void> _goToPsychologyTest() async {
-    final result = await Navigator.of(context).push<List<int>>(
-      MaterialPageRoute(builder: (context) => const PsychologyQuestion()),
+    // '내 캐릭터 다시 찾기' 버튼이므로 isReTest를 true로 전달합니다.
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const PsychologyQuestion(isReTest: true),
+      ),
     );
 
-    if (result != null && result.isNotEmpty) {
-      setState(() {
-        psychologyResultIds = result;
-      });
-      _applyPsychologyResult(result);
-      _savePsychologyResult(result);
-    }
+    // PsychologyResult에서 Navigator.pushAndRemoveUntil(MainScreen)을 수행하므로
+    // 이 이후의 코드는 실행되지 않거나 홈 화면으로 덮어씌워집니다.
   }
 
   void _showEditIntroModal() {
     final controller = TextEditingController(text: introText);
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final double w = screenWidth * 0.00243;
+    final double h = screenHeight * 0.001134;
 
     showModalBottomSheet(
       context: context,
@@ -601,7 +613,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 color: Color(0xFFE8EEF0),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              padding: EdgeInsets.fromLTRB(16, 30, 16, bottomInset + 16),
+              padding: EdgeInsets.fromLTRB(16*w, 30*h, 16*w, bottomInset + 16),
               child: Row(
                 children: [
                   Expanded(
@@ -621,15 +633,15 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         ),
                         filled: true,
                         fillColor: const Color(0xFFE8EEF0),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 14*w,
+                          vertical: 12*h,
                         ),
                         counterText: '',
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  SizedBox(width: 12*w),
                   ElevatedButton(
                     onPressed: finishIntroEdit,
                     style: ElevatedButton.styleFrom(
@@ -638,9 +650,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 14,
-                        horizontal: 22,
+                      padding: EdgeInsets.symmetric(
+                        vertical: 14*h,
+                        horizontal: 22*w,
                       ),
                     ),
                     child: Text(
@@ -711,6 +723,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
+    final double w = screenWidth * 0.00243;
+    final double h = screenHeight * 0.001134;
     final profileImageSize = screenWidth * 0.35;
     final boxWidth = screenWidth * 0.9;
 
@@ -757,7 +771,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     borderRadius: BorderRadius.circular(40),
                     border: Border.all(
                       color: const Color(0xFFEEEEEE),
-                      width: 4,
+                      width: 4*w,
                     ),
                   ),
                   child: ClipRRect(
@@ -800,7 +814,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ],
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22*h),
             Container(
               width: boxWidth,
               height: screenHeight * 0.068,
@@ -822,11 +836,11 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22*h),
             Container(
               width: boxWidth,
               constraints: const BoxConstraints(minHeight: 170),
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 15),
+              padding: EdgeInsets.fromLTRB(20*w, 12*h, 20*w, 15*h),
               decoration: BoxDecoration(
                 color: const Color(0xFFE8EEF0),
                 borderRadius: BorderRadius.circular(16),
@@ -844,7 +858,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8*h),
                       _introWithUnderline(
                         introText,
                         TextStyle(
@@ -853,7 +867,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           color: const Color(0xFF635A5A),
                         ),
                       ),
-                      const SizedBox(height: 55),
+                      SizedBox(height: 55*h),
                     ],
                   ),
                   Positioned(
@@ -863,9 +877,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       onTap: _showEditIntroModal,
                       borderRadius: BorderRadius.circular(30),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16*w,
+                          vertical: 10*h,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black,
@@ -885,9 +899,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ],
               ),
             ),
-            const SizedBox(height: 15),
+            SizedBox(height: 15*h),
             const Divider(color: Color(0xFFC0BBBB), thickness: 1),
-            const SizedBox(height: 11),
+            SizedBox(height: 11*h),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -935,26 +949,26 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           color: const Color(0xFF807E7E),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6*w),
                       Image.asset(
                         'assets/images/Setting/chevron2.png',
-                        width: 14,
-                        height: 14,
+                        width: 14*w,
+                        height: 14*h,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 15),
+                SizedBox(height: 15*h),
                 if (selectedTitles.isNotEmpty)
                   Wrap(
-                    spacing: 14,
-                    runSpacing: 14,
+                    spacing: 14*w,
+                    runSpacing: 14*h, 
                     children:
                         selectedTitles.map((t) {
                           return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 10,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16*w,
+                              vertical: 10*h,
                             ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFf4ecd2),

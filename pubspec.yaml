@@ -7,6 +7,7 @@ environment:
   sdk: ^3.7.2
 
 dependencies:
+  uuid: ^4.3.3
   table_calendar: ^3.0.9
   intl: ^0.20.0
   cloud_firestore: ^5.6.12  # db
@@ -82,6 +83,7 @@ flutter:
     - assets/images/PsychologyTest/Shape/Polygon.png
     - assets/images/PsychologyTest/Shape/Star.png
     
+    - assets/images/PsychologyTest/TestLoading.png
 
     - assets/images/Setting/
     - assets/images/Setting/chevron.png

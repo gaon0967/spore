@@ -80,6 +80,7 @@ class _MainScreenState extends State<MainScreen> {
     required BuildContext context, // context를 전달받도록 추가
   }) {
     final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
     final isSelected = _selectedIndex == index;
 
     return BottomNavigationBarItem(
@@ -87,7 +88,7 @@ class _MainScreenState extends State<MainScreen> {
       icon: AnimatedContainer(
         duration: const Duration(milliseconds: 250), // 애니메이션 효과
         curve: Curves.easeOut,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.symmetric(horizontal: screenWidth*0.03888, vertical: screenHeight*0.009072),
         decoration: BoxDecoration(
           // isSelected 상태에 따라 배경색과 모양 결정
           color: isSelected ? Colors.grey.shade200 : Colors.transparent,
@@ -99,9 +100,9 @@ class _MainScreenState extends State<MainScreen> {
             Image.asset(
               isSelected ? activeIconPath : inactiveIconPath,
               width: screenWidth * 0.058,
-              height: screenWidth * 0.058, // 높이도 지정하여 아이콘 크기 고정
+              height: screenHeight * 0.027032292, // 높이도 지정하여 아이콘 크기 고정
             ),
-            const SizedBox(height: 4),
+            SizedBox(height: screenHeight * 0.004536),
             Text(
               label,
               style: TextStyle(
@@ -153,7 +154,7 @@ class _MainScreenState extends State<MainScreen> {
                      : 'assets/images/mainpage/friend_off.png', // 선택 안됐을 때
                    width: screenWidth * 0.058,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: screenHeight * 0.004536),
                   Text(
                     '친구',
                     style: TextStyle(
@@ -176,7 +177,7 @@ class _MainScreenState extends State<MainScreen> {
                       : 'assets/images/mainpage/home_off.png',
                     width: screenWidth * 0.058,
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: screenHeight * 0.004536),
                   Text(
                     '홈',
                     style: TextStyle(
