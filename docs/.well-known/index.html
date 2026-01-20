@@ -5,128 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spore - 친구와 함께하는 시간표 공유 앱</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            line-height: 1.6;
-            color: #333;
-        }
-        
-        header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem 1rem;
-            text-align: center;
-        }
-        
-        header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 0.5rem;
-        }
-        
-        header p {
-            font-size: 1.2rem;
-            opacity: 0.9;
-        }
-        
-        nav {
-            background: #fff;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        
-        nav ul {
-            list-style: none;
-            display: flex;
-            justify-content: center;
-            flex-wrap: wrap;
-            padding: 1rem;
-        }
-        
-        nav a {
-            color: #667eea;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            margin: 0 0.5rem;
-            border-radius: 4px;
-            transition: background 0.3s;
-        }
-        
-        nav a:hover {
-            background: #f0f0f0;
-        }
-        
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 2rem 1rem;
-        }
-        
-        section {
-            margin-bottom: 3rem;
-        }
-        
-        h2 {
-            color: #667eea;
-            margin-bottom: 1rem;
-            padding-bottom: 0.5rem;
-            border-bottom: 2px solid #667eea;
-        }
-        
-        .features {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-top: 2rem;
-        }
-        
-        .feature-card {
-            background: #f9f9f9;
-            padding: 1.5rem;
-            border-radius: 8px;
-            border-left: 4px solid #667eea;
-        }
-        
-        .feature-card h3 {
-            color: #667eea;
-            margin-bottom: 0.5rem;
-        }
-        
-        footer {
-            background: #333;
-            color: white;
-            text-align: center;
-            padding: 2rem 1rem;
-            margin-top: 3rem;
-        }
-        
-        .contact {
-            background: #f0f0f0;
-            padding: 1.5rem;
-            border-radius: 8px;
-            margin-top: 1rem;
-        }
-        
-        .contact a {
-            color: #667eea;
-            text-decoration: none;
-        }
-        
-        .coming-soon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 2rem;
-            border-radius: 12px;
-            text-align: center;
-            margin: 2rem 0;
-        }
+        /* 기존 스타일 유지 */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; line-height: 1.6; color: #333; }
+        header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 1rem; text-align: center; }
+        header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+        header p { font-size: 1.2rem; opacity: 0.9; }
+        nav { background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        nav ul { list-style: none; display: flex; justify-content: center; flex-wrap: wrap; padding: 1rem; }
+        nav a { color: #667eea; text-decoration: none; padding: 0.5rem 1rem; margin: 0 0.5rem; border-radius: 4px; transition: background 0.3s; }
+        nav a:hover { background: #f0f0f0; }
+        .container { max-width: 800px; margin: 0 auto; padding: 2rem 1rem; }
+        section { margin-bottom: 3rem; }
+        h2 { color: #667eea; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #667eea; }
+        .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-top: 2rem; }
+        .feature-card { background: #f9f9f9; padding: 1.5rem; border-radius: 8px; border-left: 4px solid #667eea; }
+        .feature-card h3 { color: #667eea; margin-bottom: 0.5rem; }
+        footer { background: #333; color: white; text-align: center; padding: 2rem 1rem; margin-top: 3rem; }
+        .contact { background: #f0f0f0; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
+        .contact a { color: #667eea; text-decoration: none; }
+        .coming-soon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; text-align: center; margin: 2rem 0; }
+        .privacy-content { background: #f9f9f9; padding: 1.5rem; border-radius: 8px; font-size: 0.95rem; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; }
     </style>
 </head>
 <body>
@@ -182,34 +81,43 @@
 
         <section id="privacy">
             <h2>개인정보 처리방침</h2>
-            <p>
-                Spore는 개인정보보호법에 따라 이용자의 개인정보를 안전하게 보호합니다.
-            </p>
-            <p style="margin-top: 1rem;">
-                <strong>시행일자:</strong> 2026년 1월 31일<br>
-                <strong>버전:</strong> v1.0
-            </p>
-            <p style="margin-top: 1rem;">
-                상세한 개인정보 처리방침은 앱 출시 후 앱 내에서 확인하실 수 있습니다.
-            </p>
-            <div style="margin-top: 2rem; padding: 1rem; background: #f9f9f9; border-left: 4px solid #667eea;">
-                <h3>수집하는 개인정보</h3>
-                <ul style="margin-left: 2rem; margin-top: 0.5rem;">
-                    <li>네이버 로그인 정보 (ID, 이름, 이메일, 휴대전화번호)</li>
-                    <li>프로필 정보 (사진, 한줄소개)</li>
-                    <li>시간표 정보 (사용자가 직접 입력)</li>
-                    <li>심리 테스트 결과</li>
+            <div class="privacy-content">
+                <p><strong>시행일자:</strong> 2026년 1월 31일</p>
+                <p><strong>spore</strong>(이하 "회사")는 개인정보보호법 등 관련 법령에 따라 이용자의 개인정보를 보호하고 고충을 신속하게 처리하기 위해 다음과 같은 방침을 수립합니다.</p>
+
+                <h3 style="margin-top: 1.5rem; color: #667eea;">1. 개인정보의 처리 목적</h3>
+                <p>회사는 회원 가입 및 관리(네이버 소셜 로그인), 친구 시간표 공유 서비스, 심리 테스트 기반 맞춤형 서비스 제공을 목적으로 개인정보를 처리합니다.</p>
+
+                <h3 style="margin-top: 1.5rem; color: #667eea;">2. 처리하는 개인정보 항목</h3>
+                <ul style="margin-left: 1.5rem;">
+                    <li><strong>필수 항목:</strong> 네이버 사용자 고유 식별자(ID), 이름, 이메일, 프로필 사진, 한줄 소개, 심리 테스트 응답 결과 및 타이틀</li>
+                    <li><strong>선택 항목:</strong> 성별, 퀘스트 달성 여부</li>
+                    <li><strong>서비스 이용 중 생성:</strong> 시간표 정보, 친구 관계 데이터, 서비스 이용 기록, 접속 로그</li>
                 </ul>
-                <p style="margin-top: 1rem;">
-                    ※ 모든 정보는 서비스 제공 목적으로만 사용되며, 사용자의 동의 없이 제3자에게 제공되지 않습니다.
-                </p>
+
+                <h3 style="margin-top: 1.5rem; color: #667eea;">3. 개인정보의 보유 및 이용기간</h3>
+                <p>원칙적으로 <strong>회원 탈퇴 시까지</strong> 보유하며, 서비스 이용 기록은 수집일로부터 1년 동안 보존합니다.</p>
+
+                <h3 style="margin-top: 1.5rem; color: #667eea;">4. 개인정보의 파기</h3>
+                <p>보유기간 경과 시 전자적 파일은 복구할 수 없는 방법으로 영구 삭제하며, 서면 출력물은 분쇄 또는 소각합니다.</p>
+
+                <h3 style="margin-top: 1.5rem; color: #667eea;">5. 개인정보의 안전성 확보 조치</h3>
+                <p>회사는 HTTPS 암호화 전송, 데이터베이스 접근 권한 최소화, 정기적 자체 감사 등을 통해 개인정보를 안전하게 관리합니다.</p>
+
+                <h3 style="margin-top: 1.5rem; color: #667eea;">6. 개인정보 보호책임자</h3>
+                <p>서비스 이용 중 발생하는 모든 문의는 아래로 연락 주시기 바랍니다.</p>
+                <ul style="margin-left: 1.5rem; list-style: none; border-left: 3px solid #667eea; padding-left: 10px; margin-top: 10px;">
+                    <li><strong>성명:</strong> 고혜민</li>
+                    <li><strong>직책:</strong> 개발부원</li>
+                    <li><strong>연락처:</strong> 010.9464.7594 / sporeapp.official@gmail.com</li>
+                </ul>
             </div>
         </section>
 
         <section id="contact">
             <h2>문의하기</h2>
             <div class="contact">
-                <p><strong>이메일:</strong> <a href="mailto:support@tigana.app">support@tigana.app</a></p>
+                <p><strong>이메일:</strong> <a href="mailto:sporeapp.official@gmail.com">sporeapp.official@gmail.com</a></p>
                 <p style="margin-top: 0.5rem;">
                     개인정보 관련 문의, 서비스 이용 문의 등 언제든지 연락주세요.
                 </p>
