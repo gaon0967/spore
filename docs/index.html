@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spore - 친구와 함께하는 시간표 공유 앱</title>
     <style>
-        /* 기존 스타일 유지 */
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; line-height: 1.6; color: #333; }
         header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem 1rem; text-align: center; }
@@ -25,7 +24,12 @@
         .contact { background: #f0f0f0; padding: 1.5rem; border-radius: 8px; margin-top: 1rem; }
         .contact a { color: #667eea; text-decoration: none; }
         .coming-soon { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 12px; text-align: center; margin: 2rem 0; }
-        .privacy-content { background: #f9f9f9; padding: 1.5rem; border-radius: 8px; font-size: 0.95rem; max-height: 500px; overflow-y: auto; border: 1px solid #ddd; }
+        .privacy-content { background: #f9f9f9; padding: 1.5rem; border-radius: 8px; font-size: 0.95rem; max-height: 600px; overflow-y: auto; border: 1px solid #ddd; }
+        .privacy-content h3 { margin-top: 1.5rem; color: #667eea; font-size: 1.1rem; }
+        .privacy-content h4 { margin-top: 1rem; color: #444; }
+        .privacy-content table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 0.85rem; }
+        .privacy-content th, .privacy-content td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .privacy-content th { background-color: #eee; }
     </style>
 </head>
 <body>
@@ -82,53 +86,85 @@
         <section id="privacy">
             <h2>개인정보 처리방침</h2>
             <div class="privacy-content">
-                <p><strong>시행일자:</strong> 2026년 1월 31일</p>
-                <p><strong>spore</strong>(이하 "회사")는 개인정보보호법 등 관련 법령에 따라 이용자의 개인정보를 보호하고 고충을 신속하게 처리하기 위해 다음과 같은 방침을 수립합니다.</p>
+                <p><strong>시행일자:</strong> 2026년 1월 31일 (v1.0)</p>
+                <p>spore(이하 "회사"라 함)는 개인정보보호법 등 관련 법령에 따라 이용자의 개인정보를 보호하고 이와 관련한 고충을 신속하고 원활하게 처리할 수 있도록 하기 위하여 다음과 같이 개인정보 처리방침을 수립·공개합니다.</p>
 
-                <h3 style="margin-top: 1.5rem; color: #667eea;">1. 개인정보의 처리 목적</h3>
-                <p>회사는 회원 가입 및 관리(네이버 소셜 로그인), 친구 시간표 공유 서비스, 심리 테스트 기반 맞춤형 서비스 제공을 목적으로 개인정보를 처리합니다.</p>
-
-                <h3 style="margin-top: 1.5rem; color: #667eea;">2. 처리하는 개인정보 항목</h3>
-                <ul style="margin-left: 1.5rem;">
-                    <li><strong>필수 항목:</strong> 네이버 사용자 고유 식별자(ID), 이름, 이메일, 프로필 사진, 한줄 소개, 심리 테스트 응답 결과 및 타이틀</li>
-                    <li><strong>선택 항목:</strong> 성별, 퀘스트 달성 여부</li>
-                    <li><strong>서비스 이용 중 생성:</strong> 시간표 정보, 친구 관계 데이터, 서비스 이용 기록, 접속 로그</li>
+                <h3>1. 개인정보의 처리목적</h3>
+                <p>회사는 다음의 목적을 위하여 개인정보를 처리합니다. 처리하고 있는 개인정보는 다음의 목적 이외의 용도로는 이용되지 않습니다.</p>
+                <ul>
+                    <li>회원 가입 및 관리 (네이버 소셜 로그인 연동)</li>
+                    <li>친구 시간표 공유 서비스 제공</li>
+                    <li>친구 추천 및 연결 서비스 제공</li>
+                    <li>심리 테스트 기반 맞춤형 서비스 제공</li>
                 </ul>
 
-                <h3 style="margin-top: 1.5rem; color: #667eea;">3. 개인정보의 보유 및 이용기간</h3>
-                <p>원칙적으로 <strong>회원 탈퇴 시까지</strong> 보유하며, 서비스 이용 기록은 수집일로부터 1년 동안 보존합니다.</p>
-
-                <h3 style="margin-top: 1.5rem; color: #667eea;">4. 개인정보의 파기</h3>
-                <p>보유기간 경과 시 전자적 파일은 복구할 수 없는 방법으로 영구 삭제하며, 서면 출력물은 분쇄 또는 소각합니다.</p>
-
-                <h3 style="margin-top: 1.5rem; color: #667eea;">5. 개인정보의 안전성 확보 조치</h3>
-                <p>회사는 HTTPS 암호화 전송, 데이터베이스 접근 권한 최소화, 정기적 자체 감사 등을 통해 개인정보를 안전하게 관리합니다.</p>
-
-                <h3 style="margin-top: 1.5rem; color: #667eea;">6. 개인정보 보호책임자</h3>
-                <p>서비스 이용 중 발생하는 모든 문의는 아래로 연락 주시기 바랍니다.</p>
-                <ul style="margin-left: 1.5rem; list-style: none; border-left: 3px solid #667eea; padding-left: 10px; margin-top: 10px;">
-                    <li><strong>성명:</strong> 고혜민</li>
-                    <li><strong>직책:</strong> 개발부원</li>
-                    <li><strong>연락처:</strong> 010.9464.7594 / sporeapp.official@gmail.com</li>
+                <h3>2. 개인정보의 처리 및 보유기간</h3>
+                <ul>
+                    <li><strong>회원정보:</strong> 회원탈퇴 시까지 (단, 법령에 따른 보존 의무 시 해당 기간까지)</li>
+                    <li><strong>서비스 이용 기록:</strong> 수집일로부터 1년</li>
+                    <li><strong>매칭 기록:</strong> 매칭 완료 후 30일 (프로필 공개 시 회원탈퇴 시까지)</li>
                 </ul>
+
+                <h3>3. 개인정보의 처리 항목</h3>
+                <h4>[필수 항목]</h4>
+                <p>네이버 고유 식별자(ID), 이름, 이메일, 프로필 사진, 한줄 소개, 심리 테스트 응답 결과 및 타이틀, 시간표 정보, 친구 관계 데이터</p>
+                <h4>[선택 항목]</h4>
+                <p>성별</p>
+                <h4>[자동 생성 항목]</h4>
+                <p>서비스 이용 기록, 접속 로그 (서비스 안정성 및 오류 분석용)</p>
+
+                <h3>4. 개인정보처리의 위탁 및 국외이전</h3>
+                <p>회사는 원활한 서비스 제공을 위해 다음과 같이 업무를 위탁하고 있으며, 클라우드 서버 이용을 위해 데이터를 국외(미국)로 이전합니다.</p>
+                <table>
+                    <tr>
+                        <th>수탁자</th>
+                        <th>업무 내용</th>
+                        <th>보유 및 이용기간</th>
+                    </tr>
+                    <tr>
+                        <td>Amazon Web Services (AWS)</td>
+                        <td>클라우드 서버 호스팅 및 데이터 저장</td>
+                        <td>위탁계약 종료 시까지</td>
+                    </tr>
+                    <tr>
+                        <td>Firebase (Google)</td>
+                        <td>푸시 알림 발송 서비스</td>
+                        <td>위탁계약 종료 시까지</td>
+                    </tr>
+                </table>
+
+                <h3>5. 정보주체의 권리·의무 및 행사방법</h3>
+                <p>정보주체는 언제든지 개인정보 열람·정정·삭제·처리정지 요구 등의 권리를 행사할 수 있습니다. 권리 행사는 이메일(saeuchobab936@gmail.com) 또는 앱 내 고객센터를 통해 가능합니다.</p>
+
+                <h3>6. 개인정보의 안전성 확보조치</h3>
+                <p>회사는 HTTPS 암호화 전송, AWS 보안 그룹을 통한 접근 제어, 데이터베이스 접근 권한 최소화, 정기적 자체 감사(분기 1회) 등을 실시하고 있습니다.</p>
+
+                <h3>7. 개인정보 보호책임자</h3>
+                <div style="border-left: 3px solid #667eea; padding-left: 10px; margin: 10px 0;">
+                    <p><strong>보호책임자:</strong> 김가령 (개발자) / 010-9964-9924</p>
+                    <p><strong>보호담당자:</strong> 허민영 / 010-9406-0594</p>
+                    <p><strong>문의 이메일:</strong> saeuchobab936@gmail.com</p>
+                </div>
+
+                <p style="margin-top: 1rem; font-size: 0.85rem;">※ 기타 침해신고는 개인정보 침해신고센터(privacy.go.kr / 국번없이 182)로 문의하시기 바랍니다.</p>
             </div>
         </section>
 
         <section id="contact">
             <h2>문의하기</h2>
             <div class="contact">
-                <p><strong>이메일:</strong> <a href="mailto:sporeapp.official@gmail.com">sporeapp.official@gmail.com</a></p>
+                <p><strong>이메일:</strong> <a href="mailto:saeuchobab936@gmail.com">saeuchobab936@gmail.com</a></p>
                 <p style="margin-top: 0.5rem;">
-                    개인정보 관련 문의, 서비스 이용 문의 등 언제든지 연락주세요.
+                    개인정보 관련 문의나 서비스 이용 중 불편한 점은 언제든지 연락주세요.
                 </p>
             </div>
         </section>
     </div>
 
     <footer>
-        <p>© 2026 Spore. All rights reserved.</p>
+        <p>© 2026 스포어(spore). All rights reserved.</p>
         <p style="margin-top: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
-            본 서비스는 개인정보보호법을 준수합니다.
+            본 개인정보 처리방침은 개인정보보호법에 따라 작성되었습니다.
         </p>
     </footer>
 </body>
