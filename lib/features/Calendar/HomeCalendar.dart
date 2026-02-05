@@ -1083,13 +1083,13 @@ class _AddEventDialogState extends State<AddEventDialog> {
 
   // CSS 기반 색상 목록
   final List<Color> _colorOptions = [
-    const Color(0xFF95A797),
-    const Color(0xFFDDD2DA),
+    const Color(0xFFE1E5D1),
+    const Color(0xFFDDC7C7),
     const Color(0xFFF4ECD2),
-    const Color(0xFF7887AD),
-    const Color(0xFFE6E6E6),
-    const Color(0xFFB3A6A6),
-    const Color(0xFFCA9E9E),
+    const Color(0xFFA6B6C0),
+    const Color(0xFF95A797),
+    const Color(0xFFC6BACD),
+    const Color(0xFFD4A8A8),
     const Color(0xFFCDDEE3),
   ];
   late Color _selectedColor;
