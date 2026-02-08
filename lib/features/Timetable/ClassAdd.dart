@@ -25,12 +25,13 @@ class _ClassAddState extends State<ClassAdd> {
 
   final List<String> _days = ['월', '화', '수', '목', '금'];
   final List<Color> _colors = const [
-    Color(0xFFCDDEE3),
-    Color(0xFF8E9CBF),
-    Color(0xFF97B4C7),
-    Color(0xFFBBCDC0),
-    Color(0xFFE5EAEF),
-    Color(0xFFE8EBDF),
+    Color(0xFF95A797),
+    Color(0xFFBDCAD2),
+    Color(0xFFDAE4DB),
+    Color(0xFFB3C0BA),
+    Color(0xFFBDCEB8),
+    Color(0xFFE1E5D1),
+
   ];
 
   @override
