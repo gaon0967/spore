@@ -3,8 +3,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter/services.dart';
-import 'package:new_project_1/features/Friend/FriendScreen.dart';
-import 'package:new_project_1/features/Settings/profile_edit.dart';
+import 'package:spore/features/Friend/FriendScreen.dart';
+import 'package:spore/features/Settings/profile_edit.dart';
 
 // --- 데이터 모델 클래스 (파일 상단에 위치) ---
 // AppNotification 모델에 친구 알림을 위한 type, senderId 추가 및 fromFirestore 팩토리 생성자 추가

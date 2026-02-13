@@ -1,16 +1,16 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:new_project_1/features/Psychology/PsychologyQuestion.dart';
-import 'package:new_project_1/features/Psychology/PsychologyResult.dart';
+import 'package:spore/features/Psychology/PsychologyQuestion.dart';
+import 'package:spore/features/Psychology/PsychologyResult.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/services.dart';
 import 'package:characters/characters.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart'
+import 'package:spore/features/Settings/TitleHandler.dart'
     hide handleProfileEditTitles;
-import 'package:new_project_1/features/Settings/firebase_title.dart'
+import 'package:spore/features/Settings/firebase_title.dart'
     show handleProfileEditTitles;
 
 // Firestore에서 유저의 캐릭터 ID 리스트 가져오기

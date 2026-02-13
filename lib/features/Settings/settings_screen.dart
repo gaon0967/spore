@@ -2,9 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:new_project_1/auth/LoginHome.dart';
+import 'package:spore/auth/LoginHome.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
-import 'package:new_project_1/features/Calendar/Notification.dart';
+import 'package:spore/features/Calendar/Notification.dart';
 import 'profile_edit.dart'; // 프로필 변경 화면
 import '../Friend/friend_management.dart'; // 친구 관리 화면
 import 'package:shared_preferences/shared_preferences.dart';

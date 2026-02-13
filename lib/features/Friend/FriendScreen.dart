@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:new_project_1/features/Friend/friend_management.dart';
+import 'package:spore/features/Friend/friend_management.dart';
 import '../Psychology/PsychologyResult.dart';
 import 'ChatScreen.dart';
 import '../Calendar/Notification.dart' as CalendarNotification;

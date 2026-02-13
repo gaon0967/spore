@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:naver_login_sdk/naver_login_sdk.dart';
-import 'package:new_project_1/features/Calendar/HomeCalendar.dart';
+import 'package:spore/features/Calendar/HomeCalendar.dart';
 import '../features/Psychology/PsychologyStart.dart'; //심리테스트 시작하는 화면
 import 'naverAndFirebaseAuth.dart';
-import 'package:new_project_1/features/Home/main_screen.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart';
+import 'package:spore/features/Home/main_screen.dart';
+import 'package:spore/features/Settings/TitleHandler.dart';
 
 /// 클래스 : LoginScreen
 /// 목적 : 로그인 화면의 전체 UI를 구성하는 메인 위젯임.

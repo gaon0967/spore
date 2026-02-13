@@ -11,7 +11,7 @@ import 'package:flutter/cupertino.dart';
 import 'dart:async';
 import '../Settings/TitleHandler.dart';
 
-import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
+import 'package:spore/features/Settings/firebase_title.dart' as TitlesRemote;
 
 /* ├── HomeCalendar (StatefulWidget)
 │   ├── State: _HomeCalendarState
