@@ -74,7 +74,7 @@ class Character {
     6: const Character(
       id: 6,
       name: '대문자F',
-      speech: '이렇게 말해도 될까? 😟',
+      speech: '나 우울해서 방 샀어...',
       imagePath: 'assets/images/PsychologyTest/Character/ch2_2.png',
       description: '타인의 감정을 섬세하게 살피고 공감 능력이 뛰어납니다. 상처도 잘 받는 여린 마음.',
       keywords: ['# 공감능력', '# 섬세함'],

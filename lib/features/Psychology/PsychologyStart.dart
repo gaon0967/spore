@@ -23,7 +23,7 @@ const List<CharacterInfo> characterData = [
     bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle1-2.png',
   ),
   CharacterInfo(
-    name: '대문자 F',
+    name: '대문자F',
     bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle2-2.png',
   ),
   CharacterInfo(
@@ -35,7 +35,7 @@ const List<CharacterInfo> characterData = [
     bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle2-3.png',
   ),
   CharacterInfo(
-    name: '명연가',
+    name: '명언가',
     bgImagePath: 'assets/images/PsychologyTest/Shape/Rectangle1-4.png',
   ),
   CharacterInfo(
