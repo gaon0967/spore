@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart';
+import 'package:spore/features/Settings/TitleHandler.dart';
 import 'TimetableScreen.dart';
 
 // Firestore에 저장된 시간표의 메타데이터를 관리하는 데이터 모델 클래스입니다.

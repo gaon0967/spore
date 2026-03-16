@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../auth/naverAndFirebaseAuth.dart';
-import 'package:new_project_1/features/Home/main_screen.dart';
+import 'package:spore/features/Home/main_screen.dart';
 import '../Settings/TitleHandler.dart';
-import 'package:new_project_1/features/Settings/firebase_title.dart' as TitlesRemote;
+import 'package:spore/features/Settings/firebase_title.dart' as TitlesRemote;
 
 // --- 데이터 모델 및 저장소 ---
 class Character {
@@ -65,7 +65,7 @@ class Character {
     5: const Character(
       id: 5,
       name: '과몰입러',
-      speech: '🔥🔥🔥🔥🔥🔥🔥🔥🔥',
+      speech: '활활 타오른다!!!',
       imagePath: 'assets/images/PsychologyTest/Character/ch2_3.png',
       description: '한 번 빠지면 끝을 보는 엄청난 집중력과 열정의 소유자.',
       keywords: ['# 열정적인', '# 도전적인'],
@@ -73,8 +73,8 @@ class Character {
     ),
     6: const Character(
       id: 6,
-      name: '대문자 F',
-      speech: '이렇게 말해도 될까? 😟',
+      name: '대문자F',
+      speech: '나 우울해서 방 샀어...',
       imagePath: 'assets/images/PsychologyTest/Character/ch2_2.png',
       description: '타인의 감정을 섬세하게 살피고 공감 능력이 뛰어납니다. 상처도 잘 받는 여린 마음.',
       keywords: ['# 공감능력', '# 섬세함'],

@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Settings/TitleHandler.dart';
-import 'package:new_project_1/features/Settings/TitleHandler.dart' as titles;
+import 'package:spore/features/Settings/TitleHandler.dart' as titles;
 import '../Calendar/Notification.dart';
 import '../Calendar/event.dart';
 

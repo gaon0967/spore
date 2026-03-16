@@ -42,6 +42,82 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:72576508107:android:a6fbd651b701027f33bb4e",
+        "android_client_info": {
+          "package_name": "com.example.temp_fix"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNW6RNcYhOXPnaLQarBBDI-OsXEpykXaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:72576508107:android:9207958f3fa8ed5233bb4e",
+        "android_client_info": {
+          "package_name": "com.example.testproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNW6RNcYhOXPnaLQarBBDI-OsXEpykXaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:72576508107:android:cc15dc5dc664691a33bb4e",
+        "android_client_info": {
+          "package_name": "com.example.vscodetest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNW6RNcYhOXPnaLQarBBDI-OsXEpykXaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:72576508107:android:393130eedd4e872c33bb4e",
+        "android_client_info": {
+          "package_name": "com.spore.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNW6RNcYhOXPnaLQarBBDI-OsXEpykXaw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"
