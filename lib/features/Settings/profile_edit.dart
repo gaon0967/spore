@@ -1146,7 +1146,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       child: TextButton(
                         onPressed: () => Navigator.of(context).pop(),
                         style: TextButton.styleFrom(
-                          backgroundColor: Color(0xFFFFFEF9),
+                          backgroundColor: Color(0xFFFFFFFF),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.only(
                               bottomLeft: Radius.circular(10),
