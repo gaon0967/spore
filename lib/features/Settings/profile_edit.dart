@@ -306,6 +306,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           setState(() {
             name = data['name'] ?? "";
             introText = data['intro'] ?? introText;
+            // 이메일 동기화 필요
+
           });
         }
       }
@@ -815,6 +817,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ],
             ),
+            // 프로필에 이메일 추가
             SizedBox(height: 22 * h),
             Container(
               width: boxWidth,
@@ -865,6 +868,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       ),
                     ),
                   ),
+                  // email이 없으면 삭제 버튼도 사라지도록
+                  if (email != null && email!.isNotEmpty)
                   Positioned(
                     bottom: 0,
                     right: 0,
@@ -1192,7 +1197,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                             fontFamily: 'Golos Text',
                             fontWeight: FontWeight.w500,
                             fontSize: screenWidth * 0.035,
-                            color: Color(0xFF2F3BDC),
+                            color: Color(0xFF506497),
                           ),
                         ),
                       ),
