@@ -245,7 +245,8 @@ class _TitleSelectState extends State<TitleSelect> {
 class _ProfileEditPageState extends State<ProfileEdit> {
   String name = "";
   String introText = "";
-  String email = 'kgygemini@naver.com';
+  //가령: email 추가및 삭제를 위한 코드 (250319)
+  String email = '';
 
   List<int> psychologyResultIds = [];
   List<Character> availableCharacters = [];
@@ -306,8 +307,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           setState(() {
             name = data['name'] ?? "";
             introText = data['intro'] ?? introText;
-            // 이메일 동기화 필요
-
+            email = data['email'] ?? ''; //가령: email 추가및 삭제를 위한 코드 (250319)
           });
         }
       }
@@ -1174,11 +1174,26 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     ),
                     Expanded(
                       child: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            email = '';
-                          });
+                        //가령: email 추가및 삭제를 위한 코드 (250319)
+                        onPressed: () async {
                           Navigator.of(context).pop();
+                          try {
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(userId)
+                                .update({'email': FieldValue.delete()});
+                            if (!mounted) return;
+                            setState(() {
+                              email = '';
+                            });
+                            _showCompleteMessageDialog(
+                                this.context, '이메일이 삭제되었습니다.');
+                          } catch (e) {
+                            debugPrint('이메일 삭제 실패: $e');
+                            if (!mounted) return;
+                            _showCompleteMessageDialog(
+                                this.context, '이메일 삭제에 실패했습니다.');
+                          }
                         },
                         style: TextButton.styleFrom(
                           backgroundColor: Color(0xFFFFFEF9),

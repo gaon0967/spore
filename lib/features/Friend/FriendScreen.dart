@@ -8,8 +8,10 @@ import '../Psychology/PsychologyResult.dart';
 import 'ChatScreen.dart';
 import '../Calendar/Notification.dart' as CalendarNotification;
 import '../Settings/settings_screen.dart';
+import 'dart:async';
 import 'dart:math';
 import '../Settings/TitleHandler.dart';
+import 'email_verification_service.dart';
 
 // --- 데이터 모델 ---
 
@@ -148,8 +150,17 @@ class _FriendScreenState extends State<FriendScreen> {
   late PageController _pageController;
   double _currentPage = 0;
   
-  bool _recommendationsEnabled = true; 
+  bool _recommendationsEnabled = true;
   late Stream<List<RecommendedUser>> _recommendedStream;
+
+  //가령: email 추가및 삭제를 위한 코드 (250319)
+  bool _hasEmail = true;
+  StreamSubscription<DocumentSnapshot>? _emailSubscription;
+  final TextEditingController _verifyEmailCtrl = TextEditingController();
+  final TextEditingController _verifyCodeCtrl = TextEditingController();
+  bool _codeSent = false;
+  bool _isSendingCode = false;
+  bool _isVerifying = false;
 
   @override
   void initState() {
@@ -167,12 +178,33 @@ class _FriendScreenState extends State<FriendScreen> {
     _recommendedStream = recommendedUsersStream;
 
     _loadCurrentSettings();
+    _listenEmailStatus();
+  }
+
+  //가령: email 추가및 삭제를 위한 코드 (250319)
+  void _listenEmailStatus() {
+    if (currentUserId == null) return;
+    _emailSubscription = _firestore
+        .collection('users')
+        .doc(currentUserId)
+        .snapshots()
+        .listen((snapshot) {
+      if (!mounted) return;
+      final data = snapshot.data();
+      final email = data?['email'] as String? ?? '';
+      setState(() {
+        _hasEmail = email.isNotEmpty;
+      });
+    });
   }
 
   @override
   void dispose() {
+    _emailSubscription?.cancel();
     _pageController.dispose();
     _emailCtrl.dispose();
+    _verifyEmailCtrl.dispose();
+    _verifyCodeCtrl.dispose();
     super.dispose();
   }
 
@@ -189,8 +221,12 @@ class _FriendScreenState extends State<FriendScreen> {
       final userDoc =
           await _firestore.collection('users').doc(currentUserId).get();
       if (userDoc.exists && mounted) {
+        final data = userDoc.data();
         setState(() {
-          _recommendationsEnabled = userDoc.data()?['recommend'] ?? true;
+          _recommendationsEnabled = data?['recommend'] ?? true;
+          //가령: email 추가및 삭제를 위한 코드 (250319)
+          final email = data?['email'] as String? ?? '';
+          _hasEmail = email.isNotEmpty;
         });
       }
     } catch (e) {
@@ -293,8 +329,12 @@ class _FriendScreenState extends State<FriendScreen> {
 
           // 3. 필터링 수행
           for (var doc in snapshot.docs) {
-            // 나 자신이 아니고, 친구가 아니며, 신청 대기 중도 아닌 경우만 추가
-            if (doc.id != currentUserId && !excludedIds.contains(doc.id)) {
+            final data = doc.data();
+            final email = data['email'] as String? ?? '';
+            // 나 자신, 친구, 신청 대기 중, 이메일 없는 유저 제외
+            if (doc.id != currentUserId &&
+                !excludedIds.contains(doc.id) &&
+                email.isNotEmpty) {
               recommended.add(RecommendedUser.fromFirestore(doc));
             }
           }
@@ -755,12 +795,19 @@ class _FriendScreenState extends State<FriendScreen> {
             ],
           ),
         ),
+        //가령: email 추가및 삭제를 위한 코드 (250319)
         body: TabBarView(
-          children: [
-            _buildFriendList(),
-            _buildRequestList(),
-            _buildRecommendationSlider(),
-          ],
+          children: _hasEmail
+              ? [
+                  _buildFriendList(),
+                  _buildRequestList(),
+                  _buildRecommendationSlider(),
+                ]
+              : [
+                  _emailVerification(),
+                  _emailVerification(),
+                  _emailVerification(),
+                ],
         ),
       ),
     );
@@ -801,7 +848,7 @@ class _FriendScreenState extends State<FriendScreen> {
             setState(() {});
           },
           child: ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
             itemCount: friends.length,
             separatorBuilder: (_, __) => SizedBox(height: MediaQuery.of(context).size.height * 0.004536),
             itemBuilder: (context, idx) {
@@ -841,7 +888,7 @@ class _FriendScreenState extends State<FriendScreen> {
 
   Widget _buildRequestList() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
       child: Column(
         children: [
           Row(
@@ -916,7 +963,7 @@ class _FriendScreenState extends State<FriendScreen> {
                     final requests = snapshot.data ?? [];
                     if (requests.isEmpty) {
                       return Padding(
-                        padding: EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
                         child: Center(
                           child: Text(
                             '받은 친구 신청이 없습니다.',
@@ -999,7 +1046,7 @@ class _FriendScreenState extends State<FriendScreen> {
                     final requests = snapshot.data ?? [];
                     if (requests.isEmpty) {
                       return Padding(
-                        padding: EdgeInsets.all(16.0),
+                        padding: EdgeInsets.all(MediaQuery.of(context).size.width * 0.04),
                         child: Center(
                           child: Text(
                             '보낸 친구 신청이 없습니다.',
@@ -1359,195 +1406,270 @@ class _FriendScreenState extends State<FriendScreen> {
       },
     );
   }
+  //가령: email 추가및 삭제를 위한 코드 (250319)
   // 이메일이 설정되어 있지 않은 경우 이메일 인증 후 등록
-    Widget _emailVerification() {
-      return LayoutBuilder(
-        builder: (context, constraints) {
+  Widget _emailVerification() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final double cardWidth = constraints.maxWidth * 0.75;
+        final double cardHeight = cardWidth * (320 / 290);
 
-          final double cardWidth = constraints.maxWidth * 0.75;
-          final double cardHeight = cardWidth * (320 / 290);
+        final double outerRadius = cardWidth * (20 / 290);
+        final double innerRadius = cardWidth * (7 / 290);
+        final double fontSize = cardWidth * (14 / 290);
+        final double fieldHeight = cardHeight * 0.12;
+        final double requestButtonHeight = cardHeight * 0.08;
+        final double confirmButtonHeight = cardHeight * 0.12;
 
-          final double outerRadius = cardWidth * (20 / 290);
-          final double innerRadius = cardWidth * (7 / 290);
-          final double fontSize = cardWidth * (14 / 290);
-          final double fieldHeight = cardHeight * 0.12;
-          final double requestButtonHeight = cardHeight * 0.08;
-          final double confirmButtonHeight = cardHeight * 0.12;
+        return Center(
+          child: Container(
+            width: cardWidth,
+            height: cardHeight,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9F6EC),
+              borderRadius: BorderRadius.circular(outerRadius),
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: cardWidth * (22 / 290),
+              vertical: cardHeight * 0.08,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: cardHeight * 0.03),
 
-          return Center(
-            child: Container(
-              width: cardWidth,
-              height: cardHeight,
-              decoration: BoxDecoration(
-                color: Color(0xFFF9F6EC),
-                borderRadius: BorderRadius.circular(outerRadius),
-              ),
-              padding: EdgeInsets.symmetric(
-                horizontal: cardWidth * (22 / 290),
-                vertical: cardHeight * 0.08,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SizedBox(height: cardHeight * 0.03),
- 
-                  Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      '이메일이 존재하지 않습니다.\n친구 기능을 활성화할 수 없습니다.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: fontSize,
-                        color: Color(0xFF504A4A),
-                        fontWeight: FontWeight.w500,
-                        height: 1.25,
-                      ),
-                    ),
-                  ),
-
-                  SizedBox(height: cardHeight * 0.13),
-
-                  Text(
-                    'e-mail',
+                Align(
+                  alignment: Alignment.center,
+                  child: Text(
+                    _codeSent
+                        ? '인증번호가 발송되었습니다.\n이메일을 확인해주세요.'
+                        : '이메일이 존재하지 않습니다.\n친구 기능을 활성화할 수 없습니다.',
+                    textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: fontSize * 0.85,
-                      color: Color(0xFF504A4A),
+                      fontSize: fontSize,
+                      color: const Color(0xFF504A4A),
                       fontWeight: FontWeight.w500,
+                      height: 1.25,
                     ),
                   ),
+                ),
 
-                  SizedBox(height: cardHeight * 0.01),
+                SizedBox(height: cardHeight * 0.13),
 
-                  // 이메일 입력 칸
-                  SizedBox(
-                    height: fieldHeight,
-                    child: TextField(
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        isDense: true,
-                        filled: true,
-                        fillColor: Color(0xFFFFFFFF),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: cardWidth * 0.04,
-                          vertical: cardHeight * 0.035,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(innerRadius),
-                          borderSide: BorderSide.none,
-                        ),
+                Text(
+                  'e-mail',
+                  style: TextStyle(
+                    fontSize: fontSize * 0.85,
+                    color: const Color(0xFF504A4A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                SizedBox(height: cardHeight * 0.01),
+
+                // 이메일 입력 칸
+                SizedBox(
+                  height: fieldHeight,
+                  child: TextField(
+                    controller: _verifyEmailCtrl,
+                    keyboardType: TextInputType.emailAddress,
+                    enabled: !_codeSent,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      filled: true,
+                      fillColor: const Color(0xFFFFFFFF),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: cardWidth * 0.04,
+                        vertical: cardHeight * 0.035,
                       ),
-                    ),
-                  ),
-
-                  SizedBox(height: cardHeight * 0.02),
-
-                  // 인증번호 받기 버튼
-                  SizedBox(
-                    width: double.infinity,
-                    height: requestButtonHeight,
-                    child: Material(
-                      color: Colors.transparent,
-                      child: InkWell(
+                      border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(innerRadius),
-                        onTap: () {},
-                        child: Ink(
-                          decoration: BoxDecoration(
-                            color: Color(0xFFE0EBEE),
-                            borderRadius: BorderRadius.circular(innerRadius),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '인증번호 받기',
-                              style: TextStyle(
-                                fontSize: fontSize * 0.77,
-                                color: Color(0xFF504A4A),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
-                        ),
+                        borderSide: BorderSide.none,
                       ),
                     ),
                   ),
+                ),
 
-                  SizedBox(height: cardHeight * 0.05),
+                SizedBox(height: cardHeight * 0.02),
 
-                  // 인증번호 입력 칸
-                  Text(
-                    '인증번호 입력',
-                    style: TextStyle(
-                      fontSize: fontSize * 0.77,
-                      color: Color(0xFF504A4A),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-
-                  SizedBox(height: cardHeight * 0.01),
-
-                  Row(
-                    children: [
-                      Expanded(
-                        child: SizedBox(
-                          height: fieldHeight,
-                          child: TextField(
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              isDense: true,
-                              filled: true,
-                              fillColor: Color(0xFFFFFFFF),
-                              contentPadding: EdgeInsets.symmetric(
-                                horizontal: cardWidth * 0.04,
-                                vertical: cardHeight * 0.028,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(innerRadius),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
+                // 인증번호 받기 버튼
+                SizedBox(
+                  width: double.infinity,
+                  height: requestButtonHeight,
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(innerRadius),
+                      onTap: _isSendingCode
+                          ? null
+                          : () async {
+                              final email = _verifyEmailCtrl.text.trim();
+                              if (email.isEmpty) {
+                                _showAlert('이메일을 입력해주세요.');
+                                return;
+                              }
+                              setState(() => _isSendingCode = true);
+                              try {
+                                await EmailVerificationService.sendCode(email);
+                                if (mounted) {
+                                  setState(() {
+                                    _codeSent = true;
+                                    _isSendingCode = false;
+                                  });
+                                }
+                              } catch (e) {
+                                if (mounted) {
+                                  setState(() => _isSendingCode = false);
+                                  _showAlert(e.toString().contains('already-exists')
+                                      ? '이미 사용 중인 이메일입니다.'
+                                      : '인증번호 발송에 실패했습니다.');
+                                }
+                              }
+                            },
+                      child: Ink(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE0EBEE),
+                          borderRadius: BorderRadius.circular(innerRadius),
                         ),
-                      ),
-
-                      SizedBox(width: cardWidth * 0.03),
-
-                      // 확인 버튼
-                      SizedBox(
-                        width: cardWidth * 0.22,
-                        height: confirmButtonHeight,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(innerRadius),
-                            onTap: () {},
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                color: Color(0xFFA9C3D4),
-                                borderRadius: BorderRadius.circular(innerRadius),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  '확인',
+                        child: Center(
+                          child: _isSendingCode
+                              ? SizedBox(
+                                  width: fontSize,
+                                  height: fontSize,
+                                  child: const CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(
+                                  _codeSent ? '인증번호 재발송' : '인증번호 받기',
                                   style: TextStyle(
-                                    fontSize: fontSize * 0.85,
-                                    color: Color(0xFF504A4A),
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: fontSize * 0.77,
+                                    color: const Color(0xFF504A4A),
+                                    fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                              ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: cardHeight * 0.05),
+
+                // 인증번호 입력 칸
+                Text(
+                  '인증번호 입력',
+                  style: TextStyle(
+                    fontSize: fontSize * 0.77,
+                    color: const Color(0xFF504A4A),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+
+                SizedBox(height: cardHeight * 0.01),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: fieldHeight,
+                        child: TextField(
+                          controller: _verifyCodeCtrl,
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            isDense: true,
+                            filled: true,
+                            fillColor: const Color(0xFFFFFFFF),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: cardWidth * 0.04,
+                              vertical: cardHeight * 0.028,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(innerRadius),
+                              borderSide: BorderSide.none,
                             ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+
+                    SizedBox(width: cardWidth * 0.03),
+
+                    // 확인 버튼
+                    SizedBox(
+                      width: cardWidth * 0.22,
+                      height: confirmButtonHeight,
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(innerRadius),
+                          onTap: _isVerifying
+                              ? null
+                              : () async {
+                                  final code = _verifyCodeCtrl.text.trim();
+                                  if (code.isEmpty) {
+                                    _showAlert('인증번호를 입력해주세요.');
+                                    return;
+                                  }
+                                  setState(() => _isVerifying = true);
+                                  try {
+                                    await EmailVerificationService.verifyCode(code);
+                                    if (mounted) {
+                                      setState(() {
+                                        _hasEmail = true;
+                                        _isVerifying = false;
+                                        _codeSent = false;
+                                      });
+                                      _verifyEmailCtrl.clear();
+                                      _verifyCodeCtrl.clear();
+                                      _showAlert('이메일이 등록되었습니다.');
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      setState(() => _isVerifying = false);
+                                      String msg = '인증에 실패했습니다.';
+                                      if (e.toString().contains('permission-denied')) {
+                                        msg = '인증번호가 일치하지 않습니다.';
+                                      } else if (e.toString().contains('deadline-exceeded')) {
+                                        msg = '인증번호가 만료되었습니다.';
+                                      }
+                                      _showAlert(msg);
+                                    }
+                                  }
+                                },
+                          child: Ink(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFA9C3D4),
+                              borderRadius: BorderRadius.circular(innerRadius),
+                            ),
+                            child: Center(
+                              child: _isVerifying
+                                  ? SizedBox(
+                                      width: fontSize,
+                                      height: fontSize,
+                                      child: const CircularProgressIndicator(strokeWidth: 2),
+                                    )
+                                  : Text(
+                                      '확인',
+                                      style: TextStyle(
+                                        fontSize: fontSize * 0.85,
+                                        color: const Color(0xFF504A4A),
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          );
-        }
-      );
-    }
+          ),
+        );
+      },
+    );
+  }
 
 
   String getImagePathByCharacterId(int id) {
