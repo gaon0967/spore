@@ -245,6 +245,7 @@ class _TitleSelectState extends State<TitleSelect> {
 class _ProfileEditPageState extends State<ProfileEdit> {
   String name = "";
   String introText = "";
+  String email = 'kgygemini@naver.com';
 
   List<int> psychologyResultIds = [];
   List<Character> availableCharacters = [];
@@ -276,12 +277,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
   Future<void> _loadSelectedIdAndApply() async {
     if (userId.isEmpty || availableCharacters.isEmpty) return;
     final doc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+    await FirebaseFirestore.instance.collection('users').doc(userId).get();
     if (doc.exists) {
       final id = doc.data()?['characterId'];
       if (id != null) {
         final char = availableCharacters.firstWhere(
-          (c) => c.id == id,
+              (c) => c.id == id,
           orElse: () => availableCharacters.first,
         );
         setState(() {
@@ -295,16 +296,18 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     if (userId.isEmpty) return;
     try {
       final doc =
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .get();
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
       if (doc.exists) {
         final data = doc.data();
         if (data != null) {
           setState(() {
             name = data['name'] ?? "";
             introText = data['intro'] ?? introText;
+            // 이메일 동기화 필요
+
           });
         }
       }
@@ -318,10 +321,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     try {
       final ids = await fetchUserCharacterIds(userId);
       final chars =
-          ids
-              .map((id) => Character.getCharacterById(id))
-              .whereType<Character>()
-              .toList();
+      ids
+          .map((id) => Character.getCharacterById(id))
+          .whereType<Character>()
+          .toList();
       setState(() {
         availableCharacters = chars;
       });
@@ -345,10 +348,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     final prefs = await SharedPreferences.getInstance();
     final storedList = prefs.getStringList(psychologyResultKey) ?? [];
     final ids =
-        storedList
-            .map((e) => int.tryParse(e) ?? 0)
-            .where((e) => e != 0)
-            .toList();
+    storedList
+        .map((e) => int.tryParse(e) ?? 0)
+        .where((e) => e != 0)
+        .toList();
     if (ids.isNotEmpty) {
       _applyPsychologyResult(ids);
     }
@@ -365,13 +368,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     psychologyResultIds = resultIds;
     final firstCharacter = Character.getCharacterById(resultIds.first);
     final others =
-        resultIds.length > 1
-            ? resultIds
-                .sublist(1)
-                .map((id) => Character.getCharacterById(id))
-                .whereType<Character>()
-                .toList()
-            : <Character>[];
+    resultIds.length > 1
+        ? resultIds
+        .sublist(1)
+        .map((id) => Character.getCharacterById(id))
+        .whereType<Character>()
+        .toList()
+        : <Character>[];
     setState(() {
       selectedCharacter = firstCharacter;
       availableCharacters = others;
@@ -396,10 +399,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
             child: Container(
               width: screenWidth * 0.65,
               padding: EdgeInsets.only(
-                top: 40*h,
-                left: 24*w,
-                right: 24*w,
-                bottom: 20*h,
+                top: 40 * h,
+                left: 24 * w,
+                right: 24 * w,
+                bottom: 20 * h,
               ),
               decoration: BoxDecoration(
                 color: Colors.grey[200],
@@ -417,13 +420,13 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       softWrap: false,
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        fontSize: 16*w,
+                        fontSize: 16 * w,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF535353),
                       ),
                     ),
                   ),
-                  SizedBox(height: 24*h),
+                  SizedBox(height: 24 * h),
                   const Divider(
                     thickness: 1,
                     height: 1,
@@ -431,7 +434,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   ),
                   SizedBox(
                     width: double.infinity,
-                    height: 44*h,
+                    height: 44 * h,
                     child: TextButton(
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.black,
@@ -444,7 +447,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       child: Text(
                         '확인',
                         style: TextStyle(
-                          fontSize: 16*w,
+                          fontSize: 16 * w,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -473,9 +476,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
-          contentPadding: EdgeInsets.fromLTRB(24*w, 20*h, 24*w, 0),
+          contentPadding: EdgeInsets.fromLTRB(24 * w, 20 * h, 24 * w, 0),
           content: SizedBox(
-            width: 280*w,
+            width: 280 * w,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -483,11 +486,11 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                   message,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16*w,
+                    fontSize: 16 * w,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(height: 24*h),
+                SizedBox(height: 24 * h),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -496,12 +499,12 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 14*h),
+                      padding: EdgeInsets.symmetric(vertical: 14 * h),
                     ),
                     child: Text(
                       '완료',
                       style: TextStyle(
-                        fontSize: 16*w,
+                        fontSize: 16 * w,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -526,27 +529,27 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children:
-          displayLines.map((line) {
-            return Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(minHeight: 32),
-              alignment: Alignment.centerLeft,
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    width: 1,
-                    color: Colors.grey.shade400.withOpacity(0.4),
-                  ),
-                ),
+      displayLines.map((line) {
+        return Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(minHeight: 32),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                width: 1,
+                color: Colors.grey.shade400.withOpacity(0.4),
               ),
-              child: Text(
-                line.isEmpty ? " " : line,
-                style: style,
-                overflow: TextOverflow.ellipsis,
-                maxLines: 1,
-              ),
-            );
-          }).toList(),
+            ),
+          ),
+          child: Text(
+            line.isEmpty ? " " : line,
+            style: style,
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -613,7 +616,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 color: Color(0xFFE8EEF0),
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              padding: EdgeInsets.fromLTRB(16*w, 30*h, 16*w, bottomInset + 16),
+              padding: EdgeInsets.fromLTRB(16 * w, 30 * h, 16 * w, bottomInset + 16),
               child: Row(
                 children: [
                   Expanded(
@@ -634,14 +637,14 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         filled: true,
                         fillColor: const Color(0xFFE8EEF0),
                         contentPadding: EdgeInsets.symmetric(
-                          horizontal: 14*w,
-                          vertical: 12*h,
+                          horizontal: 14 * w,
+                          vertical: 12 * h,
                         ),
                         counterText: '',
                       ),
                     ),
                   ),
-                  SizedBox(width: 12*w),
+                  SizedBox(width: 12 * w),
                   ElevatedButton(
                     onPressed: finishIntroEdit,
                     style: ElevatedButton.styleFrom(
@@ -651,8 +654,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                       padding: EdgeInsets.symmetric(
-                        vertical: 14*h,
-                        horizontal: 22*w,
+                        vertical: 14 * h,
+                        horizontal: 22 * w,
                       ),
                     ),
                     child: Text(
@@ -703,10 +706,10 @@ class _ProfileEditPageState extends State<ProfileEdit> {
     if (user == null) return;
 
     final doc =
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get();
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .get();
 
     final data = doc.data();
     if (data != null && data.containsKey('selectedTitles')) {
@@ -771,17 +774,17 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                     borderRadius: BorderRadius.circular(40),
                     border: Border.all(
                       color: const Color(0xFFEEEEEE),
-                      width: 4*w,
+                      width: 4 * w,
                     ),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(40),
                     child: StreamBuilder<DocumentSnapshot>(
                       stream:
-                          FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(userId)
-                              .snapshots(),
+                      FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(userId)
+                          .snapshots(),
                       builder: (context, snapshot) {
                         if (!snapshot.hasData) {
                           return const Center(
@@ -789,7 +792,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           );
                         }
                         final data =
-                            snapshot.data!.data() as Map<String, dynamic>?;
+                        snapshot.data!.data() as Map<String, dynamic>?;
                         final charId = data?['characterId'] as int? ?? 0;
                         final character = Character.getCharacterById(charId);
 
@@ -814,7 +817,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ],
             ),
-            SizedBox(height: 22*h),
+            // 프로필에 이메일 추가
+            SizedBox(height: 22 * h),
             Container(
               width: boxWidth,
               height: screenHeight * 0.068,
@@ -836,11 +840,66 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ),
               ),
             ),
-            SizedBox(height: 22*h),
+
+            SizedBox(height: 22 * h),
+            Container(
+              width: boxWidth,
+              constraints: const BoxConstraints(minHeight: 55),
+              padding: EdgeInsets.symmetric(
+                horizontal: 20 * w,
+                vertical: 12 * h,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE5E5E5),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      email,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: screenWidth * 0.035,
+                        color: const Color(0xFF8E8C8C),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  // email이 없으면 삭제 버튼도 사라지도록
+                  if (email != null && email!.isNotEmpty)
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: InkWell(
+                      onTap: _clearEmail,
+                      borderRadius: BorderRadius.circular(30),
+                      child: Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12 * w,
+                          vertical: 5 * h,
+                        ),
+                        child: Text(
+                          '삭제',
+                          style: TextStyle(
+                            fontSize: screenWidth * 0.036,
+                            color: const Color(0xFF576790),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 22 * h),
             Container(
               width: boxWidth,
               constraints: const BoxConstraints(minHeight: 170),
-              padding: EdgeInsets.fromLTRB(20*w, 12*h, 20*w, 15*h),
+              padding: EdgeInsets.fromLTRB(20 * w, 12 * h, 20 * w, 15 * h),
               decoration: BoxDecoration(
                 color: const Color(0xFFE8EEF0),
                 borderRadius: BorderRadius.circular(16),
@@ -858,7 +917,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           fontWeight: FontWeight.w500,
                         ),
                       ),
-                      SizedBox(height: 8*h),
+                      SizedBox(height: 8 * h),
                       _introWithUnderline(
                         introText,
                         TextStyle(
@@ -867,7 +926,7 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           color: const Color(0xFF635A5A),
                         ),
                       ),
-                      SizedBox(height: 55*h),
+                      SizedBox(height: 55 * h),
                     ],
                   ),
                   Positioned(
@@ -878,8 +937,8 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                       borderRadius: BorderRadius.circular(30),
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: 16*w,
-                          vertical: 10*h,
+                          horizontal: 16 * w,
+                          vertical: 10 * h,
                         ),
                         decoration: BoxDecoration(
                           color: Colors.black,
@@ -899,9 +958,9 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                 ],
               ),
             ),
-            SizedBox(height: 15*h),
+            SizedBox(height: 15 * h),
             const Divider(color: Color(0xFFC0BBBB), thickness: 1),
-            SizedBox(height: 11*h),
+            SizedBox(height: 11 * h),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -949,41 +1008,41 @@ class _ProfileEditPageState extends State<ProfileEdit> {
                           color: const Color(0xFF807E7E),
                         ),
                       ),
-                      SizedBox(width: 6*w),
+                      SizedBox(width: 6 * w),
                       Image.asset(
                         'assets/images/Setting/chevron2.png',
-                        width: 14*w,
-                        height: 14*h,
+                        width: 14 * w,
+                        height: 14 * h,
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 15*h),
+                SizedBox(height: 15 * h),
                 if (selectedTitles.isNotEmpty)
                   Wrap(
-                    spacing: 14*w,
-                    runSpacing: 14*h, 
+                    spacing: 14 * w,
+                    runSpacing: 14 * h,
                     children:
-                        selectedTitles.map((t) {
-                          return Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 16*w,
-                              vertical: 10*h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFf4ecd2),
-                              borderRadius: BorderRadius.circular(25),
-                            ),
-                            child: Text(
-                              "# $t",
-                              style: TextStyle(
-                                color: const Color(0xFF504a4a),
-                                fontWeight: FontWeight.w500,
-                                fontSize: screenWidth * 0.038,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                    selectedTitles.map((t) {
+                      return Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 16 * w,
+                          vertical: 10 * h,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFf4ecd2),
+                          borderRadius: BorderRadius.circular(25),
+                        ),
+                        child: Text(
+                          "# $t",
+                          style: TextStyle(
+                            color: const Color(0xFF504a4a),
+                            fontWeight: FontWeight.w500,
+                            fontSize: screenWidth * 0.038,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   )
                 else
                   Text(
@@ -1031,6 +1090,125 @@ class _ProfileEditPageState extends State<ProfileEdit> {
           ),
         ),
       ),
+    );
+  }
+
+  void _clearEmail() {
+    final screenWidth = MediaQuery
+        .of(context)
+        .size
+        .width;
+    final screenHeight = MediaQuery
+        .of(context)
+        .size
+        .height;
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Color(0xFFFFFEF9),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Container(
+            width: screenWidth * 0.7,
+            height: screenHeight * 0.20041182,
+            decoration: BoxDecoration(
+              color: Color(0xFFFFFEF9),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              children: [
+                Expanded(
+                  child: Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: screenWidth * 0.05832),
+                      child: Text(
+                        '삭제하시겠습니까?',
+                        style: TextStyle(
+                          fontFamily: 'Golos Text',
+                          fontWeight: FontWeight.w500,
+                          fontSize: screenWidth * 0.035,
+                          color: Color(0xFF716969),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
+                Divider(
+                    height: screenHeight * 0.001134, color: Color(0xFFE5E5E5)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: TextButton.styleFrom(
+                          backgroundColor: Color(0xFFFFFFFF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(10),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenWidth * 0.035,
+                          ),
+                        ),
+                        child: Text(
+                          '아니오',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: screenWidth * 0.035,
+                            color: Color(0xFF635E5E),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: screenWidth * 0.00243,
+                      height: screenHeight * 0.055074,
+                      color: Color(0xFFE5E5E5),
+                    ),
+                    Expanded(
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            email = '';
+                          });
+                          Navigator.of(context).pop();
+                        },
+                        style: TextButton.styleFrom(
+                          backgroundColor: Color(0xFFFFFEF9),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(10),
+                            ),
+                          ),
+                          padding: EdgeInsets.symmetric(
+                            vertical: screenHeight * 0.01631259,
+                          ),
+                        ),
+                        child: Text(
+                          '네',
+                          style: TextStyle(
+                            fontFamily: 'Golos Text',
+                            fontWeight: FontWeight.w500,
+                            fontSize: screenWidth * 0.035,
+                            color: Color(0xFF506497),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

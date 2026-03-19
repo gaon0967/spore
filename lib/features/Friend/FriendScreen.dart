@@ -149,7 +149,7 @@ class _FriendScreenState extends State<FriendScreen> {
   double _currentPage = 0;
   
   bool _recommendationsEnabled = true; 
-  late Stream<List<RecommendedUser>> _recommendedStream; 
+  late Stream<List<RecommendedUser>> _recommendedStream;
 
   @override
   void initState() {
@@ -1359,6 +1359,196 @@ class _FriendScreenState extends State<FriendScreen> {
       },
     );
   }
+  // 이메일이 설정되어 있지 않은 경우 이메일 인증 후 등록
+    Widget _emailVerification() {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+
+          final double cardWidth = constraints.maxWidth * 0.75;
+          final double cardHeight = cardWidth * (320 / 290);
+
+          final double outerRadius = cardWidth * (20 / 290);
+          final double innerRadius = cardWidth * (7 / 290);
+          final double fontSize = cardWidth * (14 / 290);
+          final double fieldHeight = cardHeight * 0.12;
+          final double requestButtonHeight = cardHeight * 0.08;
+          final double confirmButtonHeight = cardHeight * 0.12;
+
+          return Center(
+            child: Container(
+              width: cardWidth,
+              height: cardHeight,
+              decoration: BoxDecoration(
+                color: Color(0xFFF9F6EC),
+                borderRadius: BorderRadius.circular(outerRadius),
+              ),
+              padding: EdgeInsets.symmetric(
+                horizontal: cardWidth * (22 / 290),
+                vertical: cardHeight * 0.08,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: cardHeight * 0.03),
+ 
+                  Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      '이메일이 존재하지 않습니다.\n친구 기능을 활성화할 수 없습니다.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: fontSize,
+                        color: Color(0xFF504A4A),
+                        fontWeight: FontWeight.w500,
+                        height: 1.25,
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: cardHeight * 0.13),
+
+                  Text(
+                    'e-mail',
+                    style: TextStyle(
+                      fontSize: fontSize * 0.85,
+                      color: Color(0xFF504A4A),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  SizedBox(height: cardHeight * 0.01),
+
+                  // 이메일 입력 칸
+                  SizedBox(
+                    height: fieldHeight,
+                    child: TextField(
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        filled: true,
+                        fillColor: Color(0xFFFFFFFF),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: cardWidth * 0.04,
+                          vertical: cardHeight * 0.035,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(innerRadius),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: cardHeight * 0.02),
+
+                  // 인증번호 받기 버튼
+                  SizedBox(
+                    width: double.infinity,
+                    height: requestButtonHeight,
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(innerRadius),
+                        onTap: () {},
+                        child: Ink(
+                          decoration: BoxDecoration(
+                            color: Color(0xFFE0EBEE),
+                            borderRadius: BorderRadius.circular(innerRadius),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '인증번호 받기',
+                              style: TextStyle(
+                                fontSize: fontSize * 0.77,
+                                color: Color(0xFF504A4A),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: cardHeight * 0.05),
+
+                  // 인증번호 입력 칸
+                  Text(
+                    '인증번호 입력',
+                    style: TextStyle(
+                      fontSize: fontSize * 0.77,
+                      color: Color(0xFF504A4A),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  SizedBox(height: cardHeight * 0.01),
+
+                  Row(
+                    children: [
+                      Expanded(
+                        child: SizedBox(
+                          height: fieldHeight,
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              filled: true,
+                              fillColor: Color(0xFFFFFFFF),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: cardWidth * 0.04,
+                                vertical: cardHeight * 0.028,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(innerRadius),
+                                borderSide: BorderSide.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(width: cardWidth * 0.03),
+
+                      // 확인 버튼
+                      SizedBox(
+                        width: cardWidth * 0.22,
+                        height: confirmButtonHeight,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(innerRadius),
+                            onTap: () {},
+                            child: Ink(
+                              decoration: BoxDecoration(
+                                color: Color(0xFFA9C3D4),
+                                borderRadius: BorderRadius.circular(innerRadius),
+                              ),
+                              child: Center(
+                                child: Text(
+                                  '확인',
+                                  style: TextStyle(
+                                    fontSize: fontSize * 0.85,
+                                    color: Color(0xFF504A4A),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+      );
+    }
+
 
   String getImagePathByCharacterId(int id) {
     switch (id) {
