@@ -825,17 +825,39 @@ class _TimetableScreenState extends State<TimetableScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. 수업 제목
-                Text(
-                  course.title,
-                  style: TextStyle(
-                    fontFamily: 'Golos Text',
-                    fontSize: 20 * w,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF504A4A),
-                  ),
+                // 1. 수업 제목 + 삭제 버튼
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        course.title,
+                        style: TextStyle(
+                          fontFamily: 'Golos Text',
+                          fontSize: 20 * w,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF504A4A),
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                        _deleteCourse(course);
+                      },
+                      child: Padding(
+                        padding: EdgeInsets.all(8.0 * w),
+                        child: Image.asset(
+                          'assets/images/mainpage/delete.png',
+                          width: 24 * w,
+                          height: 24 * w,
+                          color: const Color(0xFF675F5F),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                //SizedBox(height: 8 * h),
                 // 2. 상세 정보 (교수, 장소, 시간)
                 Text(
                   "교수: ${course.professor}",
@@ -860,31 +882,6 @@ class _TimetableScreenState extends State<TimetableScreen> {
                     fontSize: 15 * w,
                     color: const Color(0xFF675F5F),
                   ),
-                ),
-
-                SizedBox(height: 8 * h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Transform.translate(
-                      offset: Offset(0, -30), // 휴지통 위로 옮김
-                      child: GestureDetector(
-                        onTap: () {
-                          Navigator.pop(context);
-                          _deleteCourse(course);
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Image.asset(
-                            'assets/images/mainpage/delete.png',
-                            width: 24 * w,
-                            height: 24 * w,
-                            color: const Color(0xFF675F5F),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
