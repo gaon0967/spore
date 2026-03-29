@@ -234,20 +234,15 @@ class _TimetableScreenState extends State<TimetableScreen> {
             backgroundColor: Colors.transparent,
             insetPadding: EdgeInsets.symmetric(horizontal: 40 * w),
             child: Container(
-              width: 298 * w, 
+              width: 298 * w,
               height: 179 * h,
               decoration: BoxDecoration(
-                color: const Color(0xFFFFFFF9), 
-                borderRadius: BorderRadius.circular(10), 
-                border: Border.all(
-                  color: const Color(0xFFE5E5E5),
-                  width: 1,
-                ), 
+                color: const Color(0xFFFFFFF9),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E5E5), width: 1),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(
-                      0.06,
-                    ), 
+                    color: Colors.black.withOpacity(0.06),
                     offset: const Offset(1, 2),
                     blurRadius: 4,
                   ),
@@ -280,10 +275,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
                               fontFamily: 'Golos Text',
                               fontSize: 14 * w,
                               fontWeight: FontWeight.w500,
-                              height: 1.3*h,
-                              color: const Color(
-                                0xFF716969,
-                              ), 
+                              height: 1.3 * h,
+                              color: const Color(0xFF716969),
                             ),
                           ),
                         ],
@@ -292,7 +285,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   ),
                   // 하단 버튼 영역
                   Container(
-                    height: 47 * h, 
+                    height: 47 * h,
                     decoration: const BoxDecoration(
                       border: Border(
                         top: BorderSide(color: Color(0xFFE5E5E5), width: 1),
@@ -321,9 +314,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                                   fontFamily: 'Golos Text',
                                   fontSize: 16 * w,
                                   fontWeight: FontWeight.w400,
-                                  color: const Color(
-                                    0xFF635E5E,
-                                  ), 
+                                  color: const Color(0xFF635E5E),
                                 ),
                               ),
                             ),
@@ -411,7 +402,6 @@ class _TimetableScreenState extends State<TimetableScreen> {
       );
     }
 
-
     return Scaffold(
       backgroundColor: const Color(0xFFFFFEF9),
 
@@ -436,13 +426,13 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final double w = screenWidth * 0.00243;
 
     return SizedBox(
-      height: 80*h,
+      height: 80 * h,
       child: Stack(
         children: [
           // 1. 제목 부분
           Positioned(
-            left: 29*w,
-            top: 8*h,
+            left: 29 * w,
+            top: 8 * h,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -455,10 +445,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
                     color: const Color(0xFF504A4A),
                   ),
                 ),
-                SizedBox(height: 4*h),
+                SizedBox(height: 4 * h),
                 Padding(
                   padding: EdgeInsets.only(
-                    left: 4.0*w,
+                    left: 4.0 * w,
                   ), // 이 값을 조절해 오른쪽으로 얼마나 이동할지 정합니다.
                   child: Text(
                     _currentTableName ?? '시간표 로딩 중...',
@@ -477,15 +467,15 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
           // 2. 아이콘 버튼 부분
           Positioned(
-            top: 4*h, // 숫자를 줄일수록 '위로' 이동합니다.
-            right: 23*w, // 숫자를 줄일수록 '오른쪽으로' 이동합니다.
+            top: 4 * h, // 숫자를 줄일수록 '위로' 이동합니다.
+            right: 23 * w, // 숫자를 줄일수록 '오른쪽으로' 이동합니다.
             child: Row(
               children: [
                 IconButton(
                   icon: Image.asset(
                     'assets/images/TimeTable/add_icon.png',
-                    width: 22*w,
-                    height: 22*w,
+                    width: 22 * w,
+                    height: 22 * w,
                   ),
                   onPressed: () async {
                     final newCourse = await showDialog<Course>(
@@ -510,8 +500,8 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 IconButton(
                   icon: Image.asset(
                     'assets/images/TimeTable/menu_icon.png',
-                    width: 22*w,
-                    height: 22*w,
+                    width: 22 * w,
+                    height: 22 * w,
                   ),
                   onPressed: () async {
                     final newTableName = await Navigator.push<String>(
@@ -543,7 +533,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     if (_courses.isNotEmpty) {
       final startTimes = _courses.map((c) => c.startTime.floor()).toList();
       final endTimes = _courses.map((c) => c.endTime.ceil()).toList();
-      
+
       final earliestCourse = startTimes.reduce(
         (minVal, e) => e < minVal ? e : minVal,
       );
@@ -561,7 +551,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final double w = screenWidth * 0.00243;
 
     return Container(
-      margin: EdgeInsets.fromLTRB(14*w, 1*h, 14*w, 20*h),
+      margin: EdgeInsets.fromLTRB(14 * w, 1 * h, 14 * w, 20 * h),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final timeColumnWidth = constraints.maxWidth * 0.06;
@@ -701,7 +691,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 days[i],
                 style: TextStyle(
                   fontFamily: 'Golos Text',
-                  fontSize: 11*w,
+                  fontSize: 11 * w,
                   color: Color(0xFF504A4A),
                   fontWeight: FontWeight.w500,
                 ),
@@ -721,12 +711,12 @@ class _TimetableScreenState extends State<TimetableScreen> {
             child: Align(
               alignment: Alignment.topRight,
               child: Padding(
-                padding: EdgeInsets.only(top: 2.0*h, right: 4.0*w),
+                padding: EdgeInsets.only(top: 2.0 * h, right: 4.0 * w),
                 child: Text(
                   times[i],
                   style: TextStyle(
                     fontFamily: 'Golos Text',
-                    fontSize: 11*w,
+                    fontSize: 11 * w,
                     color: const Color(0xFF504A4A),
                     fontWeight: FontWeight.w500,
                   ),
@@ -774,7 +764,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   course.title,
                   style: TextStyle(
                     fontFamily: 'Golos Text',
-                    fontSize: 13*w,
+                    fontSize: 13 * w,
                     fontWeight: FontWeight.w500,
                     color: Color(0xFF504A4A),
                   ),
@@ -786,7 +776,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   course.professor,
                   style: TextStyle(
                     fontFamily: 'Golos Text',
-                    fontSize: 10.9*w,
+                    fontSize: 10.9 * w,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF625B5B),
                   ),
@@ -797,7 +787,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   course.room,
                   style: TextStyle(
                     fontFamily: 'Golos Text',
-                    fontSize: 10.9*w,
+                    fontSize: 10.9 * w,
                     fontWeight: FontWeight.w400,
                     color: Color(0xFF625B5B),
                   ),
@@ -816,19 +806,14 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final screenHeight = MediaQuery.of(context).size.height;
 
     final double h = screenHeight * 0.001134;
-    final double w = screenWidth * 0.00243; 
+    final double w = screenWidth * 0.00243;
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder:
           (context) => Container(
-            padding: EdgeInsets.fromLTRB(
-              24 * w,
-              24 * h,
-              24 * w,
-              20 * h,
-            ),
+            padding: EdgeInsets.fromLTRB(24 * w, 24 * h, 24 * w, 20 * h),
             decoration: const BoxDecoration(
               color: Color(0xFFFFFFF9),
               borderRadius: BorderRadius.only(
@@ -850,7 +835,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                     color: const Color(0xFF504A4A),
                   ),
                 ),
-                SizedBox(height: 8 * h),
+                //SizedBox(height: 8 * h),
                 // 2. 상세 정보 (교수, 장소, 시간)
                 Text(
                   "교수: ${course.professor}",
@@ -881,18 +866,21 @@ class _TimetableScreenState extends State<TimetableScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                        _deleteCourse(course);
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0), // 터치 영역 확보
-                        child: Image.asset(
-                          'assets/images/mainpage/delete.png',
-                          width: 24 * w,
-                          height: 24 * w,
-                          color: const Color(0xFF675F5F),
+                    Transform.translate(
+                      offset: Offset(0, -30), // 휴지통 위로 옮김
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                          _deleteCourse(course);
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Image.asset(
+                            'assets/images/mainpage/delete.png',
+                            width: 24 * w,
+                            height: 24 * w,
+                            color: const Color(0xFF675F5F),
+                          ),
                         ),
                       ),
                     ),
@@ -923,7 +911,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
     return Container(
       height: sectionHeight,
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(20*w, 15*h, 20*w, 5*h),
+      padding: EdgeInsets.fromLTRB(20 * w, 15 * h, 20 * w, 5 * h),
       decoration: const BoxDecoration(
         color: Color(0xFFF0F0F0),
         borderRadius: BorderRadius.only(
@@ -935,7 +923,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 11*w, vertical: 5*h),
+            padding: EdgeInsets.symmetric(horizontal: 11 * w, vertical: 5 * h),
             decoration: BoxDecoration(
               color: const Color(0xFFACACAC),
               borderRadius: BorderRadius.circular(20),
@@ -950,7 +938,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
               ),
             ),
           ),
-          SizedBox(height: 14*h),
+          SizedBox(height: 14 * h),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
               stream:
@@ -1044,7 +1032,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
         minimumSize: Size(double.infinity, buttonHeight),
         elevation: 0,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width * 0.0388),
+        padding: EdgeInsets.symmetric(
+          horizontal: MediaQuery.of(context).size.width * 0.0388,
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1057,7 +1047,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
-          Icon(Icons.arrow_forward_ios, size: MediaQuery.of(context).size.width * 0.03888),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: MediaQuery.of(context).size.width * 0.03888,
+          ),
         ],
       ),
     );
