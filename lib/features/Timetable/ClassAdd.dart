@@ -77,7 +77,7 @@ class _ClassAddState extends State<ClassAdd> {
     final double w = screenWidth * 0.00243;
     final double h = screenHeight * 0.001134;
 
-    final pickerHeight = screenHeight * 0.35;
+    final pickerHeight = 200.0*h;
 
     DateTime picked = DateTime(2024, 1, 1, initial.hour, initial.minute);
 
@@ -115,13 +115,13 @@ class _ClassAddState extends State<ClassAdd> {
                   ),
                 ),
                 CupertinoButton(
-                  padding: EdgeInsets.symmetric(horizontal: 24 * w, vertical: 12 * w),
+                  padding: EdgeInsets.zero,
                   child: Text(
                     '확인',
                     style: TextStyle(
                       fontFamily: 'Golos Text',
-                      fontSize: 18 * w,
-                      fontWeight: FontWeight.w600,
+                      fontSize: 15*w,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                   onPressed: () {
@@ -131,7 +131,6 @@ class _ClassAddState extends State<ClassAdd> {
                     );
                   },
                 ),
-                SizedBox(height: MediaQuery.of(context).padding.bottom + screenHeight * 0.02),
               ],
             ),
           ),
