@@ -115,7 +115,7 @@ class _ClassAddState extends State<ClassAdd> {
                   ),
                 ),
                 CupertinoButton(
-                  padding: EdgeInsets.zero,
+                  padding: EdgeInsets.only(bottom: screenHeight * 0.01),
                   child: Text(
                     '확인',
                     style: TextStyle(
