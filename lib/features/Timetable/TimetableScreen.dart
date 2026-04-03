@@ -813,7 +813,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
       backgroundColor: Colors.transparent,
       builder:
           (context) => Container(
-            padding: EdgeInsets.fromLTRB(24 * w, 24 * h, 24 * w, 20 * h),
+            padding: EdgeInsets.fromLTRB(24 * w, 24 * h, 24 * w, screenHeight * 0.1),
             decoration: const BoxDecoration(
               color: Color(0xFFFFFFF9),
               borderRadius: BorderRadius.only(

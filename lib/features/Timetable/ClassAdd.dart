@@ -77,7 +77,7 @@ class _ClassAddState extends State<ClassAdd> {
     final double w = screenWidth * 0.00243;
     final double h = screenHeight * 0.001134;
 
-    final pickerHeight = 200.0*h;
+    final pickerHeight = 200.0*h + screenHeight * 0.05;
 
     DateTime picked = DateTime(2024, 1, 1, initial.hour, initial.minute);
 
@@ -100,6 +100,7 @@ class _ClassAddState extends State<ClassAdd> {
           ),
           child: Container(
             height: pickerHeight,
+            padding: EdgeInsets.only(bottom: screenHeight * 0.05),
             color: const Color(0xFFFFFFF9), // 배경색을 모달과 동일하게 맞춤
             child: Column(
               children: [
@@ -115,7 +116,7 @@ class _ClassAddState extends State<ClassAdd> {
                   ),
                 ),
                 CupertinoButton(
-                  padding: EdgeInsets.only(bottom: screenHeight * 0.01),
+                  padding: EdgeInsets.zero,
                   child: Text(
                     '확인',
                     style: TextStyle(
